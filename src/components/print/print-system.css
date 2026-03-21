@@ -1,0 +1,217 @@
+/* Unified Print System Styles */
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+  
+  body {
+    background: white !important;
+    margin: 0;
+    padding: 0;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 210mm;
+    min-height: 297mm;
+    background: white !important;
+  }
+}
+
+.print-preview-container {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 15mm;
+  margin: 1rem auto;
+  background: white;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  color: #111;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Typography */
+.print-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #000;
+  margin-bottom: 4px;
+}
+
+.print-subtitle {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 24px;
+}
+
+/* Header Sections */
+.print-header-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  margin-bottom: 40px;
+}
+
+.print-info-block {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.print-info-label {
+  font-weight: 700;
+  color: #000;
+  margin-bottom: 4px;
+  display: block;
+}
+
+/* Metadata (Date, Number) */
+.print-meta-grid {
+  display: flex;
+  gap: 40px;
+  margin-bottom: 40px;
+  font-size: 13px;
+}
+
+.print-meta-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.print-meta-label {
+  font-weight: 600;
+  color: #000;
+}
+
+/* Table Design */
+.print-table-section {
+  flex-grow: 1;
+  margin-bottom: 40px;
+}
+
+.print-section-header {
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  color: #000;
+  letter-spacing: 0.05em;
+}
+
+.print-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.print-table th {
+  text-align: left;
+  padding: 12px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #000;
+  border-bottom: 2px solid #000;
+  background-color: transparent;
+}
+
+.print-table td {
+  padding: 12px 8px;
+  font-size: 13px;
+  border-bottom: 1px solid #eee;
+  color: #333;
+}
+
+.print-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* Totals Box */
+.print-summary-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 40px;
+}
+
+.print-summary-box {
+  width: 300px;
+}
+
+.print-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+}
+
+.print-summary-row.total {
+  border-top: 2px solid #000;
+  border-bottom: 2px solid #000;
+  margin-top: 8px;
+  padding: 12px 0;
+  font-weight: 800;
+  font-size: 18px;
+}
+
+/* Footer & Details */
+.print-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  margin-bottom: 60px;
+  font-size: 12px;
+}
+
+.print-details-header {
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #000;
+}
+
+/* Simple 3-column footer bar */
+.print-bottom-bar {
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+  font-size: 10px;
+  color: #666;
+}
+
+.print-bottom-bar-col strong {
+  color: #000;
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* Signatures */
+.print-signature-section {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 40px;
+  margin-bottom: 40px;
+}
+
+.print-signature-box {
+  width: 200px;
+  text-align: center;
+}
+
+.print-signature-line {
+  border-top: 1px solid #000;
+  margin-bottom: 8px;
+}
+
+.print-signature-label {
+  font-size: 12px;
+  font-weight: 600;
+}

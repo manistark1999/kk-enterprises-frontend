@@ -1,0 +1,241 @@
+/**
+ * KK Enterprises - Layout Consistency Styles
+ * Ensures uniform spacing, alignment, and sizing across all components
+ */
+
+/* ===================
+   CONTAINER LAYOUTS
+   =================== */
+
+/* Page container - all screens */
+.page-container {
+  @apply p-6 space-y-6;
+}
+
+/* Content wrapper - max width with centering */
+.content-wrapper {
+  @apply max-w-7xl mx-auto;
+}
+
+/* ===================
+   CARD LAYOUTS
+   =================== */
+
+/* Standard card spacing */
+.card-content {
+  @apply p-6;
+}
+
+/* Card header with title and actions */
+.card-header {
+  @apply flex items-center justify-between mb-6;
+}
+
+/* Card section spacing */
+.card-section {
+  @apply space-y-4;
+}
+
+/* ===================
+   FORM LAYOUTS
+   =================== */
+
+/* Form field container */
+.form-field {
+  @apply space-y-2;
+}
+
+/* Two column form grid */
+.form-grid-2 {
+  @apply grid grid-cols-1 lg:grid-cols-2 gap-5;
+}
+
+/* Three column form grid */
+.form-grid-3 {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5;
+}
+
+/* Four column form grid */
+.form-grid-4 {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4;
+}
+
+/* Form actions row */
+.form-actions {
+  @apply flex items-center justify-end gap-3 mt-6 pt-6 border-t;
+}
+
+/* ===================
+   INPUT ELEMENTS
+   =================== */
+
+/* Ensure all inputs have consistent height (44px) */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+input[type="password"],
+input[type="date"],
+input[type="time"],
+select,
+.input-field {
+  @apply h-11;
+}
+
+/* Ensure all buttons have consistent height (44px) */
+button:not(.icon-btn),
+.btn {
+  @apply h-11;
+}
+
+/* Icon buttons (40px square) */
+.icon-btn {
+  @apply w-10 h-10 p-2;
+}
+
+/* ===================
+   TABLE LAYOUTS
+   =================== */
+
+/* Table container with proper overflow */
+.table-container {
+  @apply overflow-x-auto rounded-lg border;
+}
+
+/* Table header cells */
+.table-header-cell {
+  @apply py-3 px-4 text-left;
+}
+
+/* Table body cells */
+.table-cell {
+  @apply py-3 px-4;
+}
+
+/* Table action buttons container */
+.table-actions {
+  @apply flex items-center justify-center gap-2;
+}
+
+/* ===================
+   FLEXBOX UTILITIES
+   =================== */
+
+/* Horizontal flex with gap */
+.flex-row {
+  @apply flex items-center gap-3;
+}
+
+/* Horizontal flex with space between */
+.flex-between {
+  @apply flex items-center justify-between;
+}
+
+/* Vertical flex with gap */
+.flex-col-gap {
+  @apply flex flex-col gap-4;
+}
+
+/* ===================
+   SPACING UTILITIES
+   =================== */
+
+/* Section spacing */
+.section-gap {
+  @apply space-y-6;
+}
+
+/* Card gap in grid */
+.card-grid {
+  @apply grid gap-6;
+}
+
+/* Responsive card grid */
+.card-grid-responsive {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
+}
+
+/* KPI card grid (4 columns) */
+.kpi-grid {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4;
+}
+
+/* ===================
+   TEXT ALIGNMENT
+   =================== */
+
+/* Center text alignment */
+.text-center-align {
+  @apply text-center;
+}
+
+/* Right align for numbers */
+.text-right-align {
+  @apply text-right;
+}
+
+/* ===================
+   RESPONSIVE UTILITIES
+   =================== */
+
+/* Hide on mobile */
+@media (max-width: 640px) {
+  .hide-mobile {
+    @apply hidden;
+  }
+}
+
+/* Show only on mobile */
+@media (min-width: 641px) {
+  .show-mobile-only {
+    @apply hidden;
+  }
+}
+
+/* Stack on mobile, row on desktop */
+.responsive-stack {
+  @apply flex flex-col md:flex-row gap-4;
+}
+
+/* ===================
+   SCROLL BEHAVIOR
+   =================== */
+
+/* Smooth scrolling for content areas */
+.content-scroll {
+  @apply overflow-y-auto overflow-x-hidden;
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Custom scrollbar styling */
+.scrollbar-custom {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
+}
+
+.scrollbar-custom::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.3);
+  border-radius: 20px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.5);
+}

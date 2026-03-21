@@ -1,0 +1,76 @@
+Create a dynamic MIS Reports Dashboard where changing the "Report Type" dropdown automatically updates all dashboard data.
+
+Requirements:
+
+1. Report Type Dropdown
+   The dropdown contains options like:
+
+* Overview
+* Revenue Analysis
+* Expense Analysis
+* Profit Analysis
+* Customer Analysis
+
+When the user selects a different report type:
+
+* The dashboard should automatically refresh.
+* Update KPI cards and charts based on the selected report.
+
+2. JavaScript Event Listener
+   Add a change event listener to the dropdown.
+
+Example:
+document.getElementById("reportType").addEventListener("change", function() {
+const reportType = this.value;
+updateReport(reportType);
+});
+
+3. Update Dashboard Function
+   Create a function called updateReport(reportType) that:
+
+* Fetches new data
+* Updates cards
+* Updates charts.
+
+Example:
+function updateReport(reportType) {
+fetch(`/api/mis-report?type=${reportType}`)
+.then(response => response.json())
+.then(data => {
+updateCards(data);
+updateCharts(data);
+});
+}
+
+4. Update KPI Cards
+   Automatically update:
+
+* Total Revenue
+* Total Expenses
+* Net Profit
+* Total Customers
+
+based on the selected report type.
+
+Example:
+Revenue Analysis → highlight revenue data
+Expense Analysis → show expense breakdown
+Profit Analysis → focus on profit margins.
+
+5. Update Charts
+   Charts should dynamically change:
+
+Revenue Analysis → Revenue trend chart
+Expense Analysis → Expense category chart
+Customer Analysis → Customer growth chart
+
+Use Chart.js and destroy previous chart before creating a new one.
+
+6. Smooth UI Behavior
+
+* Add loading animation while data updates.
+* Keep dashboard layout fixed.
+* Add smooth number transitions.
+
+Goal:
+Make the MIS dashboard behave like a professional analytics system where selecting a different report type automatically refreshes all cards and charts without reloading the page.

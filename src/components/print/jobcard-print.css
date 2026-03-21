@@ -1,0 +1,200 @@
+@import url('https://fonts.googleapis.com/css2?family=Libre+Barcode+39+Text&display=swap');
+
+.jobcard-print-root {
+  background: #f3f4f6;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.jobcard-print-page {
+  width: 210mm;
+  min-height: 297mm;
+  background: white;
+  color: #111827;
+  padding: 12mm;
+  box-sizing: border-box;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.jobcard-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+
+.jobcard-header-left {
+  width: 42%;
+}
+
+.jobcard-header-right {
+  width: 42%;
+}
+
+.jc-section-title {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.jc-customer-name {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.jc-main-title {
+  font-size: 18px;
+  font-weight: 700;
+  text-align: right;
+  margin-bottom: 10px;
+}
+
+.jc-top-meta {
+  margin-left: auto;
+  width: 290px;
+  margin-bottom: 10px;
+}
+
+.jc-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.jc-line-value {
+  display: inline-block;
+  min-width: 100px;
+  border-bottom: 1px solid #111;
+  text-align: left;
+}
+
+.jc-barcode-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 88px;
+  border: 0;
+}
+
+.jc-barcode-text {
+  font-family: "Libre Barcode 39 Text", "Libre Barcode 39", cursive, monospace;
+  font-size: 28px;
+  letter-spacing: 2px;
+  text-align: center;
+  margin-top: 8px;
+}
+
+.jc-vehicle-box {
+  border: 1px solid #444;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.jc-vehicle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.9fr;
+  gap: 24px;
+}
+
+.jc-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jc-field-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.jc-label {
+  min-width: 105px;
+  font-weight: 700;
+}
+
+.jc-value {
+  flex: 1;
+}
+
+.jc-summary-line {
+  margin-top: 18px;
+}
+
+.jc-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  margin-bottom: 14px;
+}
+
+.jc-items-table thead th {
+  background: #2f2f2f;
+  color: #fff;
+  font-weight: 700;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.jc-items-table tbody td {
+  padding: 4px 8px;
+  border-bottom: 1px solid #111;
+}
+
+.jc-empty-row {
+  text-align: center;
+  padding: 14px 0 !important;
+}
+
+.jc-notes-section {
+  margin-top: 10px;
+}
+
+.jc-notes-title {
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.jc-notes-content {
+  min-height: 80px;
+  white-space: pre-wrap;
+}
+
+.jc-footer {
+  margin-top: 28px;
+  padding-top: 8px;
+  border-top: 1px solid #ddd;
+  font-size: 11px;
+  color: #4b5563;
+}
+
+@page {
+  size: A4 portrait;
+  margin: 10mm;
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  /* Make sure printing isolates the root */
+  .jobcard-print-root {
+    background: #fff;
+    padding: 0;
+    width: 100%;
+  }
+
+  .jobcard-print-page {
+    width: 100%;
+    min-height: auto;
+    padding: 0;
+    box-shadow: none;
+  }
+}

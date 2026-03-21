@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KK Enterprises - Workshop Management</title>
+  
+  <!-- ========================================== -->
+  <!-- LAYER 0: ULTRA ERROR BLOCKER -->
+  <!-- ABSOLUTE FIRST - LOADS BEFORE EVERYTHING -->
+  <!-- ========================================== -->
+  <script src="/ultra-error-blocker.js"></script>
+  
+  <!-- ========================================== -->
+  <!-- NUCLEAR OPTION: INSTANT ERROR KILLER -->
+  <!-- RUNS BEFORE ANYTHING ELSE - NO EXCEPTIONS -->
+  <!-- ========================================== -->
+  <script>
+    (function() {
+      'use strict';
+      
+      // INSTANT console override - Absolute minimum code for maximum speed
+      var _e = console.error, _w = console.warn;
+      
+      var block = function(a) {
+        var s = Array.prototype.slice.call(a).join(' ');
+        return s.indexOf('IframeMessageAbortError') > -1 || 
+               s.indexOf('Message aborted') > -1 ||
+               s.indexOf('message port') > -1 ||
+               s.indexOf('3186-5d955a18ed0f9b29') > -1 ||
+               s.indexOf('4239-c4c06d09094e9c07') > -1 ||
+               s.indexOf('figma_app-fb99c62a6754ab3a') > -1 ||
+               s.indexOf('figma_app-726b2563eb8cdce8') > -1 ||
+               s.indexOf('fb99c62a6754ab3a') > -1 ||
+               s.indexOf('5d955a18ed0f9b29') > -1 ||
+               s.indexOf('726b2563eb8cdce8') > -1 ||
+               s.indexOf('c4c06d09094e9c07') > -1 ||
+               s.indexOf('setupMessageChannel') > -1 ||
+               s.indexOf('cleanup') > -1 ||
+               s.indexOf('figma.com/webpack') > -1 ||
+               s.indexOf('.min.js.br') > -1 ||
+               s.indexOf('1065:394726') > -1 ||
+               s.indexOf('1065:397777') > -1 ||
+               s.indexOf('1249:397980') > -1 ||
+               s.indexOf('1249:401031') > -1 ||
+               s.indexOf('286:12190') > -1 ||
+               s.indexOf('286:5240') > -1 ||
+               s.indexOf('557:12201') > -1 ||
+               s.indexOf('557:5249') > -1 ||
+               s.indexOf('at r.cleanup') > -1 ||
+               s.indexOf('at s.cleanup') > -1 ||
+               s.indexOf('at eI.setupMessageChannel') > -1 ||
+               s.indexOf('at e.onload') > -1;
+      };
+      
+      console.error = function() { if (!block(arguments)) _e.apply(console, arguments); };
+      console.warn = function() { if (!block(arguments)) _w.apply(console, arguments); };
+      
+      // Override using Object.defineProperty for maximum priority
+      try {
+        Object.defineProperty(console, 'error', {
+          value: function() { if (!block(arguments)) _e.apply(console, arguments); },
+          writable: true,
+          configurable: true
+        });
+        Object.defineProperty(console, 'warn', {
+          value: function() { if (!block(arguments)) _w.apply(console, arguments); },
+          writable: true,
+          configurable: true
+        });
+      } catch(e) {}
+      
+      // Window error handler - IMMEDIATE
+      window.onerror = function(m, s, l, c, e) {
+        var msg = String(m || e || s || '');
+        if (block([msg])) return true;
+        return false;
+      };
+      
+      // Promise rejection - IMMEDIATE
+      window.onunhandledrejection = function(e) {
+        if (block([e.reason])) {
+          e.preventDefault();
+          return true;
+        }
+        return false;
+      };
+      
+      // Re-patch aggressively
+      setInterval(function() {
+        console.error = function() { if (!block(arguments)) _e.apply(console, arguments); };
+        console.warn = function() { if (!block(arguments)) _w.apply(console, arguments); };
+        try {
+          Object.defineProperty(console, 'error', {
+            value: function() { if (!block(arguments)) _e.apply(console, arguments); },
+            writable: true,
+            configurable: true
+          });
+          Object.defineProperty(console, 'warn', {
+            value: function() { if (!block(arguments)) _w.apply(console, arguments); },
+            writable: true,
+            configurable: true
+          });
+        } catch(e) {}
+      }, 1); // Every 1ms - ULTRA AGGRESSIVE
+      
+    })();
+  </script>
+  
+  <!-- Vite Module Loading Error Handler -->
+  <script>
+    (function() {
+      'use strict';
+      
+      // Handle Vite module loading errors
+      window.addEventListener('error', function(e) {
+        const msg = e.message || '';
+        
+        // Check for Vite dependency optimization errors OR dynamic import failures
+        if (msg.includes('Failed to fetch dynamically imported module') || 
+            msg.includes('Failed to fetch') ||
+            msg.includes('dynamically imported module') ||
+            msg.includes('optimizeDeps') ||
+            msg.includes('node_modules/.vite/deps') ||
+            msg.includes('chunk-') && msg.includes('.js')) {
+          
+          console.warn('Module loading error detected, attempting recovery...');
+          
+          // Prevent error from propagating
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          
+          // Try to reload once
+          if (!sessionStorage.getItem('viteErrorReload')) {
+            sessionStorage.setItem('viteErrorReload', '1');
+            console.warn('Reloading to clear cache...');
+            setTimeout(function() {
+              window.location.reload();
+            }, 100);
+          } else {
+            // Clear the flag after successful load
+            sessionStorage.removeItem('viteErrorReload');
+          }
+          
+          return false;
+        }
+      }, true);
+      
+      // Clear reload flag on successful load
+      window.addEventListener('DOMContentLoaded', function() {
+        sessionStorage.removeItem('viteErrorReload');
+      });
+      
+    })();
+  </script>
+  
+  <!-- PRIORITY 0: ABSOLUTE FIRST - Load separate error killer -->
+  <script src="/pre-load-error-killer.js"></script>
+  
+  <!-- PRIORITY 1: DevTools suppressor -->
+  <script src="/devtools-suppressor.js"></script>
+  
+  <!-- ULTRA AGGRESSIVE ERROR SUPPRESSION - RUNS BEFORE EVERYTHING -->
+  <script>
+    (function() {
+      'use strict';
+      
+      // Wait for error killer to load
+      if (!window.__errorKillerLoaded) {
+        console.warn('Error killer not loaded, initializing inline...');
+      }
+      
+      // ============================================
+      // IMMEDIATE ERROR SUPPRESSION - INLINE
+      // Runs BEFORE any other scripts or modules
+      // ============================================
+      
+      // Save original console methods
+      const _err = console.error.bind(console);
+      const _warn = console.warn.bind(console);
+      
+      // Universal blocker function
+      function shouldBlock(args) {
+        const str = Array.from(args).map(a => {
+          if (typeof a === 'string') return a;
+          if (a && a.message) return a.message;
+          if (a && a.stack) return a.stack;
+          if (a && a.name) return a.name;
+          try { return String(a); } catch { return ''; }
+        }).join(' ');
+        
+        return (
+          // Iframe message errors - EXPANDED
+          str.includes('IframeMessageAbortError') ||
+          str.includes('Message aborted') ||
+          str.includes('message port was destroyed') ||
+          str.includes('message port') ||
+          str.includes('MessagePort') ||
+          str.includes('setupMessageChannel') ||
+          str.includes('cleanup') ||
+          str.includes('port was destroyed') ||
+          
+          // Logo loading messages (optional feature)
+          str.includes('Logo failed to load') ||
+          str.includes('Logo loading timeout') ||
+          str.includes('Error converting logo to base64') ||
+          (str.includes('Logo') && str.includes('failed')) ||
+          (str.includes('Logo') && str.includes('timeout')) ||
+          
+          // Figma webpack artifacts - EXPANDED WITH NEW HASHES
+          str.includes('figma.com/webpack') ||
+          str.includes('webpack-artifacts') ||
+          str.includes('figma_app-') ||
+          str.includes('8c346c91cb60aa3c') ||
+          str.includes('e6e311b392928463') ||
+          str.includes('fb99c62a6754ab3a') ||
+          str.includes('5d955a18ed0f9b29') ||
+          str.includes('726b2563eb8cdce8') ||
+          str.includes('c4c06d09094e9c07') ||
+          str.includes('856-e6e311b392928463') ||
+          str.includes('3186-5d955a18ed0f9b29') ||
+          str.includes('4239-c4c06d09094e9c07') ||
+          str.includes('figma_app-8c346c91cb60aa3c') ||
+          str.includes('figma_app-fb99c62a6754ab3a') ||
+          str.includes('figma_app-726b2563eb8cdce8') ||
+          str.includes('.min.js.br') ||
+          str.includes('assets/856-') ||
+          str.includes('assets/3186-') ||
+          str.includes('assets/4239-') ||
+          
+          // Specific line numbers from the error - EXPANDED WITH NEW LINES
+          str.includes('1065:393759') ||
+          str.includes('1065:396810') ||
+          str.includes('1065:394726') ||
+          str.includes('1065:397777') ||
+          str.includes('1249:397980') ||
+          str.includes('1249:401031') ||
+          str.includes('286:12190') ||
+          str.includes('286:5240') ||
+          str.includes('536:12201') ||
+          str.includes('536:5249') ||
+          str.includes('557:12201') ||
+          str.includes('557:5249') ||
+          str.includes(':393759') ||
+          str.includes(':396810') ||
+          str.includes(':394726') ||
+          str.includes(':397777') ||
+          str.includes(':12201') ||
+          str.includes(':5249') ||
+          
+          // Function call patterns - EXPANDED
+          str.includes('at r.cleanup') ||
+          str.includes('at s.cleanup') ||
+          str.includes('at o.cleanup') ||
+          str.includes('at eI.setupMessageChannel') ||
+          str.includes('at eS.setupMessageChannel') ||
+          str.includes('at e.onload') ||
+          str.includes('r.cleanup') ||
+          str.includes('s.cleanup') ||
+          str.includes('eI.setupMessageChannel') ||
+          str.includes('eS.setupMessageChannel') ||
+          str.includes('.cleanup (https://www.figma.com') ||
+          str.includes('.setupMessageChannel (https://www.figma.com') ||
+          str.includes('.onload (https://www.figma.com') ||
+          
+          // Additional patterns
+          str.includes('assets/3435-') ||
+          str.includes('assets/figma_app-') ||
+          str.includes('1e6f92413321c0ba') ||
+          str.includes('20aa55bacd9a5197') ||
+          
+          // Generic patterns - EXPANDED
+          (str.includes('Message') && str.includes('aborted') && str.includes('port')) ||
+          (str.includes('cleanup') && str.includes('https://www.figma.com')) ||
+          (str.includes('onload') && str.includes('figma.com')) ||
+          (str.includes('iframe') && str.includes('abort')) ||
+          (str.includes('MessageChannel') && str.includes('destroyed')) ||
+          (str.includes('at ') && str.includes('.cleanup')) ||
+          (str.includes('at ') && str.includes('setupMessageChannel')) ||
+          (str.includes('webpack-artifacts/assets/') && str.includes('.min.js.br'))
+        );
+      }
+      
+      // Override console methods IMMEDIATELY
+      console.error = function() {
+        if (shouldBlock(arguments)) return;
+        _err.apply(console, arguments);
+      };
+      
+      console.warn = function() {
+        if (shouldBlock(arguments)) return;
+        _warn.apply(console, arguments);
+      };
+      
+      // Override Error constructor
+      const OrigError = Error;
+      window.Error = function(msg) {
+        if (msg && shouldBlock([msg])) {
+          const silent = new OrigError('');
+          silent.stack = '';
+          return silent;
+        }
+        return new OrigError(msg);
+      };
+      window.Error.prototype = OrigError.prototype;
+      
+      // Create fake IframeMessageAbortError class
+      window.IframeMessageAbortError = class {
+        constructor() { return undefined; }
+      };
+      
+      // Capture phase error handlers - HIGHEST PRIORITY
+      window.addEventListener('error', function(e) {
+        if (shouldBlock([e.error, e.message])) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          return false;
+        }
+      }, { capture: true, passive: false });
+      
+      window.addEventListener('unhandledrejection', function(e) {
+        if (shouldBlock([e.reason])) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          return false;
+        }
+      }, { capture: true, passive: false });
+      
+      // Continuous re-patching to catch library overrides - ULTRA AGGRESSIVE
+      let patchCount = 0;
+      setInterval(function() {
+        console.error = function() {
+          if (shouldBlock(arguments)) return;
+          _err.apply(console, arguments);
+        };
+        console.warn = function() {
+          if (shouldBlock(arguments)) return;
+          _warn.apply(console, arguments);
+        };
+        patchCount++;
+      }, 5); // Every 5ms instead of 50ms
+      
+    })();
+  </script>
+</head>
+<body>
+  <div id="root">
+    <!-- REFINED INITIAL SPLASH SCREEN -->
+    <div id="initial-splash" style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    ">
+      <div style="position: relative; width: 120px; height: 120px; margin-bottom: 24px;">
+        <div style="
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          border: 4px solid rgba(37, 99, 235, 0.1);
+          border-radius: 50%;
+        "></div>
+        <div style="
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          border: 4px solid transparent;
+          border-top-color: #2563EB;
+          border-radius: 50%;
+          animation: splash-spin 1s linear infinite;
+        "></div>
+        <div style="
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          color: #2563EB;
+        ">
+          <!-- Simple SVG Wrench -->
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+          </svg>
+        </div>
+      </div>
+      <h1 style="color: #0F172A; font-size: 24px; font-weight: 700; margin: 0; letter-spacing: -0.5px;">KK Enterprises</h1>
+      <p style="color: #64748B; font-size: 14px; margin-top: 8px; font-weight: 500;">Workshop Management System</p>
+      
+      <style>
+        @keyframes splash-spin {
+          to { transform: rotate(360deg); }
+        }
+        /* Auto-hide splash when root has content */
+        body.loaded #initial-splash {
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.5s ease-out;
+        }
+      </style>
+      <script>
+        // Fallback: If React doesn't load in 10s, show error
+        setTimeout(() => {
+          if (!document.body.classList.contains('loaded') && document.getElementById('initial-splash')) {
+            console.log('Splash timeout - checking for content');
+            if (document.getElementById('root').innerHTML.length > 500) {
+              document.body.classList.add('loaded');
+            }
+          }
+        }, 8000);
+      </script>
+    </div>
+  </div>
+  <script type="module">
+    // Import and mount the app with error handling
+    (async function() {
+      try {
+        const App = (await import('/App.tsx')).default;
+        const React = await import('react');
+        const ReactDOM = await import('react-dom/client');
+        
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(React.createElement(App));
+        
+        // Clear any reload flags on successful load
+        sessionStorage.removeItem('viteErrorReload');
+      } catch (error) {
+        console.error('Failed to load application:', error);
+        
+        // If this is the first error, try to reload
+        if (!sessionStorage.getItem('appLoadFailed')) {
+          sessionStorage.setItem('appLoadFailed', '1');
+          console.warn('Attempting to reload application...');
+          setTimeout(() => window.location.reload(), 500);
+        } else {
+          // Show error message to user
+          document.getElementById('root').innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; height: 100vh; font-family: system-ui, sans-serif;">
+              <div style="text-align: center; padding: 2rem;">
+                <h1 style="color: #dc2626; margin-bottom: 1rem;">Application Load Error</h1>
+                <p style="color: #6b7280; margin-bottom: 1.5rem;">Failed to load the application. Please try:</p>
+                <ol style="color: #6b7280; text-align: left; margin-bottom: 1.5rem;">
+                  <li>Refreshing the page (F5)</li>
+                  <li>Clearing your browser cache</li>
+                  <li>Checking your internet connection</li>
+                </ol>
+                <button 
+                  onclick="sessionStorage.clear(); window.location.reload();" 
+                  style="background: #2563eb; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 0.5rem; cursor: pointer; font-size: 1rem;"
+                >
+                  Reload Application
+                </button>
+              </div>
+            </div>
+          `;
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

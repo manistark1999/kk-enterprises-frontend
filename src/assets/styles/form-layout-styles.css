@@ -1,0 +1,92 @@
+Apply a **consistent centered layout and alignment for all forms across the entire system** to ensure a clean and professional user interface.
+
+Layout Requirements:
+
+1. All forms must be **center aligned inside the main content panel**.
+2. The form container should have a **maximum width of 900px–1100px** and be centered horizontally.
+3. Maintain consistent **margin, padding, height, and width** across all modules.
+
+Alignment Rules:
+
+• Form container: `margin: 0 auto`
+• Top spacing: `margin-top: 20px–30px`
+• Internal padding: `padding: 24px–32px`
+• Border radius: `10px–12px`
+• Maintain equal spacing between fields
+
+Field Layout:
+
+• Inputs must have **equal width and height**
+• Standard input height: **42px – 48px**
+• Label spacing: **6px–8px above inputs**
+• Field gap: **16px–20px between rows**
+
+Grid Structure:
+
+Use a **2-column responsive grid layout** for forms:
+
+Left column | Right column
+
+Example:
+
+Vehicle Number | Vehicle Make
+Vehicle Model | KM Reading
+Fuel Level | Status
+
+Buttons Alignment:
+
+• Save / Cancel buttons should be **right aligned at the bottom of the form**
+• Maintain **12px–16px spacing between buttons**
+
+Consistency Rules:
+
+Apply the same layout to all modules:
+
+Billing
+• Labour Bill
+• Estimation
+• Receipt
+• Payment
+
+Inventory
+• Purchase
+• Sales
+• Stock List
+• Stock Adjustment
+
+Accounts
+• Expense Entry
+• Staff Advance
+• Salary Entry
+• Cash Entry
+
+Masters
+• Vehicle Make
+• Work Group
+• Work Type
+• Supplier
+• Transport
+
+Settings
+• Company
+• Backup
+• Restore
+• Financial Year
+• User Management
+
+UI Improvements:
+
+• Ensure inputs do **not stretch full width of the screen**
+• Maintain **consistent column spacing**
+• Prevent misalignment between labels and fields
+• Ensure tables and forms align with the same container width
+
+Final Result:
+
+All forms across the system will have:
+
+• Center aligned layout
+• Consistent width and height
+• Proper margins and spacing
+• Clean professional dashboard appearance
+• Uniform UI across every module of the workshop management system

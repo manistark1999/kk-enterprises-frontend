@@ -1,0 +1,50 @@
+Fix the layout of all popup forms and modal windows so that they appear **perfectly centered on the screen** with proper alignment, consistent height, width, and spacing.
+
+Requirements:
+
+1. All popup forms (such as Receipt, Payment, Expense Entry, Item/Service, Vehicle Make, etc.) must appear **exactly in the center of the screen** both horizontally and vertically.
+
+2. Ensure the **modal container width is consistent** across the system.
+   Recommended width: **600px – 700px**.
+
+3. All input fields must have **equal height, width, and spacing**:
+
+   * Input height: **44px**
+   * Border radius: **8px**
+   * Field spacing: **16px – 20px**
+   * Labels aligned properly above inputs.
+
+4. Use a **two-column grid layout** where possible so fields align neatly:
+   Example layout:
+
+   * Date | Customer
+   * Amount | Payment Mode
+
+5. The **Description textarea** should span the full width of the form.
+
+6. Buttons must be properly aligned:
+
+   * **Save button on the left**
+   * **Cancel button on the right**
+   * Maintain equal button height and spacing.
+
+7. Ensure all elements inside the form have:
+
+   * Proper padding
+   * Equal margins
+   * Clean alignment
+   * No overlapping fields
+
+8. The modal background overlay should slightly blur or darken the background to focus attention on the form.
+
+9. The UI must remain **responsive**, so the form stays centered on different screen sizes.
+
+Final Result:
+
+All forms in the system will have:
+
+* Perfect center alignment
+* Consistent height, width, and spacing
+* Clean professional UI layout
+* Properly aligned input fields and buttons
+* A uniform design across the entire workshop management system.
