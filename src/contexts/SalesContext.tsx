@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api, endpoints } from '@/services/api';
 import { useAuth } from './AuthContext';
+import { toast } from 'sonner';
 
 export interface SalesItem {
   id: string | number;
@@ -82,28 +83,67 @@ export function SalesProvider({ children }: { children: ReactNode }) {
     fetchSales();
   }, [isAuthenticated]);
 
-  const addSale = async (newSale: any) => {
+  const addSale = async (newSale: Partial<Sale>) => {
     try {
-      const response = await api.post(endpoints.inventory.sales.create, newSale);
+      const payload = {
+        sale_no: newSale.billNo,
+        sale_date: newSale.date,
+        customer_name: newSale.customerName,
+        customer_phone: newSale.customerPhone,
+        items: newSale.items,
+        subtotal: newSale.subtotal,
+        total_gst: newSale.totalGST,
+        discount: newSale.discount,
+        grand_total: newSale.grandTotal,
+        payment_mode: newSale.paymentMode || 'Cash',
+        status: newSale.status || 'Completed'
+      };
+
+      const response = await api.post(endpoints.inventory.sales.create, payload);
       if (response.success) {
         await fetchSales();
+        toast.success('Sale recorded successfully');
         return response.data;
+      } else {
+        throw new Error(response.message || 'Failed to add sale');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding sale:', error);
+      toast.error(error.message || 'Failed to add sale');
       throw error;
     }
   };
 
-  const updateSale = async (id: string, updatedSale: any) => {
+  const updateSale = async (id: string, updatedSale: Partial<Sale>) => {
     try {
-      const response = await api.put(endpoints.inventory.sales.update(id), updatedSale);
+      const existing = sales.find(s => s.id === id);
+      const merged = { ...existing, ...updatedSale } as Sale;
+
+      const payload = {
+        sale_no: merged.billNo,
+        sale_date: merged.date,
+        customer_name: merged.customerName,
+        customer_phone: merged.customerPhone,
+        items: merged.items,
+        subtotal: merged.subtotal,
+        total_gst: merged.totalGST,
+        discount: merged.discount,
+        grand_total: merged.grandTotal,
+        payment_mode: merged.paymentMode,
+        status: merged.status
+      };
+
+      const response = await api.put(endpoints.inventory.sales.update(id), payload);
       if (response.success) {
         await fetchSales();
+        toast.success('Sale updated successfully');
         return response.data;
+      } else {
+        throw new Error(response.message || 'Failed to update sale');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating sale:', error);
+      toast.error(error.message || 'Failed to update sale');
       throw error;
     }
   };

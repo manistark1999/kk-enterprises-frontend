@@ -106,31 +106,73 @@ export function EstimationProvider({ children }: { children: ReactNode }) {
   useEffect(() => { fetchEstimations(); }, [isAuthenticated]);
 
   const addEstimation = async (estimation: EstimationRecord) => {
-    const res = await api.post(endpoints.billing.estimation.create, {
-      bill_no: estimation.billNo,
-      estimation_date: estimation.date,
-      customer_name: estimation.customerName,
-      customer_phone: estimation.customerPhone,
-      vehicle_number: estimation.vehicleNumber,
-      vehicle_model: estimation.vehicleModel,
-      total_amount: estimation.grandTotal,
-      status: estimation.status,
-      items: estimation.items
-    });
-    if (res.success) {
-      await fetchEstimations();
-      toast.success('Estimation saved successfully');
-    } else {
-      toast.error(res.message || 'Failed to save estimation');
-      throw new Error(res.error || 'Failed to save estimation');
+    try {
+      const payload = {
+        bill_no: estimation.billNo,
+        estimation_date: estimation.date,
+        estimation_time: estimation.time,
+        customer_name: estimation.customerName,
+        customer_phone: estimation.customerPhone,
+        customer_address: estimation.customerAddress,
+        vehicle_number: estimation.vehicleNumber,
+        vehicle_make: estimation.vehicleMake,
+        vehicle_model: estimation.vehicleModel,
+        km_reading: estimation.kmReading,
+        fuel_level: estimation.fuelLevel,
+        total_amount: estimation.grandTotal,
+        status: estimation.status,
+        items: estimation.items
+      };
+
+      const res = await api.post(endpoints.billing.estimation.create, payload);
+      if (res.success) {
+        await fetchEstimations();
+        toast.success('Estimation saved successfully');
+      } else {
+        toast.error(res.message || 'Failed to save estimation');
+        throw new Error(res.error || 'Failed to save estimation');
+      }
+    } catch (error: any) {
+      console.error('[EstimationContext] addEstimation catch:', error);
+      toast.error(error.message || 'Failed to add estimation');
+      throw error;
     }
   };
 
   const updateEstimation = async (id: string, updated: Partial<EstimationRecord>) => {
-    const res = await api.put(endpoints.billing.estimation.update(id), updated);
-    if (res.success) {
-      await fetchEstimations();
-      toast.success('Estimation updated successfully');
+    try {
+      const existing = estimations.find(e => e.id === id);
+      const merged = { ...existing, ...updated } as EstimationRecord;
+      
+      const payload = {
+        bill_no: merged.billNo,
+        estimation_date: merged.date,
+        estimation_time: merged.time,
+        customer_name: merged.customerName,
+        customer_phone: merged.customerPhone,
+        customer_address: merged.customerAddress,
+        vehicle_number: merged.vehicleNumber,
+        vehicle_make: merged.vehicleMake,
+        vehicle_model: merged.vehicleModel,
+        km_reading: merged.kmReading,
+        fuel_level: merged.fuelLevel,
+        total_amount: merged.grandTotal,
+        status: merged.status,
+        items: merged.items
+      };
+
+      const res = await api.put(endpoints.billing.estimation.update(id), payload);
+      if (res.success) {
+        await fetchEstimations();
+        toast.success('Estimation updated successfully');
+      } else {
+        toast.error(res.message || 'Failed to update estimation');
+        throw new Error(res.error || 'Failed to update estimation');
+      }
+    } catch (error: any) {
+      console.error('[EstimationContext] updateEstimation catch:', error);
+      toast.error(error.message || 'Failed to update estimation');
+      throw error;
     }
   };
 

@@ -369,7 +369,7 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
   };
   const deleteWorkGroup = async (id: string) => {
     await api.delete(`/work/groups/${id}`);
-    setWorkGroups(prev => prev.filter(w => w.id !== id));
+    await fetchAll();
   };
 
   // Suppliers
@@ -383,7 +383,7 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
   };
   const deleteSupplier = async (id: string) => {
     await api.delete(`/suppliers/${id}`);
-    setSuppliers(prev => prev.filter(s => s.id !== id));
+    await fetchAll();
   };
 
   // Transports
@@ -397,7 +397,7 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
   };
   const deleteTransport = async (id: string) => {
     await api.delete(`/transports/${id}`);
-    setTransports(prev => prev.filter(t => t.id !== id));
+    await fetchAll();
   };
 
   // Staff 
@@ -411,7 +411,7 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
   };
   const deleteStaff = async (id: string) => {
     await api.delete(`/staff/${id}`);
-    setStaff(prev => prev.filter(s => s.id !== id));
+    await fetchAll();
   };
 
   // Brands
@@ -425,7 +425,7 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
   };
   const deleteBrand = async (id: string) => {
     await api.delete(`/brands/${id}`);
-    setBrands(prev => prev.filter(brand => brand.id !== id));
+    await fetchAll();
   };
 
   const getActiveVehicleMakes = () => vehicleMakes.filter(m => m.status === 'Active');

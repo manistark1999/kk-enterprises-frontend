@@ -412,64 +412,93 @@ export function Sidebar({ isCollapsed, onToggleCollapse, isDarkMode, onToggleThe
             key={item.label}
             className="relative popup-trigger"
           >
-           <Link to={`/${screenKeyMap[item.label]}`}>
-            <div
-              className={`sidebar-item flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer group relative transition-all duration-200 ${
-                isMenuItemActive(item.label) || hasActiveChild(item)
-                  ? isDarkMode
-                    ? 'bg-blue-600/30 text-white border-l-4 border-blue-400'
-                    : 'bg-white/20 text-white border-l-4 border-white'
-                  : isDarkMode
-                  ? 'text-gray-300 hover:bg-white/10 hover:text-white'
-                  : 'text-blue-100 hover:bg-white/10 hover:text-white'
-              } ${isCollapsed ? 'justify-center' : ''}`}
-              onClick={() => {
-                if (isCollapsed && item.hasSubmenu) {
-                  // Auto-expand sidebar when clicking menu item in collapsed mode
-                  onToggleCollapse();
-                  // Then expand the submenu after animation completes
-                  setTimeout(() => {
+            {item.hasSubmenu ? (
+              <div
+                className={`sidebar-item flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer group relative transition-all duration-200 ${
+                  isMenuItemActive(item.label) || hasActiveChild(item)
+                    ? isDarkMode
+                      ? 'bg-blue-600/30 text-white border-l-4 border-blue-400'
+                      : 'bg-white/20 text-white border-l-4 border-white'
+                    : isDarkMode
+                    ? 'text-gray-300 hover:bg-white/10 hover:text-white'
+                    : 'text-blue-100 hover:bg-white/10 hover:text-white'
+                } ${isCollapsed ? 'justify-center' : ''}`}
+                onClick={() => {
+                  if (isCollapsed && item.hasSubmenu) {
+                    onToggleCollapse();
+                    setTimeout(() => {
+                      toggleExpand(item.label);
+                    }, 350);
+                  } else {
                     toggleExpand(item.label);
-                  }, 350);
-                } else if (!isCollapsed && item.hasSubmenu) {
-                  // Toggle expand in normal mode
-                  toggleExpand(item.label);
-                }
-              }}
-            >
-              <item.icon className={`w-5 h-5 flex-shrink-0 ${
-                isMenuItemActive(item.label) || hasActiveChild(item)
-                  ? 'text-white'
-                  : isDarkMode ? 'text-gray-300' : 'text-blue-100'
-              }`} />
-              <AnimatePresence>
-                {!isCollapsed && (
-                  <motion.span 
-                    className="flex-1 font-medium text-sm"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  >
-                    {item.label}
-                  </motion.span>
+                  }
+                }}
+              >
+                <item.icon className={`w-5 h-5 flex-shrink-0 ${
+                  isMenuItemActive(item.label) || hasActiveChild(item)
+                    ? 'text-white'
+                    : isDarkMode ? 'text-gray-300' : 'text-blue-100'
+                }`} />
+                <AnimatePresence>
+                  {!isCollapsed && (
+                    <motion.span 
+                      className="flex-1 font-medium text-sm"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      {item.label}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+                {!isCollapsed && item.hasSubmenu && (
+                  <ChevronDown 
+                    className={`w-4 h-4 transition-transform ${
+                      expandedItems.includes(item.label) ? 'rotate-180' : ''
+                    } ${isDarkMode ? 'text-gray-400' : 'text-blue-200'}`} 
+                  />
                 )}
-              </AnimatePresence>
-              {!isCollapsed && item.hasSubmenu && (
-                <ChevronDown 
-                  className={`w-4 h-4 transition-transform ${
-                    expandedItems.includes(item.label) ? 'rotate-180' : ''
-                  } ${isDarkMode ? 'text-gray-400' : 'text-blue-200'}`} 
-                />
-              )}
-              
-              {/* Tooltip for collapsed state - Only show if no submenu */}
-              {isCollapsed && !item.hasSubmenu && (
-                <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-                  {item.label}
-                </div>
-              )}
-            </div>
-            </Link>
+              </div>
+            ) : (
+             <Link to={`/${screenKeyMap[item.label] || ''}`}>
+              <div
+                className={`sidebar-item flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer group relative transition-all duration-200 ${
+                  isMenuItemActive(item.label) || hasActiveChild(item)
+                    ? isDarkMode
+                      ? 'bg-blue-600/30 text-white border-l-4 border-blue-400'
+                      : 'bg-white/20 text-white border-l-4 border-white'
+                    : isDarkMode
+                    ? 'text-gray-300 hover:bg-white/10 hover:text-white'
+                    : 'text-blue-100 hover:bg-white/10 hover:text-white'
+                } ${isCollapsed ? 'justify-center' : ''}`}
+              >
+                <item.icon className={`w-5 h-5 flex-shrink-0 ${
+                  isMenuItemActive(item.label) || hasActiveChild(item)
+                    ? 'text-white'
+                    : isDarkMode ? 'text-gray-300' : 'text-blue-100'
+                }`} />
+                <AnimatePresence>
+                  {!isCollapsed && (
+                    <motion.span 
+                      className="flex-1 font-medium text-sm"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                    >
+                      {item.label}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+                
+                {/* Tooltip for collapsed state - Only show if no submenu */}
+                {isCollapsed && (
+                  <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                    {item.label}
+                  </div>
+                )}
+              </div>
+              </Link>
+            )}
             {/* Floating Submenu Popover for Collapsed State */}
             <AnimatePresence>
               {isCollapsed && item.hasSubmenu && clickedItem === item.label && item.submenu && (

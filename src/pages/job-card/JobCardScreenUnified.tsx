@@ -43,6 +43,7 @@ import { useVehicleRegistry } from '@/contexts/VehicleRegistryContext';
 import { useLabourBills } from '@/contexts/LabourBillContext';
 import { useItemsServices } from '@/contexts/ItemsServicesContext';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useJobCards } from '@/contexts/JobCardContext';
 import JobCardPrintPreview from './JobCardPrintPreview'; // Corrected path
 import { JobCardPrintProps } from '@/components/print/JobCardPrint'; // Corrected path
 const kkLogo = "https://via.placeholder.com/150x50?text=KK+Enterprises"; // Placeholder logo
@@ -139,6 +140,15 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
   const { vehicles: registeredVehicles } = useVehicleRegistry();
   const { labourBills } = useLabourBills();
   const { getActiveServices, itemsServices } = useItemsServices();
+  const { 
+    jobCards, 
+    addJobCard, 
+    updateJobCard, 
+    deleteJobCard, 
+    refreshJobCards, 
+    getJobCardById,
+    isLoading 
+  } = useJobCards();
   // const { showNotification } = useNotifications(); // Removed because it's not in the context
 
   // Get services for the table
@@ -316,22 +326,52 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
     });
   }, [serviceItems, formData.labourCharge, formData.partsCharge]);
 
-  const [jobCards, setJobCards] = useState<JobCard[]>([]);
-  const [isJobCardLoading, setIsJobCardLoading] = useState(false);
   const [isSavingJobCard, setIsSavingJobCard] = useState(false);
 
+  const handleView = async (card: JobCard) => {
+    try {
+      // Re-fetch the record by ID to ensure latest data
+      const latestData = await getJobCardById(card.id);
+      if (latestData) {
+        setCardToView(latestData);
+        setViewModalOpen(true);
+      } else {
+        // Fallback to list data if re-fetch fails
+        setCardToView(card);
+        setViewModalOpen(true);
+      }
+    } catch (err) {
+      console.error('Error fetching job card for view:', err);
+      setCardToView(card);
+      setViewModalOpen(true);
+    }
+  };
+
   const handlePrint = async (card: JobCard) => {
-    setPrintData(card);
-    setIsPrintModalOpen(true);
+    try {
+      const latestData = await getJobCardById(card.id);
+      setPrintData(latestData || card);
+      setIsPrintModalOpen(true);
+    } catch (err) {
+      console.error('Error fetching job card for print:', err);
+      setPrintData(card);
+      setIsPrintModalOpen(true);
+    }
 
     // Log the print action to history
     try {
-      await api.post('/audit-logs', {
+      // Create an audit trail record for the print action
+      await api.post('/audit', {
         table_name: 'jobcards',
-        record_id: card.id,
         action: 'PRINT',
+        record_id: card.id,
         performed_by: 'Admin', // In a real app, use user?.username
-        changed_data: { jobCardNo: card.jobCardNo, action: 'Printed job card report' }
+        title: `Printed Job Card: ${card.jobCardNo}`,
+        description: `Printed report for vehicle ${card.vehicleNumber}.`,
+        changed_data: {
+          action: 'Printed job card report',
+          jobCardNo: card.jobCardNo
+        }
       });
     } catch (err) {
       console.error('Failed to log print action:', err);
@@ -362,7 +402,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
           const opt = {
             margin: 1,
             filename: `jobcard-${printData.jobCardNo}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
+            image: { type: 'jpeg' as const, quality: 0.98 },
             html2canvas: { scale: 2 },
             jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
           };
@@ -389,70 +429,9 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
     setIsPrintModalOpen(false);
   };
 
-  const mapApiJobCard = (jc: any): JobCard => ({
-    id: jc.id?.toString() || jc.jobcard_no || `JC-${Date.now()}`,
-    jobCardNo: jc.jobcard_no || '',
-    date: jc.created_at ? jc.created_at.slice(0, 10) : getCurrentDate(),
-    time: jc.created_at
-      ? new Date(jc.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-      : getCurrentTime(),
-    customerId: '',
-    customerName: jc.customer_name || '',
-    customerPhone: jc.phone || '',
-    customerAddress: jc.address || '',
-    vehicleNumber: jc.vehicle_no || '',
-    vehicleMake: jc.brand || '',
-    vehicleModel: jc.model || '',
-    vehicleType: jc.vehicle_type || '',
-    transportName: jc.transport_name || '',
-    kmReading: jc.km_reading || '',
-    serviceType: jc.service_type || '',
-    workType: jc.work_type || '',
-    beforeFrontCamber: jc.before_front_camber || '',
-    beforeFrontCaster: jc.before_front_caster || '',
-    beforeFrontToe: jc.before_front_toe || '',
-    beforeRearCamber: jc.before_rear_camber || '',
-    beforeRearToe: jc.before_rear_toe || '',
-    afterFrontCamber: jc.after_front_camber || '',
-    afterFrontCaster: jc.after_front_caster || '',
-    afterFrontToe: jc.after_front_toe || '',
-    afterRearCamber: jc.after_rear_camber || '',
-    afterRearToe: jc.after_rear_toe || '',
-    technicianId: jc.technician_id || '',
-    technicianName: jc.technician_name || '',
-    problemReported: jc.complaint || '',
-    workDone: jc.work_done || '',
-    remarks: jc.remarks || '',
-    labourCharge: (jc.labour_charge || 0).toString(),
-    partsCharge: (jc.parts_charge || 0).toString(),
-    totalAmount: (jc.estimated_amount || 0).toString(),
-    serviceItems: jc.service_items || [],
-    status:
-      jc.status === 'completed'
-        ? 'Completed'
-        : jc.status === 'pending'
-          ? 'In Progress'
-          : 'Draft',
-    labourBillNo: jc.labour_bill_no || '',
-    vehicleId: jc.vehicle_id?.toString() || ''
-  });
 
   const fetchJobCards = async () => {
-    setIsJobCardLoading(true);
-    try {
-      const response = await api.get(endpoints.billing.jobcard.list);
-      const payload: any = response.data;
-      if (payload?.success && Array.isArray(payload.data)) {
-        setJobCards(payload.data.map((cardData: any) => mapApiJobCard(cardData)));
-      } else {
-        toast.error(payload?.message || 'Failed to load job cards');
-      }
-    } catch (error: any) {
-      console.error('Error fetching job cards:', error);
-      toast.error('Failed to fetch job cards from server');
-    } finally {
-      setIsJobCardLoading(false);
-    }
+    await refreshJobCards();
   };
 
   const fetchNextJobCardNo = async () => {
@@ -818,16 +797,21 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
 
   // Handle save job card
   const handleSaveJobCard = async () => {
+    console.log('[JobCardSave] Starting save process...');
+
     if (!isFormValid()) {
-      toast.error('Please fill all required fields');
+      toast.error('Please fill all required fields before saving.');
+      console.error('[JobCardSave] Validation failed. Required fields are missing.');
       return;
     }
 
     const payload = {
       jobcard_no: formData.jobCardNo,
+      customer_id: formData.customerId,
       customer_name: formData.customerName,
       phone: formData.customerPhone,
       address: formData.customerAddress,
+      vehicle_id: formData.vehicleId,
       vehicle_no: formData.vehicleNumber,
       vehicle_type: formData.vehicleType,
       brand: formData.vehicleMake,
@@ -848,45 +832,47 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
       after_front_toe: formData.afterFrontToe,
       after_rear_camber: formData.afterRearCamber,
       after_rear_toe: formData.afterRearToe,
-      service_items: serviceItems,
+      service_items: serviceItems.map(item => ({
+        ...item,
+        isLabour: (item.serviceName || '').toLowerCase().includes('labour')
+      })),
       complaint: formData.problemReported,
       work_done: formData.workDone,
       remarks: formData.remarks,
-      status: 'pending',
+      status: 'In Progress', // Backend expects 'pending' or 'Completed' etc, context handles the map
       labour_charge: parseFloat(formData.labourCharge) || 0,
       parts_charge: parseFloat(formData.partsCharge) || 0,
-      estimated_amount: parseFloat(formData.totalAmount) || 0
+      estimated_amount: parseFloat(formData.totalAmount) || 0,
+      date: formData.date
     };
 
+    console.log('[JobCardSave] Payload constructed:', payload);
     setIsSavingJobCard(true);
 
     try {
-      const response = isEditing && editingCardId
-        ? await api.put(endpoints.billing.jobcard.update(editingCardId), payload)
-        : await api.post(endpoints.billing.jobcard.create, payload);
+      console.log(`[JobCardSave] Sending API request. Editing: ${isEditing}, ID: ${editingCardId}`);
+      // Cast payload to any to bypass interface mismatches during save operations
+      const savedCard = isEditing && editingCardId
+        ? await updateJobCard(editingCardId, payload as any)
+        : await addJobCard(payload as any);
+      
+      if (savedCard) {
+        console.log('[JobCardSave] Save success:', savedCard);
+        await refreshJobCards();
+        console.log('[JobCardSave] Job cards list refetched.');
 
-      const payloadData: any = response.data;
-
-      if (payloadData?.success && payloadData.data) {
-        const savedCard = mapApiJobCard(payloadData.data);
-        setJobCards(prev =>
-          isEditing && editingCardId
-            ? prev.map(card => (card.id === savedCard.id ? savedCard : card))
-            : [savedCard, ...prev]
-        );
-        toast.success(isEditing ? 'Job Card updated successfully!' : 'Job Card created successfully!');
+        // Reset form for next entry
         resetForm();
-        if (!isEditing) {
-          await fetchNextJobCardNo();
-        }
-        await fetchJobCards();
-        setIsFormExpanded(true); // Keep it open for continuous entry, or false if they want it closed? The prompt says: "When one record is saved successfully, the next new form should automatically show the next available number." and "Open new form -> auto show 002". We'll set isFormExpanded(true) to show it automatically.
+        await fetchNextJobCardNo();
+        
+        setIsFormExpanded(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        toast.error(payloadData?.message || 'Failed to save job card');
+        console.error('[JobCardSave] Save returned null. Check Context/API for errors.');
       }
     } catch (error: any) {
-      console.error('❌ Backend sync failed:', error);
-      toast.error(error?.message || 'Failed to save job card');
+      console.error('[JobCardSave] An exception occurred during the save call:', error);
+      toast.error(`Error: ${error.message || 'Something went wrong while saving'}`);
     } finally {
       setIsSavingJobCard(false);
     }
@@ -954,15 +940,10 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
   const handleDeleteConfirm = async () => {
     if (cardToDelete) {
       try {
-        const response = await api.delete(endpoints.billing.jobcard.delete(cardToDelete.id));
-        const payload: any = response.data;
-        if (payload?.success) {
-          setJobCards(prev => prev.filter(card => card.id !== cardToDelete.id));
-          toast.success('Job Card deleted successfully!');
-          await fetchJobCards();
-        } else {
-          toast.error(payload?.message || 'Failed to delete job card');
-        }
+        await deleteJobCard(cardToDelete.id);
+        setDeleteModalOpen(false);
+        setCardToDelete(null);
+        await refreshJobCards();
       } catch (error: any) {
         console.error('Error deleting job card:', error);
         toast.error(error?.message || 'Failed to delete job card');
@@ -1831,7 +1812,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                 </tr>
               </thead>
               <tbody className={`divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
-                {isJobCardLoading ? (
+                {isLoading ? (
                   <tr>
                     <td colSpan={8} className="px-4 py-12 text-center">
                       <RefreshCw className="w-6 h-6 mx-auto animate-spin text-blue-500 mb-2" />
@@ -1888,10 +1869,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
-                            onClick={() => {
-                              setCardToView(card);
-                              setViewModalOpen(true);
-                            }}
+                            onClick={() => handleView(card)}
                             className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 group ${isDarkMode
                               ? 'hover:bg-blue-500/20 text-gray-400'
                               : 'hover:bg-blue-50 text-gray-500'

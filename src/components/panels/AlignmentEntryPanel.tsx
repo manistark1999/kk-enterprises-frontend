@@ -80,7 +80,7 @@ export function AlignmentEntryPanel({ isDarkMode, isOpen, onClose, editingEntry 
   const primaryButtonClass = getPrimaryButtonClass();
   const secondaryButtonClass = getSecondaryButtonClass(isDarkMode);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validation
@@ -110,16 +110,21 @@ export function AlignmentEntryPanel({ isDarkMode, isOpen, onClose, editingEntry 
 
     console.log('🚀 AlignmentEntryPanel: Submitting entry data:', entryData);
 
-    if (editingEntry) {
-      console.log('📝 AlignmentEntryPanel: Updating entry:', editingEntry.id);
-      updateAlignmentEntry(editingEntry.id, entryData);
-    } else {
-      console.log('➕ AlignmentEntryPanel: Adding new entry');
-      addAlignmentEntry(entryData);
-    }
+    try {
+      if (editingEntry) {
+        console.log('📝 AlignmentEntryPanel: Updating entry:', editingEntry.id);
+        await updateAlignmentEntry(editingEntry.id, entryData);
+      } else {
+        console.log('➕ AlignmentEntryPanel: Adding new entry');
+        await addAlignmentEntry(entryData);
+      }
 
-    console.log('✅ AlignmentEntryPanel: Save complete, closing panel');
-    onClose();
+      console.log('✅ AlignmentEntryPanel: Save complete, closing panel');
+      onClose();
+    } catch (error) {
+      console.error('❌ AlignmentEntryPanel: Error saving entry:', error);
+      // Toast is already shown in context
+    }
   };
 
   const handleCancel = () => {

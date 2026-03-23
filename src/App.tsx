@@ -1,6 +1,3 @@
-import '@/utils/error-fixes/pre-error-suppression';
-import '@/utils/error-fixes/error-suppression';
-import '@/utils/resetCustomerData';
 
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation, Outlet, Navigate } from 'react-router-dom';
@@ -69,13 +66,14 @@ import { AlignmentProvider } from '@/contexts/AlignmentContext';
 import { BackupPanel } from '@/components/panels/BackupPanel';
 import { RestorePanel } from '@/components/panels/RestorePanel';
 import { StaffProvider } from '@/contexts/StaffContext';
+import { BankTransactionProvider } from '@/contexts/BankTransactionContext';
 import { SupplierProvider } from '@/contexts/SupplierContext';
 import { BankAccountsProvider } from '@/contexts/BankAccountsContext';
 import { TransportProvider } from '@/contexts/TransportContext';
 import { PurchaseProvider } from '@/contexts/PurchaseContext';
 import { SalesProvider } from '@/contexts/SalesContext';
-import { ERPIntegrationProvider } from '@/contexts/ERPIntegrationContext';
 import { JobCardScreenUnified } from '@/pages/job-card/JobCardScreenUnified';
+import { JobCardProvider } from '@/contexts/JobCardContext';
 import { EstimationProvider } from '@/contexts/EstimationContext';
 import { useAuth, AuthProvider } from '@/contexts/AuthContext';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
@@ -331,6 +329,7 @@ export default function App() {
           <StockProvider>
             <LabourBillProvider>
               <EstimationProvider>
+                <JobCardProvider>
                 <VehicleRegistryProvider>
                   <ItemsServicesProvider>
                     <MastersProvider>
@@ -339,19 +338,19 @@ export default function App() {
                           <ReceiptsPaymentsProvider>
                             <AlignmentProvider>
                               <StaffProvider>
+            <BankTransactionProvider>
                                 <SupplierProvider>
                                   <BankAccountsProvider>
                                     <TransportProvider>
                                       <PurchaseProvider>
                                         <SalesProvider>
-                                          <ERPIntegrationProvider>
-                                            <AppContent />
-                                          </ERPIntegrationProvider>
+                                          <AppContent />
                                         </SalesProvider>
                                       </PurchaseProvider>
                                     </TransportProvider>
                                   </BankAccountsProvider>
                                 </SupplierProvider>
+            </BankTransactionProvider>
                               </StaffProvider>
                             </AlignmentProvider>
                           </ReceiptsPaymentsProvider>
@@ -360,6 +359,7 @@ export default function App() {
                     </MastersProvider>
                   </ItemsServicesProvider>
                 </VehicleRegistryProvider>
+                </JobCardProvider>
               </EstimationProvider>
             </LabourBillProvider>
           </StockProvider>

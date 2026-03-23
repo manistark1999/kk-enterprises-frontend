@@ -450,16 +450,22 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
     };
 
     if (billType === 'estimation') {
-      const saveEstimation = async () => {
+      const saveEstimationFlow = async () => {
         try {
-          const response = await api.post(endpoints.billing.estimation.create, {
-            bill_no: currentBillNumber,
-            estimation_date: billDate,
-            customer_name: customerName.split(' - ')[0] || customerName,
-            customer_phone: customerPhone,
-            vehicle_number: vehicleNumber,
-            vehicle_model: vehicleModel,
-            total_amount: calculateGrandTotal(),
+          const estimationData = {
+            id: isEditMode && editBillId ? editBillId : '',
+            billNo: currentBillNumber,
+            date: billDate,
+            time: billTime,
+            customerName: customerName.split(' - ')[0] || customerName,
+            customerPhone: customerPhone,
+            customerAddress: customerAddress,
+            vehicleNumber: vehicleNumber,
+            vehicleMake: vehicleMakeDropdown,
+            vehicleModel: vehicleModel,
+            kmReading: kmReading,
+            fuelLevel: fuelLevel,
+            grandTotal: calculateGrandTotal(),
             status,
             items: validItems.map((item, i) => ({
               id: i + 1,
@@ -469,62 +475,55 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
               gst: item.gst,
               amount: item.amount
             }))
-          });
+          };
 
-          if (response.success) {
-            toast.success(`Estimation ${currentBillNumber} saved to database!`);
-            handleReset();
-            // Refresh estimations context
-            await refreshEstimations();
-            await fetchNextBillNumber();
+          if (isEditMode && editBillId) {
+            await updateEstimation(editBillId, estimationData);
           } else {
-            toast.error(response.message || 'Failed to save estimation');
+            await addEstimation(estimationData as any);
           }
-        } catch (error) {
-          toast.error('Error connecting to backend API');
-          console.error(error);
+
+          handleReset();
+          await fetchNextBillNumber();
+        } catch (error: any) {
+          console.error('[BillingPage] Estimation save failed:', error);
         }
       };
-      saveEstimation();
+      saveEstimationFlow();
       return;
     }
 
     // Sales Bill
     if (billType === 'sales') {
-      const saveSale = async () => {
+      const saveSaleFlow = async () => {
         try {
-          const payload = {
-            sale_no: currentBillNumber,
-            sale_date: billDate,
-            customer_name: customerName.split(' - ')[0] || customerName,
-            customer_phone: customerPhone,
+          const saleData = {
+            billNo: currentBillNumber,
+            date: billDate,
+            customerName: customerName.split(' - ')[0] || customerName,
+            customerPhone: customerPhone,
             items: validItems.map((item, i) => ({ id: i + 1, itemName: item.itemName, quantity: item.quantity, rate: item.rate, gst: item.gst, amount: item.amount })),
             subtotal: calculateSubtotal(),
-            total_gst: calculateTotalGST(),
+            totalGST: calculateTotalGST(),
             discount,
-            grand_total: calculateGrandTotal(),
-            payment_mode: 'Cash', // Default
+            grandTotal: calculateGrandTotal(),
+            paymentMode: 'Cash',
             status: 'Completed'
           };
 
-          let response;
           if (isEditMode && editBillId) {
-            response = await api.put(endpoints.inventory.sales.update(editBillId), payload);
+            await updateSale(editBillId, saleData);
           } else {
-            response = await api.post(endpoints.inventory.sales.create, payload);
+            await addSale(saleData);
           }
 
-          if (response.success) {
-            toast.success(`Sale ${currentBillNumber} saved!`);
-            handleReset();
-            await refreshSales();
-            await fetchNextBillNumber();
-          }
+          handleReset();
+          await fetchNextBillNumber();
         } catch (error: any) {
-          toast.error(error.message || 'Failed to save sale');
+          console.error('[BillingPage] Sale save failed:', error);
         }
       };
-      saveSale();
+      saveSaleFlow();
       return;
     }
 
@@ -537,83 +536,79 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
             return;
           }
 
-          const payload = {
-            purchase_no: currentBillNumber,
-            purchase_date: billDate,
-            supplier_id: parseInt(customerId),
-            supplier_name: customerName,
+          const purchaseData = {
+            id: editBillId || '',
+            billNo: currentBillNumber,
+            date: billDate,
+            supplierId: parseInt(customerId),
+            supplierName: customerName,
             items: validItems.map((item, i) => ({ id: i + 1, itemName: item.itemName, quantity: item.quantity, rate: item.rate, gst: item.gst, amount: item.amount })),
             subtotal: calculateSubtotal(),
-            total_gst: calculateTotalGST(),
+            totalGST: calculateTotalGST(),
             discount,
-            grand_total: calculateGrandTotal(),
-            payment_mode: 'Cash',
+            grandTotal: calculateGrandTotal(),
+            paymentMode: 'Cash',
             status: 'Received',
-            invoice_no: ''
+            invoiceNo: '' // Assuming this can be added later if needed
           };
-
-          let response;
+          
           if (isEditMode && editBillId) {
-            response = await api.put(endpoints.inventory.purchase.update(editBillId), payload);
+            await updatePurchase(editBillId, purchaseData);
           } else {
-            response = await api.post(endpoints.inventory.purchase.create, payload);
+            await addPurchase(purchaseData);
           }
+          
+          handleReset();
+          await fetchNextBillNumber();
 
-          if (response.success) {
-            toast.success(`Purchase ${currentBillNumber} saved!`);
-            handleReset();
-            await refreshPurchases();
-            await fetchNextBillNumber();
-          }
         } catch (error: any) {
-          toast.error(error.message || 'Failed to save purchase');
+          // Error is already logged and toasted by the context
+          console.error('[BillingScreen] Purchase save failed. Error was handled by PurchaseContext.');
         }
       };
       savePurchase();
       return;
     }
 
-    // Labour Bill - saves to PostgreSQL via API
+    // Labour Bill - saves via CONTEXT
     const saveBill = async () => {
       try {
-        const labourBillPayload = {
-          bill_no: currentBillNumber,
-          bill_date: billDate,
-          bill_time: billTime,
-          customer_name: customerName.split(' - ')[0] || customerName,
-          customer_phone: customerPhone,
-          customer_address: customerAddress,
-          vehicle_number: vehicleNumber,
-          vehicle_make: vehicleMakeDropdown,
-          vehicle_model: vehicleModel,
-          km_reading: kmReading,
-          fuel_level: fuelLevel,
-          items: items.map((item, i) => ({ id: i + 1, itemName: item.itemName, quantity: item.quantity, rate: item.rate, gst: item.gst, amount: item.amount })),
+        const labourBillData: LabourBillRecord = {
+          id: editBillId || '', // Pass ID for updates
+          billNo: currentBillNumber,
+          date: billDate,
+          time: billTime,
+          customerName: customerName.split(' - ')[0] || customerName,
+          customerPhone: customerPhone,
+          customerAddress: customerAddress,
+          vehicleNumber: vehicleNumber,
+          vehicleMake: vehicleMakeDropdown,
+          vehicleModel: vehicleModel,
+          kmReading: kmReading,
+          fuelLevel: fuelLevel,
+          items: validItems.map((item, i) => ({ ...item, id: i+1 })),
           subtotal: calculateSubtotal(),
-          total_gst: calculateTotalGST(),
+          totalGST: calculateTotalGST(),
           discount,
-          grand_total: calculateGrandTotal(),
-          status
+          grandTotal: calculateGrandTotal(),
+          status,
+          createdAt: '' // Not used on save
         };
 
-        let response;
         if (isEditMode && editBillId) {
-          response = await api.put(endpoints.billing.labourBill.update(editBillId), labourBillPayload);
+          await updateLabourBill(editBillId, labourBillData);
         } else {
-          response = await api.post(endpoints.billing.labourBill.create, labourBillPayload);
+          await addLabourBill(labourBillData);
         }
+        
+        // Success is now handled inside the context (toast, refresh)
+        // We just need to reset the form
+        handleReset();
+        await fetchNextBillNumber();
 
-        if (response.success) {
-          toast.success(`Bill ${currentBillNumber} saved to database!`);
-          handleReset();
-          // Vital: Refresh the context list so history updates immediately
-          await refreshLabourBills();
-          await fetchNextBillNumber();
-        } else {
-          toast.error(response.message || 'Failed to save bill');
-        }
       } catch (error: any) {
-        toast.error(error.message || 'Failed to save bill');
+        // Error toast is already handled in the context's catch block
+        console.error('[BillingScreen] Save failed. The error was caught and handled by the context.');
       }
     };
     saveBill();

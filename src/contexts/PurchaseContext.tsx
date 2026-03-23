@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api, endpoints } from '@/services/api';
 import { useAuth } from './AuthContext';
+import { toast } from 'sonner';
 
 export interface PurchaseItem {
   id: string | number;
@@ -86,28 +87,80 @@ export function PurchaseProvider({ children }: { children: ReactNode }) {
     fetchPurchases();
   }, [isAuthenticated]);
 
-  const addPurchase = async (newPurchase: any) => {
+  const addPurchase = async (purchaseData: any) => {
+    console.log('[PurchaseContext] Attempting to add purchase...');
+    const payload = {
+        purchase_no: purchaseData.billNo,
+        purchase_date: purchaseData.date,
+        supplier_id: purchaseData.supplierId,
+        supplier_name: purchaseData.supplierName,
+        items: purchaseData.items,
+        subtotal: purchaseData.subtotal,
+        total_gst: purchaseData.totalGST,
+        discount: purchaseData.discount,
+        grand_total: purchaseData.grandTotal,
+        payment_mode: purchaseData.paymentMode,
+        status: purchaseData.status,
+        notes: purchaseData.notes,
+        invoice_no: purchaseData.invoiceNo
+    };
+    console.log('[PurchaseContext] Payload to be sent:', payload);
+
     try {
-      const response = await api.post(endpoints.inventory.purchase.create, newPurchase);
+      const response = await api.post(endpoints.inventory.purchase.create, payload);
+      console.log('[PurchaseContext] API response received:', response);
+
       if (response.success) {
+        console.log('[PurchaseContext] API call successful. Refetching purchases...');
         await fetchPurchases();
+        toast.success(`Purchase ${payload.purchase_no} saved successfully.`);
         return response.data;
+      } else {
+        console.error('[PurchaseContext] API call returned success:false.', response);
+        throw new Error(response.message || response.error || 'Failed to add purchase');
       }
-    } catch (error) {
-      console.error('Error adding purchase:', error);
+    } catch (error: any) {
+      console.error('[PurchaseContext] Error in addPurchase catch block:', error);
+      toast.error(error.message || 'An error occurred while saving the purchase.');
       throw error;
     }
   };
 
-  const updatePurchase = async (id: string, updatedPurchase: any) => {
+  const updatePurchase = async (id: string, purchaseData: any) => {
+    console.log(`[PurchaseContext] Attempting to update purchase ${id}...`);
+    const payload = {
+        purchase_no: purchaseData.billNo,
+        purchase_date: purchaseData.date,
+        supplier_id: purchaseData.supplierId,
+        supplier_name: purchaseData.supplierName,
+        items: purchaseData.items,
+        subtotal: purchaseData.subtotal,
+        total_gst: purchaseData.totalGST,
+        discount: purchaseData.discount,
+        grand_total: purchaseData.grandTotal,
+        payment_mode: purchaseData.paymentMode,
+        status: purchaseData.status,
+        notes: purchaseData.notes,
+        invoice_no: purchaseData.invoiceNo
+    };
+    console.log('[PurchaseContext] Payload to be sent:', payload);
+
     try {
-      const response = await api.put(endpoints.inventory.purchase.update(id), updatedPurchase);
+      const response = await api.put(endpoints.inventory.purchase.update(id), payload);
+      console.log('[PurchaseContext] API response received:', response);
+
       if (response.success) {
+        console.log('[PurchaseContext] API call successful. Refetching purchases...');
         await fetchPurchases();
+        toast.success(`Purchase ${payload.purchase_no} updated successfully.`);
         return response.data;
+      } else {
+        console.error('[PurchaseContext] API call returned success:false.', response);
+        throw new Error(response.message || response.error || 'Failed to update purchase');
       }
-    } catch (error) {
-      console.error('Error updating purchase:', error);
+    } catch (error: any) {
+      console.error(`[PurchaseContext] Error in updatePurchase catch block (ID: ${id}):`, error);
+      toast.error(error.message || 'An error occurred while updating the purchase.');
       throw error;
     }
   };
@@ -117,9 +170,13 @@ export function PurchaseProvider({ children }: { children: ReactNode }) {
       const response = await api.delete(endpoints.inventory.purchase.delete(id));
       if (response.success) {
         await fetchPurchases();
+        toast.success('Purchase deleted successfully.');
+      } else {
+        throw new Error(response.error || 'Failed to delete purchase');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting purchase:', error);
+      toast.error(error.message || 'Failed to delete purchase');
       throw error;
     }
   };

@@ -6,25 +6,29 @@ import { toast } from 'sonner';
 
 export interface Customer {
   id: string;
-  customer_code?: string;
+  customerCode?: string;
+  customer_code?: string; // Keep for compatibility
   name: string;
   customerName: string; // Alias for JobCard compatibility
   phone: string;
   phoneNumber: string; // Alias for JobCard compatibility
-  email: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
-  gstNumber: string;
+  alternatePhone?: string;
+  contactPerson?: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  gstNumber?: string;
   vehicleDetails: {
     vehicleNumber: string;
     vehicleMake: string;
     vehicleModel: string;
   }[];
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface CustomerSummary {
@@ -74,30 +78,47 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
         api.get("/customers/summary")
       ]);
       
+      console.log('[CustomerContext] fetchCustomers called');
+      console.log('[CustomerContext] customersRes:', customersRes);
+      console.log('[CustomerContext] customersRes.data:', customersRes.data);
+      
       if (customersRes.success && customersRes.data) {
-        const mappedCustomers = customersRes.data.data.map((c: any): Customer => ({
-          id: c.id.toString(),
-          customer_code: c.customer_code,
-          name: c.customer_name,
-          customerName: c.customer_name,
-          phone: c.phone,
-          phoneNumber: c.phone,
-          email: c.email || '',
-          address: c.address || '',
-          city: c.city || '',
-          state: c.state || '',
-          pincode: c.pincode || '',
-          gstNumber: c.gst_no || '',
-          isActive: c.status === 'active' || c.status === 'Active' || !c.status,
-          vehicleDetails: [],
-          createdAt: c.created_at,
-          updatedAt: c.updated_at
-        }));
-        setCustomers(mappedCustomers);
+        const customersArray = customersRes.data.data || customersRes.data;
+        if (Array.isArray(customersArray)) {
+          const mappedCustomers = customersArray.map((c: any): Customer => ({
+            id: c.id.toString(),
+            customerCode: c.customer_code || '',
+            customer_code: c.customer_code || '',
+            name: c.customer_name || '',
+            customerName: c.customer_name || '',
+            phone: c.phone || '',
+            phoneNumber: c.phone || '',
+            alternatePhone: c.alternate_phone || '',
+            contactPerson: c.contact_person || '',
+            email: c.email || '',
+            address: c.address || '',
+            city: c.city || '',
+            state: c.state || '',
+            pincode: c.pincode || '',
+            gstNumber: c.gst_no || '',
+            isActive: c.status === 'active' || c.status === 'Active' || !c.status,
+            status: c.status || 'active',
+            vehicleDetails: [],
+            createdAt: c.created_at,
+            updatedAt: c.updated_at
+          }));
+          setCustomers(mappedCustomers);
+        } else {
+          console.error('[CustomerContext] Expected array but got:', typeof customersArray);
+          setCustomers([]);
+        }
+      } else {
+        console.warn('[CustomerContext] No data in response, customersRes.success:', customersRes.success);
       }
 
       if (summaryRes.success && summaryRes.data) {
-        setSummary(summaryRes.data.data);
+        setSummary(summaryRes.data.data || summaryRes.data);
+        console.log('[CustomerContext] Set summary:', summaryRes.data.data || summaryRes.data);
       }
     } catch (error) {
       console.error('Error fetching customers:', error);
@@ -114,31 +135,29 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     fetchCustomers();
   }, [isAuthenticated]);
 
-  const addCustomer = async (customerData: Omit<Customer, 'id' | 'createdAt' | 'updatedAt' | 'customerName' | 'phoneNumber'>) => {
+  const addCustomer = async (customerData: Partial<Customer>) => {
     try {
-      const response = await api.post("/customers", {
-        name: customerData.name,
+      const payload = {
+        customer_name: customerData.name || customerData.customerName,
         phone: customerData.phone,
         email: customerData.email,
+        contact_person: customerData.contactPerson,
+        alternate_phone: customerData.alternatePhone,
+        customer_code: customerData.customerCode,
         address: customerData.address,
         city: customerData.city,
         state: customerData.state,
         pincode: customerData.pincode,
-        gst_number: customerData.gstNumber,
-        is_active: customerData.isActive
-      });
+        gst_no: customerData.gstNumber,
+        is_active: customerData.status === 'Active' || customerData.isActive === true
+      };
 
+      const response = await api.post('/customers', payload);
       if (response.success) {
         await fetchCustomers();
-        addNotification(
-          'Created',
-          customerData.name,
-          'Customer Record',
-          `Phone: ${customerData.phone}`
-        );
-        toast.success('Customer saved successfully');
+        toast.success('Customer added successfully');
       } else {
-        throw new Error(response.error || 'Failed to add customer');
+        throw new Error(response.message || 'Failed to add customer');
       }
     } catch (error: any) {
       console.error('Error adding customer:', error);
@@ -149,29 +168,30 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
 
   const updateCustomer = async (id: string, customerData: Partial<Customer>) => {
     try {
-      const response = await api.put(`/customers/${id}`, {
-        name: customerData.name,
-        phone: customerData.phone,
-        email: customerData.email,
-        address: customerData.address,
-        city: customerData.city,
-        state: customerData.state,
-        pincode: customerData.pincode,
-        gst_number: customerData.gstNumber,
-        is_active: customerData.isActive
-      });
+      const existing = customers.find(c => c.id === id);
+      const merged = { ...existing, ...customerData };
+      
+      const payload = {
+        customer_name: merged.name || merged.customerName,
+        phone: merged.phone,
+        email: merged.email,
+        contact_person: merged.contactPerson,
+        alternate_phone: merged.alternatePhone,
+        customer_code: merged.customerCode,
+        address: merged.address,
+        city: merged.city,
+        state: merged.state,
+        pincode: merged.pincode,
+        gst_no: merged.gstNumber,
+        is_active: merged.status === 'Active' || merged.isActive === true
+      };
 
+      const response = await api.put(`/customers/${id}`, payload);
       if (response.success) {
         await fetchCustomers();
-        addNotification(
-          'Updated',
-          customerData.name || 'Customer',
-          'Customer Record',
-          'Updated successfully'
-        );
         toast.success('Customer updated successfully');
       } else {
-        throw new Error(response.error || 'Failed to update customer');
+        throw new Error(response.message || 'Failed to update customer');
       }
     } catch (error: any) {
       console.error('Error updating customer:', error);

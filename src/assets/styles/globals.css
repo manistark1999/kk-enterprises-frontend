@@ -282,24 +282,6 @@ input[type="number"]:hover::-webkit-outer-spin-button {
   background: rgba(100, 116, 139, 0.6);
 }
 
-/* Hide Figma error overlays and infrastructure elements */
-iframe[style*="position: fixed"],
-iframe[style*="z-index: 999"],
-div[style*="position: fixed"][style*="z-index"] {
-  pointer-events: none !important;
-}
-
-/* Suppress any error boundaries or overlays */
-[data-error-boundary],
-[data-error-overlay],
-.figma-error-overlay,
-.__figma-error,
-div[class*="error-overlay"],
-div[class*="ErrorOverlay"] {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-}
 
 /* Print Styles */
 @media print {

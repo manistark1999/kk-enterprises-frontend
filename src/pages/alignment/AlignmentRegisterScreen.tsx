@@ -32,7 +32,7 @@ export function AlignmentRegisterScreen({ isDarkMode }: AlignmentRegisterScreenP
   const [recordToView, setRecordToView] = useState<AlignmentRecord | null>(null);
 
   // Get alignment entries from context
-  const { alignmentEntries } = useAlignment();
+  const { alignmentEntries, saveAlignmentHistory } = useAlignment();
   
   // Track changes to alignment entries
   useEffect(() => {
@@ -118,9 +118,10 @@ export function AlignmentRegisterScreen({ isDarkMode }: AlignmentRegisterScreenP
         email: 'info@kkenterprises.com',
         gst: 'GST123456789'
       },
-      billedTo: {
-        title: 'Customer Details',
+      customerInfo: {
         name: record.customerName,
+      },
+      vehicleInfo: {
         vehicleNumber: record.vehicleNo,
         vehicleMake: record.vehicleMake
       },
@@ -165,7 +166,7 @@ export function AlignmentRegisterScreen({ isDarkMode }: AlignmentRegisterScreenP
     setViewModalOpen(true);
   };
 
-  const handleSaveHistory = () => {
+  const handleSaveHistory = async () => {
     // Save the current filter state and records to history with complete column data
     const historyData = {
       timestamp: new Date().toISOString(),
@@ -213,33 +214,27 @@ export function AlignmentRegisterScreen({ isDarkMode }: AlignmentRegisterScreenP
       }
     };
     
-    // Save to localStorage with unique key
-    const historyKey = `alignment_history_${Date.now()}`;
-    localStorage.setItem(historyKey, JSON.stringify(historyData));
-    
-    // Also maintain a master list of all history keys for easy retrieval
-    const historyKeys = JSON.parse(localStorage.getItem('alignment_history_keys') || '[]');
-    historyKeys.push({
-      key: historyKey,
-      timestamp: historyData.timestamp,
-      savedDate: historyData.savedDate,
-      recordCount: filteredRecords.length
-    });
-    localStorage.setItem('alignment_history_keys', JSON.stringify(historyKeys));
-    
-    // Auto-download as JSON file for permanent storage
-    const dataStr = JSON.stringify(historyData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `alignment-register-${new Date().toISOString().split('T')[0]}-${Date.now()}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    toast.success(`History saved! ${filteredRecords.length} records stored and downloaded.`);
+    // Save to PostgreSQL backend via Context
+    try {
+      await saveAlignmentHistory(historyData);
+      
+      // Still allow auto-download as JSON for user's local backup if they want
+      const dataStr = JSON.stringify(historyData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `alignment-register-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success(`Alignment history successfully stored in PostgreSQL and downloaded.`);
+    } catch (err) {
+      console.error('Failed to save history to DB:', err);
+      // Fallback or just let context toast error
+    }
   };
 
   return (

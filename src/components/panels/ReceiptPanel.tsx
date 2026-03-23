@@ -70,6 +70,7 @@ export function ReceiptPanel({ isOpen, onClose, isDarkMode }: ReceiptPanelProps)
         description: formData.description,
         amount: parseFloat(formData.amount),
         payment_mode: formData.paymentMode,
+        bill_no: formData.billNo,
         status: 'received'
       };
 
@@ -78,32 +79,17 @@ export function ReceiptPanel({ isOpen, onClose, isDarkMode }: ReceiptPanelProps)
       
       if (response.success) {
         toast.success(response.message || 'Receipt saved successfully!');
-        
-        // Reset form
         handleReset();
         onClose();
+        
+        // Custom event for refreshing history if needed
+        window.dispatchEvent(new CustomEvent('REFRESH_RECEIPTS'));
       } else {
         throw new Error(response.error || 'Failed to save receipt');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error saving receipt:', error);
-      
-      // Fallback is still useful during transition
-      const receiptId = `REC-${Date.now()}`;
-      const receiptData = {
-        id: receiptId,
-        ...formData,
-        timestamp: new Date().toISOString()
-      };
-      
-      const existingReceipts = JSON.parse(localStorage.getItem('receipts') || '[]');
-      existingReceipts.unshift(receiptData);
-      localStorage.setItem('receipts', JSON.stringify(existingReceipts));
-      
-      toast.info('Saved locally - backend connection failed');
-      
-      handleReset();
-      onClose();
+      toast.error(error.message || 'Error saving receipt to database');
     } finally {
       setIsSubmitting(false);
     }

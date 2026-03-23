@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from '@/services/api';
 import { useAuth } from './AuthContext';
+import { toast } from 'sonner';
 
 export interface LabourBillItem {
   id: number;
@@ -96,7 +97,8 @@ export function LabourBillProvider({ children }: { children: ReactNode }) {
   }, [isAuthenticated]);
 
   const addLabourBill = async (bill: LabourBillRecord) => {
-    const res = await api.post('/labour-bills', {
+    console.log('[LabourBillContext] Attempting to add bill...');
+    const payload = {
       bill_no: bill.billNo,
       bill_date: bill.date,
       bill_time: bill.time,
@@ -114,18 +116,34 @@ export function LabourBillProvider({ children }: { children: ReactNode }) {
       discount: bill.discount,
       grand_total: bill.grandTotal,
       status: bill.status
-    });
-    if (res.success) {
-      await fetchBills();
-    } else {
-      throw new Error(res.error || 'Failed to save labour bill');
+    };
+    console.log('[LabourBillContext] Payload to be sent:', payload);
+
+    try {
+      const res = await api.post('/labour-bills', payload);
+      console.log('[LabourBillContext] API response received:', res);
+
+      if (res.success) {
+        console.log('[LabourBillContext] API call successful. Refetching bills...');
+        await fetchBills();
+        toast.success(`Bill ${payload.bill_no} saved successfully.`);
+      } else {
+        console.error('[LabourBillContext] API call returned success:false.', res);
+        throw new Error(res.message || res.error || 'Failed to save labour bill');
+      }
+    } catch (error: any) {
+      console.error('[LabourBillContext] Error in addLabourBill catch block:', error);
+      toast.error(error.message || 'An error occurred while saving the bill.');
+      throw error;
     }
   };
 
   const updateLabourBill = async (id: string, updatedBill: Partial<LabourBillRecord>) => {
+    console.log(`[LabourBillContext] Attempting to update bill ${id}...`);
     const existing = labourBills.find(b => b.id === id);
     const merged = { ...existing, ...updatedBill };
-    const res = await api.put(`/labour-bills/${id}`, {
+
+    const payload = {
       bill_no: merged.billNo,
       bill_date: merged.date,
       bill_time: merged.time,
@@ -143,16 +161,41 @@ export function LabourBillProvider({ children }: { children: ReactNode }) {
       discount: merged.discount,
       grand_total: merged.grandTotal,
       status: merged.status
-    });
-    if (res.success) {
-      await fetchBills();
+    };
+    console.log('[LabourBillContext] Payload to be sent:', payload);
+    
+    try {
+      const res = await api.put(`/labour-bills/${id}`, payload);
+      console.log('[LabourBillContext] API response received:', res);
+
+      if (res.success) {
+        console.log('[LabourBillContext] API call successful. Refetching bills...');
+        await fetchBills();
+        toast.success(`Bill ${payload.bill_no} updated successfully.`);
+      } else {
+        console.error('[LabourBillContext] API call returned success:false.', res);
+        throw new Error(res.message || res.error || 'Failed to update labour bill');
+      }
+    } catch (error: any) {
+      console.error(`[LabourBillContext] Error in updateLabourBill catch block (ID: ${id}):`, error);
+      toast.error(error.message || 'An error occurred while updating the bill.');
+      throw error;
     }
   };
 
   const deleteLabourBill = async (id: string) => {
-    const res = await api.delete(`/labour-bills/${id}`);
-    if (res.success) {
-      setLabourBills(prev => prev.filter(b => b.id !== id));
+    try {
+        const res = await api.delete(`/labour-bills/${id}`);
+        if (res.success) {
+          setLabourBills(prev => prev.filter(b => b.id !== id));
+          toast.success('Bill deleted successfully.');
+        } else {
+            throw new Error(res.error || 'Failed to delete bill');
+        }
+    } catch (error: any) {
+        console.error('Error deleting labour bill:', error);
+        toast.error(error.message || 'Failed to delete bill');
+        throw error;
     }
   };
 

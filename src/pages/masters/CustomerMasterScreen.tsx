@@ -48,8 +48,11 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
   const [printData, setPrintData] = useState<any>(null);
 
   const [formData, setFormData] = useState({
+    customerCode: '',
     name: '',
+    contactPerson: '',
     phone: '',
+    alternatePhone: '',
     email: '',
     address: '',
     city: '',
@@ -95,8 +98,11 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
   const handleAddNew = () => {
     setEditingCustomer(null);
     setFormData({
+      customerCode: '',
       name: '',
+      contactPerson: '',
       phone: '',
+      alternatePhone: '',
       email: '',
       address: '',
       city: '',
@@ -112,14 +118,17 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
   const handleEdit = (customer: Customer) => {
     setEditingCustomer(customer);
     setFormData({
+      customerCode: customer.customerCode || '',
       name: customer.name,
+      contactPerson: customer.contactPerson || '',
       phone: customer.phone,
-      email: customer.email,
-      address: customer.address,
-      city: customer.city,
-      state: customer.state,
-      pincode: customer.pincode,
-      gstNumber: customer.gstNumber,
+      alternatePhone: customer.alternatePhone || '',
+      email: customer.email || '',
+      address: customer.address || '',
+      city: customer.city || '',
+      state: customer.state || '',
+      pincode: customer.pincode || '',
+      gstNumber: customer.gstNumber || '',
       isActive: customer.isActive
     });
     setIsDrawerOpen(true);
@@ -631,6 +640,17 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
                   
                   <div className={`${FORM_CONSTANTS.TWO_COLUMN_GRID} ${FORM_CONSTANTS.FIELD_GAP}`}>
                     <div>
+                      {renderLabel('Customer Code', false, isDarkMode)}
+                      <input
+                        type="text"
+                        value={formData.customerCode}
+                        onChange={(e) => setFormData({ ...formData, customerCode: e.target.value.toUpperCase() })}
+                        className={inputClass}
+                        placeholder="e.g., CUST001"
+                      />
+                    </div>
+
+                    <div>
                       {renderLabel('Customer Name', true, isDarkMode, isFieldEmpty(formData.name))}
                       <input
                         type="text"
@@ -642,18 +662,41 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
                     </div>
 
                     <div>
+                      {renderLabel('Contact Person', false, isDarkMode)}
+                      <input
+                        type="text"
+                        value={formData.contactPerson}
+                        onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+                        className={inputClass}
+                        placeholder="Enter contact person name"
+                      />
+                    </div>
+
+                    <div>
                       {renderLabel('Phone Number', true, isDarkMode, isFieldEmpty(formData.phone))}
                       <input
                         type="tel"
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                         className={getInputClassWithValidation(isDarkMode, isFieldEmpty(formData.phone))}
-                        placeholder="10-digit phone number"
+                        placeholder="10-digit primary number"
                         maxLength={15}
                       />
                     </div>
 
-                    <div className="lg:col-span-2">
+                    <div>
+                      {renderLabel('Alternate Phone', false, isDarkMode)}
+                      <input
+                        type="tel"
+                        value={formData.alternatePhone}
+                        onChange={(e) => setFormData({ ...formData, alternatePhone: e.target.value })}
+                        className={inputClass}
+                        placeholder="Secondary phone number"
+                        maxLength={15}
+                      />
+                    </div>
+
+                    <div className="lg:col-span-1">
                       <label className={labelClass}>Email Address</label>
                       <input
                         type="email"

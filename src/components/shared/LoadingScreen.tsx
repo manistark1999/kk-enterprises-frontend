@@ -52,66 +52,40 @@ export function LoadingScreen({ isDarkMode }: LoadingScreenProps) {
 
       {/* Main Loading Container */}
       <div className="relative z-10 flex flex-col items-center">
-        {/* Logo & Icon */}
+        {/* Lottie Animation Requested by User */}
         <motion.div
-          initial={{ scale: 0.5, opacity: 0 }}
+          initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="relative mb-8"
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+          className="mb-6"
         >
-          {/* Outer Ring */}
-          <motion.div
-            className={`absolute inset-0 rounded-full border-4 ${
-              isDarkMode ? 'border-blue-500/20' : 'border-blue-400/20'
-            }`}
-            animate={{ rotate: 360 }}
-            transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-            style={{ width: '120px', height: '120px' }}
+          {/* @ts-ignore - Custom Lottie Web Component */}
+          <dotlottie-wc 
+            src="https://lottie.host/81140687-10bf-41f4-89b7-885956971bf9/2eKCsYt0cc.lottie" 
+            style={{ width: '300px', height: '300px' }} 
+            autoplay 
+            loop
           />
-          
-          {/* Middle Ring */}
-          <motion.div
-            className={`absolute inset-0 rounded-full border-4 border-transparent ${
-              isDarkMode ? 'border-t-blue-500' : 'border-t-blue-600'
-            }`}
-            animate={{ rotate: -360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-            style={{ width: '120px', height: '120px' }}
-          />
-
-          {/* Center Icon */}
-          <div
-            className={`w-[120px] h-[120px] rounded-full flex items-center justify-center ${
-              isDarkMode
-                ? 'bg-gradient-to-br from-blue-600 to-blue-700 shadow-2xl shadow-blue-500/50'
-                : 'bg-gradient-to-br from-blue-500 to-blue-600 shadow-2xl shadow-blue-400/50'
-            }`}
-          >
-            <motion.div
-              animate={{ rotate: [0, 15, -15, 0] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <Wrench className="w-12 h-12 text-white" />
-            </motion.div>
-          </div>
         </motion.div>
 
         {/* Company Name */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-          className="text-center mb-6"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+          className="text-center"
         >
-          <h1 className={`text-3xl font-bold mb-2 ${
-            isDarkMode ? 'text-white' : 'text-gray-900'
+          <h1 className={`text-4xl font-black tracking-tighter mb-2 ${
+            isDarkMode 
+              ? 'bg-gradient-to-r from-white via-blue-200 to-gray-400 bg-clip-text text-transparent' 
+              : 'bg-gradient-to-r from-gray-900 via-blue-800 to-gray-900 bg-clip-text text-transparent'
           }`}>
-            KK Enterprises
+            KK ENTERPRISES
           </h1>
-          <p className={`text-sm font-medium ${
-            isDarkMode ? 'text-blue-400' : 'text-blue-600'
+          <p className={`text-sm font-medium tracking-[0.3em] uppercase ${
+            isDarkMode ? 'text-blue-400/80' : 'text-blue-600/80'
           }`}>
-            Workshop Management System
+            Workshop ERP System
           </p>
         </motion.div>
 

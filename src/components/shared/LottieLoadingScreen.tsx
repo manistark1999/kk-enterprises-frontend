@@ -1,4 +1,13 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+
+// Declare types for Web Component
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'dotlottie-wc': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & { src: string, autoplay?: boolean | string, loop?: boolean | string }, HTMLElement>;
+    }
+  }
+}
 
 interface LottieLoadingScreenProps {
   isDarkMode: boolean;
@@ -25,6 +34,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative' as const,
   },
   text: {
     marginTop: '40px',
@@ -45,9 +55,6 @@ export function LottieLoadingScreen({
   isDarkMode,
   message = 'Loading'
 }: LottieLoadingScreenProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const scriptLoadedRef = useRef(false);
-
   // Dynamic styles based on theme
   const themeStyles = {
     container: {
@@ -66,86 +73,42 @@ export function LottieLoadingScreen({
     }
   };
 
+  const [showFallback, setShowFallback] = useState(false);
+
   useEffect(() => {
-    // Load the DotLottie web component script
-    if (!scriptLoadedRef.current) {
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.3/dist/dotlottie-wc.js';
-      script.type = 'module';
-      script.async = true;
-      
-      script.onload = () => {
-        scriptLoadedRef.current = true;
-        
-        // Create the dotlottie-wc element
-        if (containerRef.current && !containerRef.current.querySelector('dotlottie-wc')) {
-          const lottieElement = document.createElement('dotlottie-wc');
-          lottieElement.setAttribute('src', 'https://lottie.host/81140687-10bf-41f4-89b7-885956971bf9/2eKCsYt0cc.lottie');
-          lottieElement.setAttribute('autoplay', 'true');
-          lottieElement.setAttribute('loop', 'true');
-          lottieElement.style.width = '300px';
-          lottieElement.style.height = '300px';
-          
-          containerRef.current.appendChild(lottieElement);
-          
-          // Remove fallback if it exists
-          const fallback = containerRef.current.querySelector('.lottie-fallback');
-          if (fallback) fallback.remove();
-        }
-      };
-
-      script.onerror = () => {
-        console.warn('Failed to load Lottie animation, using fallback');
-        renderFallback();
-      };
-
-      const renderFallback = () => {
-        if (containerRef.current && !containerRef.current.querySelector('.lottie-fallback')) {
-          const fallback = document.createElement('div');
-          fallback.className = 'lottie-fallback';
-          fallback.style.width = '120px';
-          fallback.style.height = '120px';
-          fallback.style.borderRadius = '50%';
-          fallback.style.border = `4px solid ${isDarkMode ? '#2563EB' : '#2563EB'}`;
-          fallback.style.borderTopColor = 'transparent';
-          fallback.style.animation = 'spin 1s linear infinite';
-          containerRef.current.appendChild(fallback);
-        }
-      };
-
-      // Set a timeout to render fallback if script doesn't load/respond quickly
-      const timeoutId = setTimeout(() => {
-        if (!scriptLoadedRef.current) renderFallback();
-      }, 3000);
-
-      document.head.appendChild(script);
-
-      return () => {
-        clearTimeout(timeoutId);
-        if (document.head.contains(script)) {
-          document.head.removeChild(script);
-        }
-      };
-    }
-  }, [isDarkMode]);
+    // Show fallback spinner if it takes too long to render (e.g. script failed)
+    const timer = setTimeout(() => {
+      // Basic check to see if the element was upgraded to a custom element or has shadow root
+      const wcElement = document.querySelector('dotlottie-wc');
+      if (wcElement && !wcElement.shadowRoot) {
+         setShowFallback(true);
+      }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <div style={themeStyles.container}>
       {/* Lottie Animation Container */}
-      <div 
-        ref={containerRef} 
-        style={styles.animationContainer}
-      >
-        {/* Initial CSS Fallback rendered server-side/immediately */}
-        <div className="lottie-fallback" style={{
-          width: '120px',
-          height: '120px',
-          borderRadius: '50%',
-          border: `4px solid #2563EB`,
-          borderTopColor: 'transparent',
-          animation: 'spin 1.4s linear infinite',
-          position: 'absolute'
-        }} />
+      <div style={styles.animationContainer}>
+        {showFallback ? (
+          <div className="lottie-fallback" style={{
+            width: '120px',
+            height: '120px',
+            borderRadius: '50%',
+            border: `4px solid ${isDarkMode ? '#2563EB' : '#2563EB'}`,
+            borderTopColor: 'transparent',
+            animation: 'spin 1.4s linear infinite',
+            position: 'absolute'
+          }} />
+        ) : (
+          <dotlottie-wc 
+            src="https://lottie.host/81140687-10bf-41f4-89b7-885956971bf9/2eKCsYt0cc.lottie" 
+            style={{ width: '300px', height: '300px' }} 
+            autoplay 
+            loop
+          ></dotlottie-wc>
+        )}
       </div>
 
       {/* Loading Text with Animated Dots */}

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { api } from '@/services/api';
 import { useAuth } from './AuthContext';
+import { toast } from 'sonner';
 
 export interface ItemService {
   id: string;
@@ -90,50 +91,92 @@ export function ItemsServicesProvider({ children }: { children: ReactNode }) {
   }, [isAuthenticated]);
 
   const addItemService = async (item: Partial<ItemService>) => {
-    console.log('[Frontend] Saving Item Payload:', item);
-    const payload = {
-      name: item.name,
-      type: item.type,
-      category: item.category,
-      brand: item.brand,
-      part_number: item.partNumber,
-      unit: item.unit,
-      hsn_code: item.hsnCode,
-      selling_price: item.defaultRate,
-      purchase_price: item.purchasePrice,
-      gst_rate: item.gstPercentage,
-      stock: item.currentStock,
-      min_stock: item.minStockLevel,
-      status: item.status
-    };
-    await api.post('/items', payload);
-    await fetchItems();
+    try {
+      const payload = {
+        name: item.name,
+        type: item.type || 'Item',
+        category: item.category,
+        brand: item.brand,
+        part_number: item.partNumber,
+        unit: item.unit || 'Nos',
+        hsn_code: item.hsnCode,
+        selling_price: item.defaultRate,
+        purchase_price: item.purchasePrice,
+        gst_rate: item.gstPercentage,
+        stock: item.currentStock || 0,
+        min_stock: item.minStockLevel || 0,
+        status: item.status || 'Active',
+        description: item.description
+      };
+
+      const response = await api.post('/items', payload);
+      if (response.success) {
+        await fetchItems();
+        toast.success('Item/Service added successfully');
+      } else {
+        throw new Error(response.message || 'Failed to add item/service');
+      }
+    } catch (error: any) {
+      console.error('Error adding item/service:', error);
+      toast.error(error.message || 'Failed to add item/service');
+      throw error;
+    }
   };
 
   const updateItemService = async (id: string, item: Partial<ItemService>) => {
-    console.log('[Frontend] Updating Item Payload:', item);
-    const payload = {
-      name: item.name,
-      type: item.type,
-      category: item.category,
-      brand: item.brand,
-      part_number: item.partNumber,
-      unit: item.unit,
-      hsn_code: item.hsnCode,
-      selling_price: item.defaultRate,
-      purchase_price: item.purchasePrice,
-      gst_rate: item.gstPercentage,
-      stock: item.currentStock,
-      min_stock: item.minStockLevel,
-      status: item.status
-    };
-    await api.put(`/items/${id}`, payload);
-    await fetchItems();
+    try {
+      const existing = itemsServices.find(i => i.id === id);
+      const merged = { ...existing, ...item };
+      
+      const payload = {
+        name: merged.name,
+        type: merged.type,
+        category: merged.category,
+        brand: merged.brand,
+        part_number: merged.partNumber,
+        unit: merged.unit || 'Nos',
+        hsn_code: merged.hsnCode,
+        selling_price: merged.defaultRate,
+        purchase_price: merged.purchasePrice,
+        gst_rate: merged.gstPercentage,
+        stock: merged.currentStock,
+        min_stock: merged.minStockLevel,
+        status: merged.status,
+        description: merged.description
+      };
+
+      const response = await api.put(`/items/${id}`, payload);
+      if (response.success) {
+        await fetchItems();
+        toast.success('Item/Service updated successfully');
+      } else {
+        throw new Error(response.message || 'Failed to update item/service');
+      }
+    } catch (error: any) {
+      console.error('Error updating item/service:', error);
+      toast.error(error.message || 'Failed to update item/service');
+      throw error;
+    }
   };
 
   const deleteItemService = async (id: string) => {
-    await api.delete(`/items/${id}`);
-    setItemsServices(prev => prev.filter(item => item.id !== id));
+    console.log(`[ItemsServicesContext] Attempting to delete item/service ${id}...`);
+    try {
+        const response = await api.delete(`/items/${id}`);
+        console.log('[ItemsServicesContext] API response received:', response);
+        if (response.success) {
+            console.log('[ItemsServicesContext] API call successful. Refetching items...');
+            await fetchItems();
+            toast.success('Item/Service deleted successfully.');
+        } else {
+            console.error('[ItemsServicesContext] API call returned success:false.', response);
+            throw new Error(response.message || response.error || 'Failed to delete item/service');
+        }
+    } catch (error: any) {
+        console.error(`[ItemsServicesContext] Error in deleteItemService catch block (ID: ${id}):`, error);
+        toast.error(error.message || 'An error occurred while deleting the item/service.');
+        throw error;
+    }
   };
 
   const updateStock = async (id: string, quantity: number, operation: 'add' | 'subtract') => {

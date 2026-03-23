@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 import { api, endpoints } from '@/services/api';
 import { useAuth } from './AuthContext';
+import { toast } from 'sonner';
 
 export interface StockItem {
   id: string;
@@ -177,42 +178,73 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
   }, [adjustmentRows, stockLookup]);
 
   const addStockItem = async (item: Partial<StockItem>) => {
-    await api.post('/inventory/stock', {
-      itemCode: item.itemCode,
-      itemName: item.itemName,
-      category: item.category,
-      brand: item.brand,
-      unit: item.unit,
-      currentStock: item.currentStock,
-      minStock: item.minStock,
-      maxStock: item.maxStock,
-      reorderLevel: item.reorderLevel,
-      unitPrice: item.unitPrice,
-      supplier: item.supplier,
-      location: item.location,
-      status: 'Active',
-    });
-    await refreshAll();
+    try {
+      const payload = {
+        item_code: item.itemCode,
+        item_name: item.itemName,
+        category: item.category,
+        brand: item.brand,
+        unit: item.unit || 'Nos',
+        current_stock: item.currentStock || 0,
+        min_stock: item.minStock || 0,
+        max_stock: item.maxStock || 0,
+        reorder_level: item.reorderLevel || 0,
+        selling_price: item.unitPrice || 0,
+        purchase_price: item.unitPrice || 0, // Fallback if not specified
+        supplier_name: item.supplier,
+        location: item.location,
+        status: 'Active',
+      };
+
+      const response = await api.post('/inventory/stock', payload);
+      if (response.success) {
+        await refreshAll();
+        toast.success('Stock item added successfully');
+      } else {
+        throw new Error(response.message || 'Failed to add stock item');
+      }
+    } catch (error: any) {
+      console.error('[StockContext] Error adding stock item:', error);
+      toast.error(error.message || 'Failed to add stock item');
+      throw error;
+    }
   };
 
   const updateStockItem = async (id: string, updates: Partial<StockItem>) => {
-    await api.put(`/inventory/stock/${id}`, {
-      itemCode: updates.itemCode,
-      itemName: updates.itemName,
-      category: updates.category,
-      brand: updates.brand,
-      unit: updates.unit,
-      currentStock: updates.currentStock,
-      minStock: updates.minStock,
-      maxStock: updates.maxStock,
-      reorderLevel: updates.reorderLevel,
-      unitPrice: updates.unitPrice,
-      supplier: updates.supplier,
-      location: updates.location,
-      lastPurchaseDate: updates.lastPurchaseDate,
-      lastSaleDate: updates.lastSaleDate,
-    });
-    await refreshAll();
+    try {
+      const existing = stockItems.find(s => s.id === id);
+      const merged = { ...existing, ...updates } as StockItem;
+
+      const payload = {
+        item_code: merged.itemCode,
+        item_name: merged.itemName,
+        category: merged.category,
+        brand: merged.brand,
+        unit: merged.unit,
+        current_stock: merged.currentStock,
+        min_stock: merged.minStock,
+        max_stock: merged.maxStock,
+        reorder_level: merged.reorderLevel,
+        selling_price: merged.unitPrice,
+        purchase_price: merged.unitPrice, // Update logic might need separate field
+        supplier_name: merged.supplier,
+        location: merged.location,
+        last_purchase_date: merged.lastPurchaseDate,
+        last_sale_date: merged.lastSaleDate,
+      };
+
+      const response = await api.put(`/inventory/stock/${id}`, payload);
+      if (response.success) {
+        await refreshAll();
+        toast.success('Stock item updated successfully');
+      } else {
+        throw new Error(response.message || 'Failed to update stock item');
+      }
+    } catch (error: any) {
+      console.error('[StockContext] Error updating stock item:', error);
+      toast.error(error.message || 'Failed to update stock item');
+      throw error;
+    }
   };
 
   const deleteStockItem = async (id: string) => {
@@ -221,8 +253,9 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addAdjustment = async (adjustment: Omit<StockAdjustment, 'id'>) => {
+    console.log('[StockContext] Attempting to add adjustment...');
     const linkedItem = stockLookup.get(adjustment.itemId);
-    await api.post('/inventory/adjustments', {
+    const payload = {
       adjustment_no: adjustment.adjustmentNo,
       adjustment_date: adjustment.date,
       stock_item_id: adjustment.itemId,
@@ -232,13 +265,32 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
       quantity: adjustment.quantity,
       reason: adjustment.reason,
       notes: adjustment.remarks,
-    });
-    await refreshAll();
+    };
+    console.log('[StockContext] Payload to be sent:', payload);
+
+    try {
+      const response = await api.post('/inventory/adjustments', payload);
+      console.log('[StockContext] API response received:', response);
+
+      if (response.success) {
+        console.log('[StockContext] API call successful. Refreshing all stock data...');
+        await refreshAll();
+        toast.success('Stock adjustment created successfully.');
+      } else {
+        console.error('[StockContext] API call returned success:false.', response);
+        throw new Error(response.message || response.error || 'Failed to create adjustment');
+      }
+    } catch (error: any) {
+      console.error('[StockContext] Error in addAdjustment catch block:', error);
+      toast.error(error.message || 'An error occurred while creating the adjustment.');
+      throw error;
+    }
   };
 
   const updateAdjustment = async (id: string, adjustment: Omit<StockAdjustment, 'id'>) => {
+    console.log(`[StockContext] Attempting to update adjustment ${id}...`);
     const linkedItem = stockLookup.get(adjustment.itemId);
-    await api.put(`/inventory/adjustments/${id}`, {
+    const payload = {
       adjustment_no: adjustment.adjustmentNo,
       adjustment_date: adjustment.date,
       stock_item_id: adjustment.itemId,
@@ -248,13 +300,47 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
       quantity: adjustment.quantity,
       reason: adjustment.reason,
       notes: adjustment.remarks,
-    });
-    await refreshAll();
+    };
+    console.log('[StockContext] Payload to be sent:', payload);
+
+    try {
+      const response = await api.put(`/inventory/adjustments/${id}`, payload);
+      console.log('[StockContext] API response received:', response);
+      
+      if (response.success) {
+        console.log('[StockContext] API call successful. Refreshing all stock data...');
+        await refreshAll();
+        toast.success('Stock adjustment updated successfully.');
+      } else {
+        console.error('[StockContext] API call returned success:false.', response);
+        throw new Error(response.message || response.error || 'Failed to update adjustment');
+      }
+    } catch (error: any) {
+      console.error(`[StockContext] Error in updateAdjustment catch block (ID: ${id}):`, error);
+      toast.error(error.message || 'An error occurred while updating the adjustment.');
+      throw error;
+    }
   };
 
   const deleteAdjustment = async (id: string) => {
-    await api.delete(`/inventory/adjustments/${id}`);
-    await refreshAll();
+    console.log(`[StockContext] Attempting to delete adjustment ${id}...`);
+    try {
+      const response = await api.delete(`/inventory/adjustments/${id}`);
+      console.log('[StockContext] API response received:', response);
+      
+      if (response.success) {
+        console.log('[StockContext] API call successful. Refreshing all stock data...');
+        await refreshAll();
+        toast.success('Stock adjustment deleted successfully.');
+      } else {
+        console.error('[StockContext] API call returned success:false.', response);
+        throw new Error(response.message || response.error || 'Failed to delete adjustment');
+      }
+    } catch (error: any) {
+      console.error(`[StockContext] Error in deleteAdjustment catch block (ID: ${id}):`, error);
+      toast.error(error.message || 'An error occurred while deleting the adjustment.');
+      throw error;
+    }
   };
 
   const adjustStock = async (

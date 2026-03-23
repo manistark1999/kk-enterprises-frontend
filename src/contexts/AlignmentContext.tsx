@@ -36,6 +36,7 @@ interface AlignmentContextType {
   deleteAlignmentEntry: (id: string) => Promise<void>;
   getAlignmentEntry: (id: string) => AlignmentEntry | undefined;
   getAlignmentsByDateRange: (from: string, to: string) => AlignmentEntry[];
+  saveAlignmentHistory: (historyData: any) => Promise<void>;
 }
 
 const AlignmentContext = createContext<AlignmentContextType | undefined>(undefined);
@@ -107,12 +108,29 @@ export const AlignmentProvider: React.FC<AlignmentProviderProps> = ({ children }
 
   const addAlignmentEntry = useCallback(async (entry: Omit<AlignmentEntry, 'id' | 'createdAt'>) => {
     try {
-      const response = await api.post('/alignments', entry);
+      const payload = {
+        date: entry.date,
+        vehicleNo: entry.vehicleNo,
+        vehicleMake: entry.vehicleMake,
+        customerName: entry.customerName,
+        alignmentType: entry.alignmentType,
+        technician: entry.technician,
+        amount: entry.amount || entry.charges || 0,
+        notes: entry.notes,
+        status: entry.status || 'Completed'
+      };
+
+      console.log('[AlignmentContext] Sending to API:', payload);
+
+      const response = await api.post('/alignments', payload);
       if (response.success) {
         toast.success('Alignment entry added successfully!');
         await fetchAlignments();
+      } else {
+        throw new Error(response.message || 'Failed to add alignment entry');
       }
     } catch (error: any) {
+      console.error('[AlignmentContext] addAlignmentEntry error:', error);
       toast.error(error.message || 'Failed to add alignment entry');
       throw error;
     }
@@ -120,16 +138,36 @@ export const AlignmentProvider: React.FC<AlignmentProviderProps> = ({ children }
 
   const updateAlignmentEntry = useCallback(async (id: string, updates: Partial<AlignmentEntry>) => {
     try {
-      const response = await api.put(`/alignments/${id}`, updates);
+      const existing = alignmentEntries.find(e => e.id === id);
+      const merged = { ...existing, ...updates } as AlignmentEntry;
+
+      const payload = {
+        date: merged.date,
+        vehicleNo: merged.vehicleNo,
+        vehicleMake: merged.vehicleMake,
+        customerName: merged.customerName,
+        alignmentType: merged.alignmentType,
+        technician: merged.technician,
+        amount: merged.amount || merged.charges || 0,
+        notes: merged.notes,
+        status: merged.status
+      };
+
+      console.log('[AlignmentContext] Updating with:', payload);
+
+      const response = await api.put(`/alignments/${id}`, payload);
       if (response.success) {
         toast.success('Alignment entry updated successfully!');
         await fetchAlignments();
+      } else {
+        throw new Error(response.message || 'Failed to update alignment entry');
       }
     } catch (error: any) {
+      console.error('[AlignmentContext] updateAlignmentEntry error:', error);
       toast.error(error.message || 'Failed to update alignment entry');
       throw error;
     }
-  }, [fetchAlignments]);
+  }, [alignmentEntries, fetchAlignments]);
 
   const deleteAlignmentEntry = useCallback(async (id: string) => {
     try {
@@ -157,6 +195,19 @@ export const AlignmentProvider: React.FC<AlignmentProviderProps> = ({ children }
     });
   }, [alignmentEntries]);
 
+  const saveAlignmentHistory = useCallback(async (historyData: any) => {
+    try {
+      const response = await api.post('/alignments/history', { historyData });
+      if (response.success) {
+        toast.success('Alignment history saved to database successfully!');
+      }
+    } catch (error: any) {
+      console.error('[AlignmentContext] Error saving alignment history:', error);
+      toast.error('Failed to save alignment history to database');
+      throw error;
+    }
+  }, []);
+
   const value = {
     alignmentEntries,
     isLoading,
@@ -165,7 +216,8 @@ export const AlignmentProvider: React.FC<AlignmentProviderProps> = ({ children }
     updateAlignmentEntry,
     deleteAlignmentEntry,
     getAlignmentEntry,
-    getAlignmentsByDateRange
+    getAlignmentsByDateRange,
+    saveAlignmentHistory
   };
 
   return (

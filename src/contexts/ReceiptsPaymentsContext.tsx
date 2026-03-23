@@ -133,31 +133,40 @@ export function ReceiptsPaymentsProvider({ children }: { children: ReactNode }) 
     fetchPayments();
   }, [isAuthenticated]);
 
-  const addReceipt = async (receiptData: any) => {
+  const addReceipt = async (receiptData: Partial<ReceiptRecord>) => {
+    console.log('[ReceiptsPaymentsContext] Attempting to add receipt...');
+    console.log('[ReceiptsPaymentsContext] Payload:', receiptData);
     try {
       const response = await api.post('/receipts', receiptData);
       if (response.success) {
         await fetchReceipts();
         toast.success('Receipt created successfully');
       } else {
-        throw new Error(response.error || 'Failed to create receipt');
+        throw new Error(response.message || response.error || 'Failed to create receipt');
       }
     } catch (error: any) {
+      console.error('[ReceiptsPaymentsContext] Error in addReceipt:', error);
       toast.error(error.message || 'Failed to create receipt');
       throw error;
     }
   };
 
-  const updateReceipt = async (id: string, receiptData: any) => {
+  const updateReceipt = async (id: string, receiptData: Partial<ReceiptRecord>) => {
+    console.log(`[ReceiptsPaymentsContext] Attempting to update receipt ${id}...`);
     try {
-      const response = await api.put(`/receipts/${id}`, receiptData);
+      const existing = receipts.find(r => r.id === id);
+      const merged = { ...existing, ...receiptData };
+      console.log('[ReceiptsPaymentsContext] Merged Payload:', merged);
+
+      const response = await api.put(`/receipts/${id}`, merged);
       if (response.success) {
         await fetchReceipts();
         toast.success('Receipt updated successfully');
       } else {
-        throw new Error(response.error || 'Failed to update receipt');
+        throw new Error(response.message || response.error || 'Failed to update receipt');
       }
     } catch (error: any) {
+      console.error(`[ReceiptsPaymentsContext] Error in updateReceipt (ID: ${id}):`, error);
       toast.error(error.message || 'Failed to update receipt');
       throw error;
     }
@@ -167,7 +176,7 @@ export function ReceiptsPaymentsProvider({ children }: { children: ReactNode }) 
     try {
       const response = await api.delete(`/receipts/${id}`);
       if (response.success) {
-        setReceipts((prev: ReceiptRecord[]) => prev.filter((r: ReceiptRecord) => r.id !== id));
+        await fetchReceipts();
         toast.success('Receipt deleted successfully');
       } else {
         throw new Error(response.error || 'Failed to delete receipt');
@@ -192,46 +201,67 @@ export function ReceiptsPaymentsProvider({ children }: { children: ReactNode }) 
   };
 
   // Payment implementations
-  const addPayment = async (paymentData: any) => {
+  const addPayment = async (paymentData: Partial<PaymentRecord>) => {
+    console.log('[ReceiptsPaymentsContext] Attempting to add payment...');
+    console.log('[ReceiptsPaymentsContext] Payload to be sent:', paymentData);
     try {
       const response = await api.post('/payments', paymentData);
+      console.log('[ReceiptsPaymentsContext] API response received:', response);
       if (response.success) {
+        console.log('[ReceiptsPaymentsContext] API call successful. Refetching payments...');
         await fetchPayments();
         toast.success('Payment recorded successfully');
       } else {
-        throw new Error(response.error || 'Failed to record payment');
+        console.error('[ReceiptsPaymentsContext] API call returned success:false.', response);
+        throw new Error(response.message || response.error || 'Failed to record payment');
       }
     } catch (error: any) {
+      console.error('[ReceiptsPaymentsContext] Error in addPayment catch block:', error);
       toast.error(error.message || 'Failed to record payment');
       throw error;
     }
   };
 
-  const updatePayment = async (id: string, paymentData: any) => {
+  const updatePayment = async (id: string, paymentData: Partial<PaymentRecord>) => {
+    console.log(`[ReceiptsPaymentsContext] Attempting to update payment ${id}...`);
     try {
-      const response = await api.put(`/payments/${id}`, paymentData);
+      const existing = payments.find(p => p.id === id);
+      const merged = { ...existing, ...paymentData };
+      console.log('[ReceiptsPaymentsContext] Merged Payload:', merged);
+
+      const response = await api.put(`/payments/${id}`, merged);
+      console.log('[ReceiptsPaymentsContext] API response received:', response);
       if (response.success) {
+        console.log('[ReceiptsPaymentsContext] API call successful. Refetching payments...');
         await fetchPayments();
         toast.success('Payment updated successfully');
       } else {
-        throw new Error(response.error || 'Failed to update payment');
+        console.error('[ReceiptsPaymentsContext] API call returned success:false.', response);
+        throw new Error(response.message || response.error || 'Failed to update payment');
       }
     } catch (error: any) {
+      console.error(`[ReceiptsPaymentsContext] Error in updatePayment catch block (ID: ${id}):`, error);
       toast.error(error.message || 'Failed to update payment');
       throw error;
     }
   };
 
   const deletePayment = async (id: string) => {
+    console.log(`[ReceiptsPaymentsContext] Attempting to delete payment ${id}...`);
     try {
       const response = await api.delete(`/payments/${id}`);
+      console.log('[ReceiptsPaymentsContext] API response received:', response);
       if (response.success) {
-        setPayments((prev: PaymentRecord[]) => prev.filter((p: PaymentRecord) => p.id !== id));
+        console.log('[ReceiptsPaymentsContext] API call successful. Refreshing payments...');
+        // No longer need optimistic update, fetchPayments will get the latest state.
+        await fetchPayments();
         toast.success('Payment deleted successfully');
       } else {
-        throw new Error(response.error || 'Failed to delete payment');
+        console.error('[ReceiptsPaymentsContext] API call returned success:false.', response);
+        throw new Error(response.message || response.error || 'Failed to delete payment');
       }
     } catch (error: any) {
+      console.error(`[ReceiptsPaymentsContext] Error in deletePayment catch block (ID: ${id}):`, error);
       toast.error(error.message || 'Failed to delete payment');
       throw error;
     }

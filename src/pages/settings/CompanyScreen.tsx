@@ -18,6 +18,7 @@ import {
   Hash
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { api } from '@/services/api';
 import { 
   getCardClass, 
   getInputClass, 
@@ -78,12 +79,48 @@ export function CompanyScreen({ isDarkMode }: CompanyScreenProps) {
     taxRegistrationType: 'GST Registered'
   });
 
-  // Load company data from localStorage on mount
-  useEffect(() => {
-    const savedCompanyData = localStorage.getItem('companyData');
-    if (savedCompanyData) {
-      setFormData(JSON.parse(savedCompanyData));
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Load company data from backend on mount
+  const fetchCompanyData = async () => {
+    setIsLoading(true);
+    try {
+      const response = await api.get('/company');
+      if (response.success && response.data) {
+        const d = response.data;
+        setFormData({
+          companyName: d.company_name || 'KK Enterprises',
+          businessType: d.business_type || 'Automobile Workshop',
+          registrationNo: d.registration_no || '',
+          gstNo: d.gst_number || '',
+          panNo: d.pan_number || '',
+          address: d.address || '',
+          city: d.city || '',
+          state: d.state || '',
+          zipCode: d.pincode || '',
+          phone: d.phone || '',
+          email: d.email || '',
+          website: d.website || '',
+          bankName: d.bank_name || '',
+          accountNo: d.account_no || '',
+          ifscCode: d.ifsc_code || '',
+          ownerName: d.owner_name || '',
+          ownerPhone: d.owner_phone || '',
+          ownerEmail: d.owner_email || '',
+          establishedYear: d.established_year || '',
+          taxRegistrationType: d.tax_reg_type || 'GST Registered'
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching company data:', error);
+      toast.error('Failed to load company data');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchCompanyData();
   }, []);
 
   const handleInputChange = (field: keyof CompanyData, value: string) => {
@@ -93,30 +130,49 @@ export function CompanyScreen({ isDarkMode }: CompanyScreenProps) {
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validation
     if (!formData.companyName) {
       toast.error('Company name is required');
       return;
     }
 
-    if (!formData.businessType) {
-      toast.error('Business type is required');
-      return;
-    }
+    setIsLoading(true);
+    try {
+      const payload = {
+        company_name: formData.companyName,
+        business_type: formData.businessType,
+        registration_no: formData.registrationNo,
+        gst_number: formData.gstNo,
+        pan_number: formData.panNo,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        pincode: formData.zipCode,
+        phone: formData.phone,
+        email: formData.email,
+        website: formData.website,
+        bank_name: formData.bankName,
+        account_no: formData.accountNo,
+        ifsc_code: formData.ifscCode,
+        owner_name: formData.ownerName,
+        owner_phone: formData.ownerPhone,
+        owner_email: formData.ownerEmail,
+        established_year: formData.establishedYear,
+        tax_reg_type: formData.taxRegistrationType
+      };
 
-    // Save to localStorage
-    localStorage.setItem('companyData', JSON.stringify(formData));
-    toast.success('Company information saved successfully!');
-  };
-
-  const handleRefresh = () => {
-    const savedCompanyData = localStorage.getItem('companyData');
-    if (savedCompanyData) {
-      setFormData(JSON.parse(savedCompanyData));
-      toast.success('Company data refreshed!');
-    } else {
-      toast.info('No saved data found');
+      const response = await api.post('/company', payload);
+      if (response.success) {
+        toast.success('Company information saved successfully!');
+      } else {
+        toast.error(response.message || 'Failed to save company information');
+      }
+    } catch (error) {
+      console.error('Error saving company data:', error);
+      toast.error('An error occurred while saving');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -163,10 +219,11 @@ export function CompanyScreen({ isDarkMode }: CompanyScreenProps) {
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3">
             <button
-              onClick={handleRefresh}
+              onClick={fetchCompanyData}
+              disabled={isLoading}
               className={getSecondaryButtonClass(isDarkMode)}
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
               <span className="hidden md:inline">Refresh</span>
             </button>
             <button
@@ -509,18 +566,20 @@ export function CompanyScreen({ isDarkMode }: CompanyScreenProps) {
           {/* Action Buttons */}
           <div className="flex justify-end gap-4 pt-6 border-t border-gray-200 dark:border-gray-700">
             <button
-              onClick={handleRefresh}
+              onClick={fetchCompanyData}
+              disabled={isLoading}
               className={getSecondaryButtonClass(isDarkMode)}
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
               Reset
             </button>
             <button
               onClick={handleSave}
+              disabled={isLoading}
               className={getPrimaryButtonClass()}
             >
               <Save className="w-4 h-4" />
-              Save Company Information
+              {isLoading ? 'Saving...' : 'Save Company Information'}
             </button>
           </div>
         </div>

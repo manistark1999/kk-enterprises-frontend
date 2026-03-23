@@ -281,7 +281,17 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
 
   // Actions
   const addExpense = async (data: any) => {
-    const res = await api.post('/expenses', data);
+    const payload = {
+      expense_no: data.expenseNo || data.expense_no,
+      expense_date: data.expenseDate || data.expense_date || data.date,
+      category: data.category,
+      description: data.description,
+      amount: data.amount,
+      payment_mode: data.paymentMode || data.payment_mode,
+      reference_no: data.referenceNo || data.reference_no,
+      status: data.status || 'Paid'
+    };
+    const res = await api.post('/expenses', payload);
     if (res.success) {
       toast.success('Expense recorded');
       await fetchExpenses();
@@ -289,7 +299,17 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateExpense = async (id: string, data: any) => {
-    const res = await api.put(`/expenses/${id}`, data);
+    const payload = {
+      expense_no: data.expenseNo || data.expense_no,
+      expense_date: data.expenseDate || data.expense_date || data.date,
+      category: data.category,
+      description: data.description,
+      amount: data.amount,
+      payment_mode: data.paymentMode || data.payment_mode,
+      reference_no: data.referenceNo || data.reference_no,
+      status: data.status || 'Paid'
+    };
+    const res = await api.put(`/expenses/${id}`, payload);
     if (res.success) {
       toast.success('Expense updated');
       await fetchExpenses();
