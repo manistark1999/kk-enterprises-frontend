@@ -21,6 +21,7 @@ import {
   getSecondaryButtonClass
 } from '@/utils/formStyles';
 import { useTransports, Transport } from '@/contexts/TransportContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TransportMasterScreenProps {
   isDarkMode: boolean;
@@ -35,6 +36,9 @@ export function TransportMasterScreen({ isDarkMode }: TransportMasterScreenProps
     deleteTransport,
     refreshTransports 
   } = useTransports();
+  const { canCreate, canEdit, canDelete } = useAuth();
+
+  const MODULE_NAME = 'Transport';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTransport, setSelectedTransport] = useState<Partial<Transport> | null>(null);
@@ -130,18 +134,15 @@ export function TransportMasterScreen({ isDarkMode }: TransportMasterScreenProps
         status: formData.status
       };
 
-      console.log('[Frontend] Saving Transport Payload:', payload);
 
       if (isNewTransport) {
         await addTransport(payload as any);
       } else if (selectedTransport?.id) {
         await updateTransport(selectedTransport.id, payload as any);
       }
-      console.log('[Frontend] Transport saved successfully');
       handleCloseModal();
       refreshTransports();
     } catch (error: any) {
-      console.error('Save Transport Error:', error);
       // Toast notification is already handled in TransportContext
     } finally {
       setIsSubmitting(false);
@@ -193,13 +194,16 @@ export function TransportMasterScreen({ isDarkMode }: TransportMasterScreenProps
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </button>
-          <button 
-            onClick={handleAddNew}
-            className={getPrimaryButtonClass()}
-          >
-            <Plus className="w-5 h-5" />
-            <span>Add New Transport</span>
-          </button>
+          
+          {canCreate(MODULE_NAME) && (
+            <button 
+              onClick={handleAddNew}
+              className={getPrimaryButtonClass()}
+            >
+              <Plus className="w-5 h-5" />
+              <span>Add New Transport</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -301,8 +305,8 @@ export function TransportMasterScreen({ isDarkMode }: TransportMasterScreenProps
                       <td className="py-4 px-4">
                         <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
                           transport.status === 'Active'
-                            ? 'bg-green-500/20 text-green-500'
-                            : 'bg-red-500/20 text-red-500'
+                            ? 'bg-blue-600/20 text-blue-600'
+                            : 'bg-blue-700/20 text-blue-700'
                         }`}>
                           {transport.status}
                         </span>
@@ -384,7 +388,7 @@ export function TransportMasterScreen({ isDarkMode }: TransportMasterScreenProps
                 <div className={`${FORM_CONSTANTS.TWO_COLUMN_GRID} ${FORM_CONSTANTS.FIELD_GAP}`}>
                   <div className="lg:col-span-2">
                     <label className={getLabelClass(isDarkMode)}>
-                      Transport Name <span className="text-red-500">*</span>
+                      Transport Name <span className="text-blue-700">*</span>
                     </label>
                     <input 
                       type="text" 
@@ -394,13 +398,13 @@ export function TransportMasterScreen({ isDarkMode }: TransportMasterScreenProps
                       onChange={(e) => handleFormChange('transportName', e.target.value)}
                     />
                     {errors.transportName && (
-                      <p className="text-red-500 text-sm mt-1">Transport Name is required</p>
+                      <p className="text-blue-700 text-sm mt-1">Transport Name is required</p>
                     )}
                   </div>
 
                   <div className="lg:col-span-2">
                     <label className={getLabelClass(isDarkMode)}>
-                      Contact Person <span className="text-red-500">*</span>
+                      Contact Person <span className="text-blue-700">*</span>
                     </label>
                     <input 
                       type="text" 
@@ -410,13 +414,13 @@ export function TransportMasterScreen({ isDarkMode }: TransportMasterScreenProps
                       onChange={(e) => handleFormChange('contactPerson', e.target.value)}
                     />
                     {errors.contactPerson && (
-                      <p className="text-red-500 text-sm mt-1">Contact Person is required</p>
+                      <p className="text-blue-700 text-sm mt-1">Contact Person is required</p>
                     )}
                   </div>
 
                   <div>
                     <label className={getLabelClass(isDarkMode)}>
-                      Mobile <span className="text-red-500">*</span>
+                      Mobile <span className="text-blue-700">*</span>
                     </label>
                     <input 
                       type="tel" 
@@ -426,7 +430,7 @@ export function TransportMasterScreen({ isDarkMode }: TransportMasterScreenProps
                       onChange={(e) => handleFormChange('mobile', e.target.value)}
                     />
                     {errors.mobile && (
-                      <p className="text-red-500 text-sm mt-1">Mobile is required</p>
+                      <p className="text-blue-700 text-sm mt-1">Mobile is required</p>
                     )}
                   </div>
 
@@ -443,7 +447,7 @@ export function TransportMasterScreen({ isDarkMode }: TransportMasterScreenProps
 
                   <div className="lg:col-span-2">
                     <label className={getLabelClass(isDarkMode)}>
-                      Address <span className="text-red-500">*</span>
+                      Address <span className="text-blue-700">*</span>
                     </label>
                     <textarea 
                       rows={3}
@@ -453,7 +457,7 @@ export function TransportMasterScreen({ isDarkMode }: TransportMasterScreenProps
                       onChange={(e) => handleFormChange('address', e.target.value)}
                     />
                     {errors.address && (
-                      <p className="text-red-500 text-sm mt-1">Address is required</p>
+                      <p className="text-blue-700 text-sm mt-1">Address is required</p>
                     )}
                   </div>
 
@@ -486,21 +490,23 @@ export function TransportMasterScreen({ isDarkMode }: TransportMasterScreenProps
                 isDarkMode ? 'border-gray-700 bg-gray-800/80' : 'border-gray-200 bg-white/80'
               } backdrop-blur-xl`}>
                 <div className="flex items-center justify-between">
-                  {!isNewTransport && (
-                    <button 
-                      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all ${
-                        isDarkMode 
-                          ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
-                          : 'bg-red-50 text-red-600 hover:bg-red-100'
-                      }`} 
-                      onClick={handleDelete}
-                      disabled={isSubmitting}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      <span className="text-sm font-medium">Delete</span>
-                    </button>
-                  )}
-                  {isNewTransport && <div></div>}
+                  <div className="flex items-center gap-2">
+                    {!isNewTransport && canDelete(MODULE_NAME) && (
+                      <button 
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all ${
+                          isDarkMode 
+                            ? 'bg-blue-700/20 text-blue-400 hover:bg-blue-700/30' 
+                            : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                        }`} 
+                        onClick={handleDelete}
+                        disabled={isSubmitting}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        <span className="text-sm font-medium">Delete</span>
+                      </button>
+                    )}
+                  </div>
+                  
                   <div className="flex items-center gap-3">
                     <button 
                       onClick={handleCloseModal}
@@ -509,18 +515,21 @@ export function TransportMasterScreen({ isDarkMode }: TransportMasterScreenProps
                     >
                       <span>Cancel</span>
                     </button>
-                    <button 
-                      onClick={handleSave}
-                      className={`${getPrimaryButtonClass()} disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Save className="w-4 h-4" />
-                      )}
-                      <span>{isSubmitting ? 'Saving...' : isNewTransport ? 'Add Transport' : 'Save Changes'}</span>
-                    </button>
+
+                    {(isNewTransport ? canCreate(MODULE_NAME) : canEdit(MODULE_NAME)) && (
+                      <button 
+                        onClick={handleSave}
+                        className={`${getPrimaryButtonClass()} disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Save className="w-4 h-4" />
+                        )}
+                        <span>{isSubmitting ? 'Saving...' : isNewTransport ? 'Add Transport' : 'Save Changes'}</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

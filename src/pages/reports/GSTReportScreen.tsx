@@ -209,8 +209,8 @@ export function GSTReportScreen({ isDarkMode }: GSTReportScreenProps) {
             >
               <div className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
-                    <FileCheck className="w-5 h-5 text-orange-500" />
+                  <div className="w-10 h-10 rounded-lg bg-blue-800/20 flex items-center justify-center">
+                    <FileCheck className="w-5 h-5 text-blue-800" />
                   </div>
                   <div>
                     <p className={`text-xs ${
@@ -232,8 +232,8 @@ export function GSTReportScreen({ isDarkMode }: GSTReportScreenProps) {
             >
               <div className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-green-500" />
+                  <div className="w-10 h-10 rounded-lg bg-blue-600/20 flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
                     <p className={`text-xs ${
@@ -266,16 +266,16 @@ export function GSTReportScreen({ isDarkMode }: GSTReportScreenProps) {
                 <div className="flex items-center gap-3">
                   <button className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                     isDarkMode 
-                      ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' 
-                      : 'bg-red-50 text-red-600 hover:bg-red-100'
+                      ? 'bg-blue-700/20 text-blue-400 hover:bg-blue-700/30' 
+                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
                   }`}>
                     <FileText className="w-4 h-4" />
                     <span className="text-sm font-medium">Export PDF</span>
                   </button>
                   <button className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                     isDarkMode 
-                      ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' 
-                      : 'bg-green-50 text-green-600 hover:bg-green-100'
+                      ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30' 
+                      : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
                   }`}>
                     <Download className="w-4 h-4" />
                     <span className="text-sm font-medium">Export Excel</span>
@@ -349,7 +349,7 @@ export function GSTReportScreen({ isDarkMode }: GSTReportScreenProps) {
                         <td className="py-3 px-4">
                           <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
                             record.type === 'Sale'
-                              ? 'bg-green-500/20 text-green-500'
+                              ? 'bg-blue-600/20 text-blue-600'
                               : 'bg-blue-500/20 text-blue-500'
                           }`}>
                             {record.type}
@@ -365,16 +365,16 @@ export function GSTReportScreen({ isDarkMode }: GSTReportScreenProps) {
                           isDarkMode ? 'text-white' : 'text-gray-900'
                         }`}>₹{record.taxableAmount.toLocaleString()}</td>
                         <td className={`py-3 px-4 text-sm text-right ${
-                          isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                          isDarkMode ? 'text-blue-400' : 'text-blue-800'
                         }`}>₹{record.cgst.toLocaleString()}</td>
                         <td className={`py-3 px-4 text-sm text-right ${
-                          isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                          isDarkMode ? 'text-blue-400' : 'text-blue-800'
                         }`}>₹{record.sgst.toLocaleString()}</td>
                         <td className={`py-3 px-4 text-sm text-right ${
                           isDarkMode ? 'text-blue-400' : 'text-blue-600'
                         }`}>₹{record.igst.toLocaleString()}</td>
                         <td className={`py-3 px-4 text-sm font-semibold text-right ${
-                          isDarkMode ? 'text-green-400' : 'text-green-600'
+                          isDarkMode ? 'text-blue-400' : 'text-blue-600'
                         }`}>₹{record.totalGST.toLocaleString()}</td>
                         <td className={`py-3 px-4 text-sm font-bold text-right ${
                           isDarkMode ? 'text-white' : 'text-gray-900'
@@ -392,16 +392,16 @@ export function GSTReportScreen({ isDarkMode }: GSTReportScreenProps) {
                         isDarkMode ? 'text-white' : 'text-gray-900'
                       }`}>₹{totals.totalTaxable.toLocaleString()}</td>
                       <td className={`py-3 px-4 text-sm text-right ${
-                        isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                        isDarkMode ? 'text-blue-400' : 'text-blue-800'
                       }`}>₹{totals.totalCGST.toLocaleString()}</td>
                       <td className={`py-3 px-4 text-sm text-right ${
-                        isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                        isDarkMode ? 'text-blue-400' : 'text-blue-800'
                       }`}>₹{totals.totalSGST.toLocaleString()}</td>
                       <td className={`py-3 px-4 text-sm text-right ${
                         isDarkMode ? 'text-blue-400' : 'text-blue-600'
                       }`}>₹{totals.totalIGST.toLocaleString()}</td>
                       <td className={`py-3 px-4 text-sm text-right ${
-                        isDarkMode ? 'text-green-400' : 'text-green-600'
+                        isDarkMode ? 'text-blue-400' : 'text-blue-600'
                       }`}>₹{totals.totalGST.toLocaleString()}</td>
                       <td className={`py-3 px-4 text-sm text-right ${
                         isDarkMode ? 'text-white' : 'text-gray-900'

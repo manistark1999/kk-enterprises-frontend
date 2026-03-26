@@ -30,12 +30,14 @@ import {
 } from '@/utils/formStyles';
 import { useItemsServices, ItemService } from '@/contexts/ItemsServicesContext';
 import { useMasters } from '@/contexts/MastersContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ItemsServicesScreenProps {
   isDarkMode: boolean;
 }
 
 export function ItemsServicesScreen({ isDarkMode }: ItemsServicesScreenProps) {
+  const { canCreate, canEdit, canDelete, canPrint, canExport } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<ItemService | null>(null);
@@ -201,7 +203,6 @@ export function ItemsServicesScreen({ isDarkMode }: ItemsServicesScreenProps) {
       }
       handleCloseDrawer();
     } catch (error: any) {
-      console.error('[Frontend] Save error:', error);
       toast.error(error.message || 'Failed to save item/service');
     }
   };
@@ -292,35 +293,41 @@ export function ItemsServicesScreen({ isDarkMode }: ItemsServicesScreenProps) {
             <RefreshCw className="w-4 h-4" />
             Refresh
           </button>
-          <button
-            onClick={() => window.print()}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
-              isDarkMode 
-                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <Printer className="w-4 h-4" />
-            Print
-          </button>
-          <button
-            onClick={handleExport}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
-              isDarkMode 
-                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <Download className="w-4 h-4" />
-            Export
-          </button>
-          <button
-            onClick={() => handleOpenDrawer()}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-medium shadow-lg"
-          >
-            <Plus className="w-4 h-4" />
-            Add Item
-          </button>
+          {canPrint('Items & Services') && (
+            <button
+              onClick={() => window.print()}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
+                isDarkMode 
+                  ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Printer className="w-4 h-4" />
+              Print
+            </button>
+          )}
+          {canExport('Items & Services') && (
+            <button
+              onClick={handleExport}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
+                isDarkMode 
+                  ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Download className="w-4 h-4" />
+              Export
+            </button>
+          )}
+          {canCreate('Items & Services') && (
+            <button
+              onClick={() => handleOpenDrawer()}
+              className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-medium shadow-lg"
+            >
+              <Plus className="w-4 h-4" />
+              Add Item
+            </button>
+          )}
         </div>
       </div>
 
@@ -387,9 +394,9 @@ export function ItemsServicesScreen({ isDarkMode }: ItemsServicesScreenProps) {
           <div className="p-5">
             <div className="flex items-center justify-between mb-3">
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-orange-500/20' : 'bg-orange-50'
+                isDarkMode ? 'bg-blue-800/20' : 'bg-blue-50'
               }`}>
-                <AlertTriangle className="w-6 h-6 text-orange-500" />
+                <AlertTriangle className="w-6 h-6 text-blue-800" />
               </div>
             </div>
             <h3 className={`text-sm font-medium mb-1 ${
@@ -413,9 +420,9 @@ export function ItemsServicesScreen({ isDarkMode }: ItemsServicesScreenProps) {
           <div className="p-5">
             <div className="flex items-center justify-between mb-3">
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-green-500/20' : 'bg-green-50'
+                isDarkMode ? 'bg-blue-600/20' : 'bg-blue-50'
               }`}>
-                <TrendingUp className="w-6 h-6 text-green-500" />
+                <TrendingUp className="w-6 h-6 text-blue-600" />
               </div>
             </div>
             <h3 className={`text-sm font-medium mb-1 ${
@@ -590,11 +597,11 @@ export function ItemsServicesScreen({ isDarkMode }: ItemsServicesScreenProps) {
                           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
                             (item.currentStock || 0) < (item.minStockLevel || 0)
                               ? isDarkMode
-                                ? 'bg-red-500/20 text-red-400'
-                                : 'bg-red-50 text-red-600'
+                                ? 'bg-blue-700/20 text-blue-400'
+                                : 'bg-blue-50 text-blue-700'
                               : isDarkMode
-                              ? 'bg-green-500/20 text-green-400'
-                              : 'bg-green-50 text-green-600'
+                              ? 'bg-blue-600/20 text-blue-400'
+                              : 'bg-blue-50 text-blue-600'
                           }`}>
                             {item.currentStock || 0}
                           </span>
@@ -608,8 +615,8 @@ export function ItemsServicesScreen({ isDarkMode }: ItemsServicesScreenProps) {
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
                           item.status === 'Active'
                             ? isDarkMode
-                              ? 'bg-green-500/20 text-green-400'
-                              : 'bg-green-50 text-green-600'
+                              ? 'bg-blue-600/20 text-blue-400'
+                              : 'bg-blue-50 text-blue-600'
                             : isDarkMode
                             ? 'bg-gray-500/20 text-gray-400'
                             : 'bg-gray-100 text-gray-600'
@@ -619,28 +626,32 @@ export function ItemsServicesScreen({ isDarkMode }: ItemsServicesScreenProps) {
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => handleOpenDrawer(item)}
-                            className={`p-2 rounded-lg transition-colors ${
-                              isDarkMode
-                                ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                                : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                            }`}
-                            title="Edit"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            className={`p-2 rounded-lg transition-colors ${
-                              isDarkMode
-                                ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                                : 'bg-red-50 text-red-600 hover:bg-red-100'
-                            }`}
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {canEdit('Items & Services') && (
+                            <button
+                              onClick={() => handleOpenDrawer(item)}
+                              className={`p-2 rounded-lg transition-colors ${
+                                isDarkMode
+                                  ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                                  : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                              }`}
+                              title="Edit"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          {canDelete('Items & Services') && (
+                            <button
+                              onClick={() => handleDelete(item.id)}
+                              className={`p-2 rounded-lg transition-colors ${
+                                isDarkMode
+                                  ? 'bg-blue-700/20 text-blue-400 hover:bg-blue-700/30'
+                                  : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                              }`}
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -718,7 +729,7 @@ export function ItemsServicesScreen({ isDarkMode }: ItemsServicesScreenProps) {
                     {/* Type Selection */}
                     <div>
                       <label className={labelClass}>
-                        Type <span className="text-red-500">*</span>
+                        Type <span className="text-blue-700">*</span>
                       </label>
                       <div className="grid grid-cols-2 gap-3 mt-2">
                         <button
@@ -774,7 +785,7 @@ export function ItemsServicesScreen({ isDarkMode }: ItemsServicesScreenProps) {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="col-span-2">
                         <label className={labelClass}>
-                          Name <span className="text-red-500">*</span>
+                          Name <span className="text-blue-700">*</span>
                         </label>
                         <input
                           type="text"
@@ -813,7 +824,7 @@ export function ItemsServicesScreen({ isDarkMode }: ItemsServicesScreenProps) {
                       {formData.type === 'Service' && (
                         <div>
                           <label className={labelClass}>
-                            Work Group <span className="text-red-500">*</span>
+                            Work Group <span className="text-blue-700">*</span>
                           </label>
                           <select
                             value={formData.workGroup}
@@ -834,7 +845,7 @@ export function ItemsServicesScreen({ isDarkMode }: ItemsServicesScreenProps) {
 
                       <div>
                         <label className={labelClass}>
-                          Selling Rate (₹) <span className="text-red-500">*</span>
+                          Selling Rate (₹) <span className="text-blue-700">*</span>
                         </label>
                         <input
                           type="number"
@@ -860,7 +871,7 @@ export function ItemsServicesScreen({ isDarkMode }: ItemsServicesScreenProps) {
 
                       <div>
                         <label className={labelClass}>
-                          GST % <span className="text-red-500">*</span>
+                          GST % <span className="text-blue-700">*</span>
                         </label>
                         <select
                           value={formData.gstPercentage}
@@ -877,7 +888,7 @@ export function ItemsServicesScreen({ isDarkMode }: ItemsServicesScreenProps) {
 
                       <div>
                         <label className={labelClass}>
-                          Unit <span className="text-red-500">*</span>
+                          Unit <span className="text-blue-700">*</span>
                         </label>
                         <select
                           value={formData.unit}
@@ -991,13 +1002,15 @@ export function ItemsServicesScreen({ isDarkMode }: ItemsServicesScreenProps) {
                     >
                       Cancel
                     </button>
-                    <button
-                      onClick={handleSave}
-                      className={primaryButtonClass}
-                    >
-                      <Save className="w-4 h-4" />
-                      {editingItem ? 'Update' : 'Save'}
-                    </button>
+                    {(editingItem ? canEdit('Items & Services') : canCreate('Items & Services')) && (
+                      <button
+                        onClick={handleSave}
+                        className={primaryButtonClass}
+                      >
+                        <Save className="w-4 h-4" />
+                        {editingItem ? 'Update' : 'Save'}
+                      </button>
+                    )}
                   </div>
                 </div>
               </motion.div>

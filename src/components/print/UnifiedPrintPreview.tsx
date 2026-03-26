@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { PrintActionModal } from './PrintActionModal';
-import JobCardPrintView from '@/pages/job-card/JobCardPrintView';
-import BillPrintView from './BillPrintView';
-import ReceiptPrintView from './ReceiptPrintView';
+import { JobCardPrint } from './JobCardPrint';
+import { CustomerPrint } from './CustomerPrint';
+import { ReceiptPrint } from './ReceiptPrint';
+import { EstimationPrint } from './EstimationPrint';
+import { LabourBillPrint } from './LabourBillPrint';
+import { PaymentVoucherPrint } from './PaymentVoucherPrint';
+import { AlignmentPrint } from './AlignmentPrint';
 import ReportPrintView from './ReportPrintView';
-import CustomerPrintView from './CustomerPrintView';
 
-export type DocType = 'jobcard' | 'bill' | 'receipt' | 'report' | 'customer';
+export type DocType = 'jobcard' | 'bill' | 'receipt' | 'report' | 'customer' | 'estimation' | 'labour' | 'voucher' | 'alignment';
 
 interface UnifiedPrintPreviewProps {
   type: DocType;
@@ -28,7 +31,7 @@ export const UnifiedPrintPreview: React.FC<UnifiedPrintPreviewProps> = ({
   const [companyData, setCompanyData] = useState<any>({
     companyName: 'KK Enterprises',
     address: 'Main Road, City',
-    phone: '+91 9876543210',
+    phone: '+91 7558130111',
     email: 'info@kkenterprises.com',
     website: 'www.kkenterprises.com',
     bankName: 'State Bank of India',
@@ -47,17 +50,25 @@ export const UnifiedPrintPreview: React.FC<UnifiedPrintPreviewProps> = ({
   const renderContent = () => {
     if (!data) return null;
 
+    // Use common data mappings for our new components
     switch (type) {
       case 'jobcard':
-        return <JobCardPrintView data={data} company={companyData} />;
-      case 'bill':
-        return <BillPrintView data={data} company={companyData} title={type.toUpperCase()} />;
+        return <JobCardPrint data={data} company={companyData} />;
+      case 'customer':
+        return <CustomerPrint data={data} company={companyData} />;
       case 'receipt':
-        return <ReceiptPrintView data={data} company={companyData} />;
+        return <ReceiptPrint data={data} company={companyData} />;
+      case 'estimation':
+        return <EstimationPrint data={data} company={companyData} />;
+      case 'bill':
+      case 'labour':
+        return <LabourBillPrint data={data} company={companyData} />;
+      case 'voucher':
+        return <PaymentVoucherPrint data={data} company={companyData} />;
+      case 'alignment':
+        return <AlignmentPrint data={data} company={companyData} />;
       case 'report':
         return <ReportPrintView data={data} company={companyData} title={title || 'REPORT'} />;
-      case 'customer':
-        return <CustomerPrintView data={data} company={companyData} />;
       default:
         return <div>Invalid Document Type</div>;
     }
@@ -67,7 +78,7 @@ export const UnifiedPrintPreview: React.FC<UnifiedPrintPreviewProps> = ({
     <PrintActionModal
       isOpen={isOpen}
       onClose={onClose}
-      title={type.charAt(0).toUpperCase() + type.slice(1)}
+      title={title || type.charAt(0).toUpperCase() + type.slice(1)}
       isDarkMode={isDarkMode}
     >
       {renderContent()}

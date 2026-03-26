@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Save,
   X,
@@ -145,7 +145,7 @@ export function StockAdjustmentScreen({ isDarkMode }: StockAdjustmentScreenProps
   const selectedItem = stockItems.find(item => item.id === formData.itemId);
 
   return (
-    <div className="h-full flex flex-col p-6 overflow-hidden">
+    <div className="min-h-full p-6 space-y-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -180,7 +180,8 @@ export function StockAdjustmentScreen({ isDarkMode }: StockAdjustmentScreenProps
       </motion.div>
 
       {/* Form Card - Collapsible */}
-      {!isFormCollapsed && (
+      <AnimatePresence mode="wait">
+        {!isFormCollapsed && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
@@ -198,7 +199,7 @@ export function StockAdjustmentScreen({ isDarkMode }: StockAdjustmentScreenProps
                 <label className={`block text-sm font-semibold mb-2 ${
                   isDarkMode ? 'text-gray-300' : 'text-gray-700'
                 }`}>
-                  Date {errors.date && <span className="text-red-500">*</span>}
+                  Date {errors.date && <span className="text-blue-700">*</span>}
                 </label>
                 <input
                   type="date"
@@ -222,7 +223,7 @@ export function StockAdjustmentScreen({ isDarkMode }: StockAdjustmentScreenProps
                 <label className={`block text-sm font-semibold mb-2 ${
                   isDarkMode ? 'text-gray-300' : 'text-gray-700'
                 }`}>
-                  Select Item {errors.itemId && <span className="text-red-500">*</span>}
+                  Select Item {errors.itemId && <span className="text-blue-700">*</span>}
                 </label>
                 <select
                   value={formData.itemId}
@@ -275,7 +276,7 @@ export function StockAdjustmentScreen({ isDarkMode }: StockAdjustmentScreenProps
                 <div className="flex gap-3">
                   <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-all ${
                     formData.adjustmentType === 'Add'
-                      ? 'border-green-500 bg-green-500/10'
+                      ? 'border-blue-500 bg-blue-500/10'
                       : isDarkMode
                       ? 'border-gray-600 hover:border-gray-500'
                       : 'border-gray-300 hover:border-gray-400'
@@ -286,15 +287,15 @@ export function StockAdjustmentScreen({ isDarkMode }: StockAdjustmentScreenProps
                       value="Add"
                       checked={formData.adjustmentType === 'Add'}
                       onChange={(e) => setFormData({ ...formData, adjustmentType: 'Add' })}
-                      className="text-green-500"
+                      className="text-blue-500"
                     />
-                    <TrendingUp className="w-4 h-4 text-green-500" />
+                    <TrendingUp className="w-4 h-4 text-blue-500" />
                     <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>Add Stock</span>
                   </label>
                   
                   <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-all ${
                     formData.adjustmentType === 'Remove'
-                      ? 'border-red-500 bg-red-500/10'
+                      ? 'border-blue-700 bg-blue-900/10'
                       : isDarkMode
                       ? 'border-gray-600 hover:border-gray-500'
                       : 'border-gray-300 hover:border-gray-400'
@@ -305,9 +306,9 @@ export function StockAdjustmentScreen({ isDarkMode }: StockAdjustmentScreenProps
                       value="Remove"
                       checked={formData.adjustmentType === 'Remove'}
                       onChange={(e) => setFormData({ ...formData, adjustmentType: 'Remove' })}
-                      className="text-red-500"
+                      className="text-blue-700"
                     />
-                    <TrendingDown className="w-4 h-4 text-red-500" />
+                    <TrendingDown className="w-4 h-4 text-blue-700" />
                     <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>Remove Stock</span>
                   </label>
                 </div>
@@ -318,7 +319,7 @@ export function StockAdjustmentScreen({ isDarkMode }: StockAdjustmentScreenProps
                 <label className={`block text-sm font-semibold mb-2 ${
                   isDarkMode ? 'text-gray-300' : 'text-gray-700'
                 }`}>
-                  Quantity {errors.quantity && <span className="text-red-500">*</span>}
+                  Quantity {errors.quantity && <span className="text-blue-700">*</span>}
                 </label>
                 <input
                   type="number"
@@ -364,7 +365,7 @@ export function StockAdjustmentScreen({ isDarkMode }: StockAdjustmentScreenProps
                 <label className={`block text-sm font-semibold mb-2 ${
                   isDarkMode ? 'text-gray-300' : 'text-gray-700'
                 }`}>
-                  Reason {errors.reason && <span className="text-red-500">*</span>}
+                  Reason {errors.reason && <span className="text-blue-700">*</span>}
                 </label>
                 <textarea
                   value={formData.reason}
@@ -411,9 +412,10 @@ export function StockAdjustmentScreen({ isDarkMode }: StockAdjustmentScreenProps
           </form>
         </motion.div>
       )}
+      </AnimatePresence>
 
       {/* Adjustments Table */}
-      <div className={`flex-1 rounded-xl border backdrop-blur-sm overflow-hidden flex flex-col ${
+      <div className={`rounded-xl border backdrop-blur-sm overflow-hidden flex flex-col ${
         isDarkMode
           ? 'bg-gray-800/50 border-gray-700/50'
           : 'bg-white/50 border-gray-200/50'
@@ -497,8 +499,8 @@ export function StockAdjustmentScreen({ isDarkMode }: StockAdjustmentScreenProps
                     <td className="px-4 py-3 text-sm">
                       <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
                         adjustment.adjustmentType === 'Add'
-                          ? 'bg-green-500/10 text-green-500'
-                          : 'bg-red-500/10 text-red-500'
+                          ? 'bg-blue-100 text-blue-600'
+                          : 'bg-blue-900/20 text-blue-400'
                       }`}>
                         {adjustment.adjustmentType === 'Add' ? (
                           <TrendingUp className="w-3 h-3" />
@@ -510,8 +512,8 @@ export function StockAdjustmentScreen({ isDarkMode }: StockAdjustmentScreenProps
                     </td>
                     <td className={`px-4 py-3 text-sm font-semibold ${
                       adjustment.adjustmentType === 'Add'
-                        ? 'text-green-500'
-                        : 'text-red-500'
+                        ? 'text-blue-600'
+                        : 'text-blue-400'
                     }`}>
                       {adjustment.adjustmentType === 'Add' ? '+' : '-'}{adjustment.quantity}
                     </td>
@@ -533,14 +535,14 @@ export function StockAdjustmentScreen({ isDarkMode }: StockAdjustmentScreenProps
                         </button>
                         <button
                           onClick={() => handleEdit(adjustment)}
-                          className="p-1.5 rounded-lg transition-all hover:bg-yellow-500/10 text-yellow-500"
+                          className="p-1.5 rounded-lg transition-all hover:bg-blue-400/10 text-blue-400"
                           title="Edit Adjustment"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(adjustment)}
-                          className="p-1.5 rounded-lg transition-all hover:bg-red-500/10 text-red-500"
+                          className="p-1.5 rounded-lg transition-all hover:bg-blue-700/10 text-blue-700"
                           title="Delete Adjustment"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -609,7 +611,7 @@ export function StockAdjustmentScreen({ isDarkMode }: StockAdjustmentScreenProps
                   isDarkMode ? 'text-gray-400' : 'text-gray-600'
                 }`}>Adjustment Type</label>
                 <p className={`text-sm font-bold ${
-                  viewingAdjustment.adjustmentType === 'Add' ? 'text-green-500' : 'text-red-500'
+                  viewingAdjustment.adjustmentType === 'Add' ? 'text-blue-500' : 'text-blue-600'
                 }`}>
                   {viewingAdjustment.adjustmentType}
                 </p>
@@ -620,7 +622,7 @@ export function StockAdjustmentScreen({ isDarkMode }: StockAdjustmentScreenProps
                   isDarkMode ? 'text-gray-400' : 'text-gray-600'
                 }`}>Quantity Adjusted</label>
                 <p className={`text-sm font-bold ${
-                  viewingAdjustment.adjustmentType === 'Add' ? 'text-green-500' : 'text-red-500'
+                  viewingAdjustment.adjustmentType === 'Add' ? 'text-blue-500' : 'text-blue-600'
                 }`}>
                   {`${viewingAdjustment.adjustmentType === 'Add' ? '+' : '-'}${viewingAdjustment.quantity}`}
                 </p>

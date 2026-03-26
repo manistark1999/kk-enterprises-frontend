@@ -79,8 +79,19 @@ export function StockListScreen({ isDarkMode }: StockListScreenProps) {
     supplier: '',
     location: '',
   });
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  const { stockItems, addStockItem, updateStockItem, deleteStockItem } = useStock();
+  const { stockItems, addStockItem, updateStockItem, deleteStockItem, fetchNextStockCode } = useStock();
+
+  const handleOpenAddModal = async () => {
+    if (!isEditMode) {
+      const nextCode = await fetchNextStockCode();
+      if (nextCode) {
+        setNewItemForm(prev => ({ ...prev, itemCode: nextCode }));
+      }
+    }
+    setIsAddModalOpen(true);
+  };
 
   const cardClass = `rounded-xl ${
     isDarkMode 
@@ -113,15 +124,15 @@ export function StockListScreen({ isDarkMode }: StockListScreenProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'In Stock':
-        return 'bg-green-500/20 text-green-500';
+        return 'bg-blue-600 text-white shadow-sm';
       case 'Low Stock':
-        return 'bg-orange-500/20 text-orange-500';
+        return 'bg-blue-100 text-blue-700 border border-blue-200';
       case 'Out of Stock':
-        return 'bg-red-500/20 text-red-500';
+        return 'bg-blue-900/40 text-blue-300 border border-blue-800';
       case 'Overstocked':
-        return 'bg-blue-500/20 text-blue-500';
+        return 'bg-blue-500/10 text-blue-400 border border-blue-500/20';
       default:
-        return 'bg-gray-500/20 text-gray-500';
+        return 'bg-gray-500/10 text-gray-500';
     }
   };
 
@@ -133,36 +144,61 @@ export function StockListScreen({ isDarkMode }: StockListScreenProps) {
     return 'In Stock';
   };
 
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    const requiredFields = [
+      { key: 'itemCode', label: 'Item Code' },
+      { key: 'itemName', label: 'Item Name' },
+      { key: 'category', label: 'Category' },
+      { key: 'unit', label: 'Unit of Measurement' },
+      { key: 'currentStock', label: 'Current Stock' },
+      { key: 'minStock', label: 'Minimum Stock Level' },
+      { key: 'maxStock', label: 'Maximum Stock Level' },
+      { key: 'reorderLevel', label: 'Reorder Level' },
+      { key: 'unitPrice', label: 'Unit Price' },
+    ];
+
+    requiredFields.forEach(({ key, label }) => {
+      const fieldKey = key as keyof typeof newItemForm;
+      const value = newItemForm[fieldKey];
+      const trimmedValue = (value !== null && value !== undefined) ? String(value).trim() : '';
+      
+      // Allow '0' as a valid value for numeric fields
+      if (!trimmedValue && trimmedValue !== '0') {
+        errors[key] = `${label} is required`;
+      }
+    });
+
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   // Function to handle saving new item
-  const handleSaveNewItem = () => {
-    // Validate required fields
-    if (!newItemForm.itemCode || !newItemForm.itemName || !newItemForm.category || 
-        !newItemForm.currentStock || !newItemForm.minStock || !newItemForm.maxStock || 
-        !newItemForm.reorderLevel || !newItemForm.unitPrice) {
-      alert('Please fill in all required fields');
+  const handleSaveNewItem = async () => {
+    if (!validateForm()) {
       return;
     }
 
-    // Parse numeric values
-    const currentStock = parseInt(newItemForm.currentStock);
-    const minStock = parseInt(newItemForm.minStock);
-    const maxStock = parseInt(newItemForm.maxStock);
-    const reorderLevel = parseInt(newItemForm.reorderLevel);
-    const unitPrice = parseFloat(newItemForm.unitPrice);
+    try {
+      // Parse numeric values safely
+      const currentStock = parseInt(String(newItemForm.currentStock)) || 0;
+      const minStock = parseInt(String(newItemForm.minStock)) || 0;
+      const maxStock = parseInt(String(newItemForm.maxStock)) || 0;
+      const reorderLevel = parseInt(String(newItemForm.reorderLevel)) || 0;
+      const unitPrice = parseFloat(String(newItemForm.unitPrice)) || 0;
 
-    // Calculate total value
-    const totalValue = currentStock * unitPrice;
+      // Calculate total value
+      const totalValue = currentStock * unitPrice;
 
-    // Determine status
-    const status = determineStatus(currentStock, minStock, maxStock);
+      // Determine status
+      const status = determineStatus(currentStock, minStock, maxStock);
 
-    if (isEditMode && editingItemId) {
-      // Update existing item
-      updateStockItem(editingItemId, {
-        itemCode: newItemForm.itemCode,
-        itemName: newItemForm.itemName,
+      const payload = {
+        itemCode: newItemForm.itemCode.trim(),
+        itemName: newItemForm.itemName.trim(),
         category: newItemForm.category,
-        brand: newItemForm.brand || 'N/A',
+        brand: newItemForm.brand.trim() || 'N/A',
         unit: newItemForm.unit,
         currentStock,
         minStock,
@@ -170,46 +206,28 @@ export function StockListScreen({ isDarkMode }: StockListScreenProps) {
         reorderLevel,
         unitPrice,
         totalValue,
-        supplier: newItemForm.supplier || 'N/A',
-        location: newItemForm.location || 'N/A',
-        lastPurchaseDate: selectedItem?.lastPurchaseDate || new Date().toISOString().split('T')[0],
-        lastSaleDate: selectedItem?.lastSaleDate || '-',
-        status
-      });
-      console.log('Item updated successfully');
-    } else {
-      // Generate new ID
-      const newId = `ITM-${String(stockItems.length + 1).padStart(3, '0')}`;
-
-      // Get current date in YYYY-MM-DD format
-      const today = new Date().toISOString().split('T')[0];
-
-      // Create new item
-      const newItem: StockItem = {
-        id: newId,
-        itemCode: newItemForm.itemCode,
-        itemName: newItemForm.itemName,
-        category: newItemForm.category,
-        brand: newItemForm.brand || 'N/A',
-        unit: newItemForm.unit,
-        currentStock,
-        minStock,
-        maxStock,
-        reorderLevel,
-        unitPrice,
-        totalValue,
-        supplier: newItemForm.supplier || 'N/A',
-        location: newItemForm.location || 'N/A',
-        lastPurchaseDate: today,
-        lastSaleDate: '-',
+        supplier: newItemForm.supplier.trim() || 'N/A',
+        location: newItemForm.location.trim() || 'N/A',
         status
       };
 
-      // Add to stock items (add at the beginning to show it at the top)
-      addStockItem(newItem);
-      console.log('New item added successfully:', newItem);
+
+    if (isEditMode && editingItemId) {
+      await updateStockItem(editingItemId, {
+        ...payload,
+        lastPurchaseDate: selectedItem?.lastPurchaseDate || new Date().toISOString().split('T')[0],
+        lastSaleDate: selectedItem?.lastSaleDate || '-',
+      });
+    } else {
+      await addStockItem(payload);
     }
 
+    // Success handling
+    setIsAddModalOpen(false);
+    setIsEditMode(false);
+    setEditingItemId(null);
+    setSelectedItem(null);
+    setFormErrors({});
     // Reset form
     setNewItemForm({
       itemCode: '',
@@ -225,12 +243,9 @@ export function StockListScreen({ isDarkMode }: StockListScreenProps) {
       supplier: '',
       location: '',
     });
-
-    // Close modal and reset edit mode
-    setIsAddModalOpen(false);
-    setIsEditMode(false);
-    setEditingItemId(null);
-  };
+  } catch (error) {
+  }
+};
 
   // Function to handle edit button click
   const handleEditClick = (item: StockItem) => {
@@ -331,7 +346,7 @@ export function StockListScreen({ isDarkMode }: StockListScreenProps) {
             Export
           </button>
           <button 
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={handleOpenAddModal}
             className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium hover:from-blue-700 hover:to-blue-600 shadow-lg shadow-blue-500/30 transition-all text-sm"
           >
             <Plus className="w-4 h-4" />
@@ -374,9 +389,9 @@ export function StockListScreen({ isDarkMode }: StockListScreenProps) {
               <span className={`text-sm font-medium ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>In Stock</span>
-              <TrendingUp className="w-5 h-5 text-green-500" />
+              <TrendingUp className="w-5 h-5 text-blue-500" />
             </div>
-            <div className="text-3xl font-bold text-green-500">{inStockCount}</div>
+            <div className="text-3xl font-bold text-blue-600">{inStockCount}</div>
           </div>
         </motion.div>
 
@@ -391,9 +406,9 @@ export function StockListScreen({ isDarkMode }: StockListScreenProps) {
               <span className={`text-sm font-medium ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>Low Stock</span>
-              <AlertCircle className="w-5 h-5 text-orange-500" />
+              <AlertCircle className="w-5 h-5 text-blue-400" />
             </div>
-            <div className="text-3xl font-bold text-orange-500">{lowStockCount}</div>
+            <div className="text-3xl font-bold text-blue-500">{lowStockCount}</div>
           </div>
         </motion.div>
 
@@ -408,9 +423,9 @@ export function StockListScreen({ isDarkMode }: StockListScreenProps) {
               <span className={`text-sm font-medium ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>Out of Stock</span>
-              <TrendingDown className="w-5 h-5 text-red-500" />
+              <TrendingDown className="w-5 h-5 text-blue-600" />
             </div>
-            <div className="text-3xl font-bold text-red-500">{outOfStockCount}</div>
+            <div className="text-3xl font-bold text-blue-700">{outOfStockCount}</div>
           </div>
         </motion.div>
 
@@ -647,10 +662,10 @@ export function StockListScreen({ isDarkMode }: StockListScreenProps) {
                           </td>
                           <td className={`py-3 px-3 text-sm font-semibold text-right truncate ${
                             item.status === 'Out of Stock' 
-                              ? isDarkMode ? 'text-red-400' : 'text-red-600'
+                              ? isDarkMode ? 'text-blue-300' : 'text-blue-700'
                               : item.status === 'Low Stock'
-                              ? isDarkMode ? 'text-orange-400' : 'text-orange-600'
-                              : isDarkMode ? 'text-green-400' : 'text-green-600'
+                              ? isDarkMode ? 'text-blue-400' : 'text-blue-500'
+                              : isDarkMode ? 'text-blue-200' : 'text-blue-600'
                           }`}
                             title={`${item.currentStock} ${item.unit}`}>
                             {item.currentStock} <span className="text-xs opacity-70">{item.unit}</span>
@@ -682,13 +697,13 @@ export function StockListScreen({ isDarkMode }: StockListScreenProps) {
                                 title="View">
                                 <Eye className="w-3.5 h-3.5" />
                               </button>
-                              <button className={`p-1 rounded-lg transition-all ${ isDarkMode ? 'hover:bg-green-500/20 text-green-400' : 'hover:bg-green-50 text-green-600' }`}
+                              <button className={`p-1 rounded-lg transition-all ${ isDarkMode ? 'hover:bg-blue-600/20 text-blue-400' : 'hover:bg-blue-50 text-blue-600' }`}
                                 title="Edit"
                                 onClick={() => handleEditClick(item)}
                               >
                                 <Edit className="w-3.5 h-3.5" />
                               </button>
-                              <button className={`p-1 rounded-lg transition-all ${ isDarkMode ? 'hover:bg-red-500/20 text-red-400' : 'hover:bg-red-50 text-red-600' }`}
+                              <button className={`p-1 rounded-lg transition-all ${ isDarkMode ? 'hover:bg-blue-900/40 text-blue-300' : 'hover:bg-blue-100 text-blue-700' }`}
                                 title="Delete"
                                 onClick={() => handleDelete(item.id)}
                               >
@@ -780,10 +795,10 @@ export function StockListScreen({ isDarkMode }: StockListScreenProps) {
                       <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Stock:</span>
                       <span className={`font-semibold ${
                         item.status === 'Out of Stock' 
-                          ? isDarkMode ? 'text-red-400' : 'text-red-600'
+                          ? isDarkMode ? 'text-blue-400' : 'text-blue-700'
                           : item.status === 'Low Stock'
-                          ? isDarkMode ? 'text-orange-400' : 'text-orange-600'
-                          : isDarkMode ? 'text-green-400' : 'text-green-600'
+                          ? isDarkMode ? 'text-blue-400' : 'text-blue-800'
+                          : isDarkMode ? 'text-blue-400' : 'text-blue-600'
                       }`}>{item.currentStock} {item.unit}</span>
                     </div>
                     <div className="flex justify-between text-sm">
@@ -835,11 +850,13 @@ export function StockListScreen({ isDarkMode }: StockListScreenProps) {
               setIsAddModalOpen(false);
               setIsEditMode(false);
               setEditingItemId(null);
+              setFormErrors({});
             }}
             formData={newItemForm}
             onFormChange={setNewItemForm}
             onSave={handleSaveNewItem}
             isEditMode={isEditMode}
+            errors={formErrors}
           />
         )}
       </AnimatePresence>

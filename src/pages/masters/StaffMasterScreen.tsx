@@ -22,12 +22,14 @@ import {
   isFieldEmpty
 } from '@/utils/formStyles';
 import { useStaff, Staff } from '@/contexts/StaffContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface StaffMasterScreenProps {
   isDarkMode: boolean;
 }
 
 export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
+  const { canCreate, canEdit, canDelete } = useAuth();
   const { staff, isLoading, addStaff, updateStaff, deleteStaff, refreshStaff } = useStaff();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<Partial<Staff> | null>(null);
@@ -83,7 +85,6 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
 
     setIsSaving(true);
     try {
-      console.log('[Frontend] Saving Staff Payload:', selectedStaff);
       
       if (isNewStaff) {
         await addStaff(selectedStaff as Staff);
@@ -94,7 +95,6 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
       }
       handleCloseModal();
     } catch (error: any) {
-      console.error('Error saving staff:', error);
       toast.error(error.message || 'Failed to save staff data');
     } finally {
       setIsSaving(false);
@@ -155,13 +155,15 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
           </button>
-          <button 
-            onClick={handleAddNew}
-            className={getPrimaryButtonClass()}
-          >
-            <Plus className="w-5 h-5" />
-            <span>Add New Staff</span>
-          </button>
+          {canCreate('Staff') && (
+            <button 
+              onClick={handleAddNew}
+              className={getPrimaryButtonClass()}
+            >
+              <Plus className="w-5 h-5" />
+              <span>Add New Staff</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -233,7 +235,7 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                       <td className={`py-4 px-6 text-right font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>₹{s.salary.toLocaleString()}</td>
                       <td className="py-4 px-6">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                          s.status === 'Active' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'
+                          s.status === 'Active' ? 'bg-blue-600/20 text-blue-600' : 'bg-blue-700/20 text-blue-700'
                         }`}>{s.status}</span>
                       </td>
                     </tr>
@@ -291,7 +293,7 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                       placeholder="Enter staff member's full name"
                     />
                     {errors.name && (
-                      <p className="text-red-500 text-sm mt-1">Staff Name is required</p>
+                      <p className="text-blue-700 text-sm mt-1">Staff Name is required</p>
                     )}
                   </div>
                   
@@ -312,7 +314,7 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                       <option value="Workshop Manager">Workshop Manager</option>
                     </select>
                     {errors.designation && (
-                      <p className="text-red-500 text-sm mt-1">Designation is required</p>
+                      <p className="text-blue-700 text-sm mt-1">Designation is required</p>
                     )}
                   </div>
 
@@ -326,7 +328,7 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                       placeholder="10-digit mobile number"
                     />
                     {errors.mobile && (
-                      <p className="text-red-500 text-sm mt-1">Mobile Number is required</p>
+                      <p className="text-blue-700 text-sm mt-1">Mobile Number is required</p>
                     )}
                   </div>
 
@@ -361,7 +363,7 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                       onChange={(e) => handleFormChange('joiningDate', e.target.value)}
                     />
                     {errors.joiningDate && (
-                      <p className="text-red-500 text-sm mt-1">Date of Joining is required</p>
+                      <p className="text-blue-700 text-sm mt-1">Date of Joining is required</p>
                     )}
                   </div>
 
@@ -413,10 +415,10 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
               </div>
 
               <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/30 flex items-center justify-between">
-                {!isNewStaff ? (
+                {!isNewStaff && canDelete('Staff') ? (
                   <button 
                     onClick={handleDelete}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-700/10 text-blue-700 hover:bg-blue-700/20"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span>Delete Record</span>
@@ -425,20 +427,22 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                 
                 <div className="flex gap-3">
                   <button onClick={handleCloseModal} className={getSecondaryButtonClass(isDarkMode)}>Cancel</button>
-                  <button 
-                    onClick={handleSave} 
-                    disabled={isSaving}
-                    className={`${getPrimaryButtonClass()} disabled:opacity-50 disabled:cursor-not-allowed`}
-                  >
-                    {isSaving ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <Save className="w-4 h-4" />
-                        <span>{isNewStaff ? 'Create Staff' : 'Save Changes'}</span>
-                      </div>
-                    )}
-                  </button>
+                  {(isNewStaff ? canCreate('Staff') : canEdit('Staff')) && (
+                    <button 
+                      onClick={handleSave} 
+                      disabled={isSaving}
+                      className={`${getPrimaryButtonClass()} disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {isSaving ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <Save className="w-4 h-4" />
+                          <span>{isNewStaff ? 'Create Staff' : 'Save Changes'}</span>
+                        </div>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>

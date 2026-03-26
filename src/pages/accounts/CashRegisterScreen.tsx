@@ -195,9 +195,9 @@ export function CashRegisterScreen({ isDarkMode }: CashRegisterScreenProps) {
               <span className={`text-sm font-medium ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>Cash In (Today)</span>
-              <ArrowUpCircle className="w-5 h-5 text-green-500" />
+              <ArrowUpCircle className="w-5 h-5 text-blue-600" />
             </div>
-            <div className="text-3xl font-bold text-green-500">₹{totalCashIn.toLocaleString()}</div>
+            <div className="text-3xl font-bold text-blue-600">₹{totalCashIn.toLocaleString()}</div>
           </div>
         </motion.div>
 
@@ -212,9 +212,9 @@ export function CashRegisterScreen({ isDarkMode }: CashRegisterScreenProps) {
               <span className={`text-sm font-medium ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>Cash Out (Today)</span>
-              <ArrowDownCircle className="w-5 h-5 text-red-500" />
+              <ArrowDownCircle className="w-5 h-5 text-blue-700" />
             </div>
-            <div className="text-3xl font-bold text-red-500">₹{totalCashOut.toLocaleString()}</div>
+            <div className="text-3xl font-bold text-blue-700">₹{totalCashOut.toLocaleString()}</div>
           </div>
         </motion.div>
 
@@ -236,7 +236,7 @@ export function CashRegisterScreen({ isDarkMode }: CashRegisterScreenProps) {
             <div className={`text-3xl font-bold ${
               netBalance >= 0 
                 ? isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                : 'text-red-500'
+                : 'text-blue-700'
             }`}>₹{netBalance.toLocaleString()}</div>
           </div>
         </motion.div>
@@ -515,12 +515,12 @@ export function CashRegisterScreen({ isDarkMode }: CashRegisterScreenProps) {
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
                         }`}>{entry.description}</td>
                         <td className={`py-3 px-4 text-sm font-bold text-right ${
-                          entry.transactionType === 'Cash In' ? 'text-green-500' : isDarkMode ? 'text-gray-600' : 'text-gray-400'
+                          entry.transactionType === 'Cash In' ? 'text-blue-600' : isDarkMode ? 'text-gray-600' : 'text-gray-400'
                         }`}>
                           {entry.transactionType === 'Cash In' ? `₹${entry.amount.toLocaleString()}` : '-'}
                         </td>
                         <td className={`py-3 px-4 text-sm font-bold text-right ${
-                          entry.transactionType === 'Cash Out' ? 'text-red-500' : isDarkMode ? 'text-gray-600' : 'text-gray-400'
+                          entry.transactionType === 'Cash Out' ? 'text-blue-700' : isDarkMode ? 'text-gray-600' : 'text-gray-400'
                         }`}>
                           {entry.transactionType === 'Cash Out' ? `₹${entry.amount.toLocaleString()}` : '-'}
                         </td>
@@ -540,8 +540,8 @@ export function CashRegisterScreen({ isDarkMode }: CashRegisterScreenProps) {
                               onClick={() => handleDelete(entry.id, entry.entryNo)}
                               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                                 isDarkMode
-                                  ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                                  : 'bg-red-50 text-red-600 hover:bg-red-100'
+                                  ? 'bg-blue-700/20 text-blue-400 hover:bg-blue-700/30'
+                                  : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
                               }`}
                             >
                               Delete

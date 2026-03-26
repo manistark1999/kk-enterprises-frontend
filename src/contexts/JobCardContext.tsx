@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { api, endpoints } from '@/services/api';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
+import { useNotifications } from './NotificationContext';
+import { useDashboardRefresh } from './DashboardRefreshContext';
 
 export interface ServiceItem {
   id: string;
@@ -28,6 +30,7 @@ export interface JobCard {
   vehicleType: string;
   transportName: string;
   kmReading: string;
+  fuelLevel: string;
   serviceType: string;
   workType: string;
   beforeFrontCamber: string;
@@ -52,6 +55,8 @@ export interface JobCard {
   status: 'Draft' | 'In Progress' | 'Completed' | 'Billed';
   labourBillNo?: string;
   vehicleId: string;
+  processedBy?: string;
+  processedById?: string;
 }
 
 interface JobCardContextType {
@@ -93,6 +98,7 @@ const mapApiJobCard = (jc: any): JobCard => {
     vehicleType: jc.vehicle_type || '',
     transportName: jc.transport_name || '',
     kmReading: jc.km_reading || '',
+    fuelLevel: jc.fuel_level || '',
     serviceType: jc.service_type || '',
     workType: jc.work_type || '',
     beforeFrontCamber: jc.before_front_camber || '',
@@ -116,7 +122,9 @@ const mapApiJobCard = (jc: any): JobCard => {
     serviceItems: Array.isArray(jc.service_items) ? jc.service_items : [],
     status,
     labourBillNo: jc.labour_bill_no || '',
-    vehicleId: jc.vehicle_id?.toString() || ''
+    vehicleId: jc.vehicle_id?.toString() || '',
+    processedBy: jc.processed_by || '',
+    processedById: jc.processed_by_id?.toString() || ''
   };
 };
 
@@ -124,11 +132,13 @@ const mapApiJobCard = (jc: any): JobCard => {
 export function JobCardProvider({ children }: { children: ReactNode }) {
   const [jobCards, setJobCards] = useState<JobCard[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, hasPermission } = useAuth();
+  const { triggerDashboardRefresh } = useDashboardRefresh();
+  const { addNotification } = useNotifications();
 
   const fetchJobCards = async () => {
-    if (!isAuthenticated) {
-      setJobCards([]);
+    if (!isAuthenticated || !hasPermission('Job Card', 'view')) {
+      if (!isAuthenticated) setJobCards([]);
       return;
     }
     setIsLoading(true);
@@ -138,11 +148,10 @@ export function JobCardProvider({ children }: { children: ReactNode }) {
       if (payload?.success && Array.isArray(payload.data)) {
         setJobCards(payload.data.map(mapApiJobCard));
       } else {
-        toast.error(payload?.message || 'Failed to load job cards');
+        // Silently handle - server error is common if role is restricted but 403 was caught by interceptor
       }
     } catch (error: any) {
-      console.error('Error fetching job cards:', error);
-      toast.error('Failed to fetch job cards from server');
+      // Silently handle background errors
     } finally {
       setIsLoading(false);
     }
@@ -165,12 +174,15 @@ export function JobCardProvider({ children }: { children: ReactNode }) {
         vehicle_type: jobCardData.vehicleType || jobCardData.vehicle_type,
         brand: jobCardData.vehicleMake || jobCardData.brand || jobCardData.vehicle_make,
         model: jobCardData.vehicleModel || jobCardData.model || jobCardData.vehicle_model,
+        vehicle_make: jobCardData.vehicleMake || jobCardData.brand || jobCardData.vehicle_make,
+        vehicle_model: jobCardData.vehicleModel || jobCardData.model || jobCardData.vehicle_model,
         transport_name: jobCardData.transportName || jobCardData.transport_name,
         km_reading: jobCardData.kmReading || jobCardData.km_reading,
+        fuel_level: jobCardData.fuelLevel || jobCardData.fuel_level,
         service_type: jobCardData.serviceType || jobCardData.service_type,
         work_type: jobCardData.workType || jobCardData.work_type,
         technician_id: jobCardData.technicianId || jobCardData.technician_id,
-        technician: jobCardData.technicianName || jobCardData.technician || jobCardData.technician_name,
+        technician_name: jobCardData.technicianName || jobCardData.technician || jobCardData.technician_name,
         before_front_camber: jobCardData.beforeFrontCamber || jobCardData.before_front_camber,
         before_front_caster: jobCardData.beforeFrontCaster || jobCardData.before_front_caster,
         before_front_toe: jobCardData.beforeFrontToe || jobCardData.before_front_toe,
@@ -189,22 +201,33 @@ export function JobCardProvider({ children }: { children: ReactNode }) {
         estimated_amount: parseFloat(jobCardData.totalAmount || jobCardData.estimated_amount) || 0,
         labour_charge: parseFloat(jobCardData.labourCharge || jobCardData.labour_charge) || 0,
         parts_charge: parseFloat(jobCardData.partsCharge || jobCardData.parts_charge) || 0,
-        date: jobCardData.date || jobCardData.created_at
+        date: jobCardData.date || jobCardData.created_at,
+        processed_by: jobCardData.processed_by || jobCardData.processedBy || user?.username || 'admin',
+        processed_by_id: jobCardData.processed_by_id || jobCardData.processedById || user?.id
       };
 
       const response = await api.post(endpoints.billing.jobcard.create, payload);
-      // Wait, api.post returns ApiResponse which has 'success' and 'data' (the parsed JSON)
       if (response.success && response.data) {
         const resData = response.data;
         await fetchJobCards();
+        triggerDashboardRefresh();
         toast.success('Job Card created successfully!');
+
+        // ADD NOTIFICATION
+        addNotification(
+          'Saved', 
+          payload.jobcard_no, 
+          'Job Card', 
+          `New job card created for vehicle ${payload.vehicle_no}`,
+          { totalAmount: payload.estimated_amount }
+        );
+
         return mapApiJobCard(resData.data || resData);
       } else {
         toast.error(response.message || 'Failed to save job card');
         return null;
       }
     } catch (error: any) {
-      console.error('Error adding job card:', error);
       toast.error(error.message || 'Failed to add job card');
       throw error;
     }
@@ -213,58 +236,71 @@ export function JobCardProvider({ children }: { children: ReactNode }) {
   const updateJobCard = async (id: string, jobCardData: Partial<JobCard> | any) => {
     try {
       const existing = jobCards.find(jc => jc.id === id);
-      // Construct a payload that combines existing data with the new incoming data
-      // We process the incoming data first to prioritize updates from the screen
       const payload = {
         jobcard_no: jobCardData.jobCardNo || jobCardData.jobcard_no || (existing as any)?.jobCardNo || (existing as any)?.jobcard_no,
         customer_id: jobCardData.customerId || jobCardData.customer_id || (existing as any)?.customerId || (existing as any)?.customer_id,
-        customer_name: jobCardData.customerName || jobCardData.customer_name || (existing as any)?.customerName || (existing as any)?.customer_name,
-        phone: jobCardData.customerPhone || jobCardData.phone || jobCardData.customer_phone || (existing as any)?.customerPhone || (existing as any)?.phone,
-        address: jobCardData.customerAddress || jobCardData.address || jobCardData.customer_address || (existing as any)?.customerAddress || (existing as any)?.address,
-        vehicle_id: jobCardData.vehicleId || jobCardData.vehicle_id || (existing as any)?.vehicleId || (existing as any)?.vehicle_id,
-        vehicle_no: jobCardData.vehicleNumber || jobCardData.vehicle_no || (existing as any)?.vehicleNumber || (existing as any)?.vehicle_no,
-        vehicle_type: jobCardData.vehicleType || jobCardData.vehicle_type || (existing as any)?.vehicleType || (existing as any)?.vehicle_type,
-        brand: jobCardData.vehicleMake || jobCardData.brand || jobCardData.vehicle_make || (existing as any)?.vehicleMake || (existing as any)?.brand,
-        model: jobCardData.vehicleModel || jobCardData.model || jobCardData.vehicle_model || (existing as any)?.vehicleModel || (existing as any)?.model,
-        transport_name: jobCardData.transportName || jobCardData.transport_name || (existing as any)?.transportName || (existing as any)?.transport_name,
-        km_reading: jobCardData.kmReading || jobCardData.km_reading || (existing as any)?.kmReading || (existing as any)?.km_reading,
-        service_type: jobCardData.serviceType || jobCardData.service_type || (existing as any)?.serviceType || (existing as any)?.service_type,
-        work_type: jobCardData.workType || jobCardData.work_type || (existing as any)?.workType || (existing as any)?.work_type,
-        technician_id: jobCardData.technicianId || jobCardData.technician_id || (existing as any)?.technicianId || (existing as any)?.technician_id,
-        technician: jobCardData.technicianName || jobCardData.technician || jobCardData.technician_name || (existing as any)?.technicianName || (existing as any)?.technician,
-        before_front_camber: jobCardData.beforeFrontCamber || jobCardData.before_front_camber || (existing as any)?.beforeFrontCamber,
-        before_front_caster: jobCardData.beforeFrontCaster || jobCardData.before_front_caster || (existing as any)?.beforeFrontCaster,
-        before_front_toe: jobCardData.beforeFrontToe || jobCardData.before_front_toe || (existing as any)?.beforeFrontToe,
-        before_rear_camber: jobCardData.beforeRearCamber || jobCardData.before_rear_camber || (existing as any)?.beforeRearCamber,
-        before_rear_toe: jobCardData.beforeRearToe || jobCardData.before_rear_toe || (existing as any)?.beforeRearToe,
-        after_front_camber: jobCardData.afterFrontCamber || jobCardData.after_front_camber || (existing as any)?.afterFrontCamber,
-        after_front_caster: jobCardData.afterFrontCaster || jobCardData.after_front_caster || (existing as any)?.afterFrontCaster,
-        after_front_toe: jobCardData.afterFrontToe || jobCardData.after_front_toe || (existing as any)?.afterFrontToe,
-        after_rear_camber: jobCardData.afterRearCamber || jobCardData.after_rear_camber || (existing as any)?.afterRearCamber,
-        after_rear_toe: jobCardData.afterRearToe || jobCardData.after_rear_toe || (existing as any)?.afterRearToe,
-        service_items: jobCardData.serviceItems || jobCardData.service_items || (existing as any)?.serviceItems,
-        complaint: jobCardData.problemReported || jobCardData.complaint || (existing as any)?.problemReported,
-        work_done: jobCardData.workDone || jobCardData.work_done || (existing as any)?.workDone,
-        remarks: jobCardData.remarks || (existing as any)?.remarks,
-        status: (jobCardData.status === 'In Progress' ? 'pending' : jobCardData.status?.toLowerCase()) || (existing?.status?.toLowerCase()) || 'pending',
-        estimated_amount: parseFloat(jobCardData.totalAmount || jobCardData.estimated_amount || (existing as any)?.totalAmount || 0),
-        labour_charge: parseFloat(jobCardData.labourCharge || jobCardData.labour_charge || (existing as any)?.labourCharge || 0),
-        parts_charge: parseFloat(jobCardData.partsCharge || jobCardData.parts_charge || (existing as any)?.partsCharge || 0),
-        date: jobCardData.date || jobCardData.created_at || (existing as any)?.date || (existing as any)?.created_at
+        customer_name: jobCardData.customerName || jobCardData.customer_name || existing?.customerName,
+        phone: jobCardData.customerPhone || jobCardData.phone || jobCardData.customer_phone || existing?.customerPhone,
+        address: jobCardData.customerAddress || jobCardData.address || jobCardData.customer_address || existing?.customerAddress,
+        vehicle_id: jobCardData.vehicleId || jobCardData.vehicle_id || existing?.vehicleId,
+        vehicle_no: jobCardData.vehicleNumber || jobCardData.vehicle_no || existing?.vehicleNumber,
+        vehicle_type: jobCardData.vehicleType || jobCardData.vehicle_type || existing?.vehicleType,
+        brand: jobCardData.vehicleMake || jobCardData.brand || jobCardData.vehicle_make || existing?.vehicleMake,
+        model: jobCardData.vehicleModel || jobCardData.model || jobCardData.vehicle_model || existing?.vehicleModel,
+        vehicle_make: jobCardData.vehicleMake || jobCardData.brand || jobCardData.vehicle_make || existing?.vehicleMake,
+        vehicle_model: jobCardData.vehicleModel || jobCardData.model || jobCardData.vehicle_model || existing?.vehicleModel,
+        transport_name: jobCardData.transportName || jobCardData.transport_name || existing?.transportName,
+        km_reading: jobCardData.kmReading || jobCardData.km_reading || existing?.kmReading,
+        fuel_level: jobCardData.fuelLevel || jobCardData.fuel_level || (existing as any)?.fuelLevel,
+        service_type: jobCardData.serviceType || jobCardData.service_type || existing?.serviceType,
+        work_type: jobCardData.workType || jobCardData.work_type || existing?.workType,
+        technician_id: jobCardData.technicianId || jobCardData.technician_id || existing?.technicianId,
+        technician_name: jobCardData.technicianName || jobCardData.technician || jobCardData.technician_name || existing?.technicianName,
+        before_front_camber: jobCardData.beforeFrontCamber || jobCardData.before_front_camber || existing?.beforeFrontCamber,
+        before_front_caster: jobCardData.beforeFrontCaster || jobCardData.before_front_caster || existing?.beforeFrontCaster,
+        before_front_toe: jobCardData.beforeFrontToe || jobCardData.before_front_toe || existing?.beforeFrontToe,
+        before_rear_camber: jobCardData.beforeRearCamber || jobCardData.before_rear_camber || existing?.beforeRearCamber,
+        before_rear_toe: jobCardData.beforeRearToe || jobCardData.before_rear_toe || existing?.beforeRearToe,
+        after_front_camber: jobCardData.afterFrontCamber || jobCardData.after_front_camber || existing?.afterFrontCamber,
+        after_front_caster: jobCardData.afterFrontCaster || jobCardData.after_front_caster || existing?.afterFrontCaster,
+        after_front_toe: jobCardData.afterFrontToe || jobCardData.after_front_toe || existing?.afterFrontToe,
+        after_rear_camber: jobCardData.afterRearCamber || jobCardData.after_rear_camber || existing?.afterRearCamber,
+        after_rear_toe: jobCardData.afterRearToe || jobCardData.after_rear_toe || existing?.afterRearToe,
+        service_items: jobCardData.serviceItems || jobCardData.service_items || existing?.serviceItems,
+        complaint: jobCardData.problemReported || jobCardData.complaint || existing?.problemReported,
+        work_done: jobCardData.workDone || jobCardData.work_done || existing?.workDone,
+        remarks: jobCardData.remarks || existing?.remarks,
+        status: (jobCardData.status === 'In Progress' ? 'pending' : jobCardData.status?.toLowerCase()) || (existing?.status === 'In Progress' ? 'pending' : existing?.status?.toLowerCase()) || 'pending',
+        estimated_amount: parseFloat(jobCardData.totalAmount || jobCardData.estimated_amount) || parseFloat(existing?.totalAmount || '0') || 0,
+        labour_charge: parseFloat(jobCardData.labourCharge || jobCardData.labour_charge) || parseFloat(existing?.labourCharge || '0') || 0,
+        parts_charge: parseFloat(jobCardData.partsCharge || jobCardData.parts_charge) || parseFloat(existing?.partsCharge || '0') || 0,
+        date: jobCardData.date || jobCardData.created_at || existing?.date,
+        processed_by: jobCardData.processed_by || jobCardData.processedBy || user?.username || 'admin',
+        processed_by_id: jobCardData.processed_by_id || jobCardData.processedById || user?.id
       };
 
       const response = await api.put(endpoints.billing.jobcard.update(id), payload);
       if (response.success && response.data) {
         const resData = response.data;
         await fetchJobCards();
+        triggerDashboardRefresh();
         toast.success('Job Card updated successfully!');
+
+        // ADD NOTIFICATION
+        addNotification(
+          'Updated', 
+          payload.jobcard_no, 
+          'Job Card', 
+          `Job card ${payload.jobcard_no} updated for ${payload.customer_name}`,
+          { totalAmount: payload.estimated_amount }
+        );
+
         return mapApiJobCard(resData.data || resData);
       } else {
         toast.error(response.message || 'Failed to update job card');
         return null;
       }
     } catch (error: any) {
-      console.error('Error updating job card:', error);
       toast.error(error.message || 'Failed to update job card');
       throw error;
     }
@@ -272,15 +308,27 @@ export function JobCardProvider({ children }: { children: ReactNode }) {
 
   const deleteJobCard = async (id: string) => {
     try {
+      const existing = jobCards.find(jc => jc.id === id);
       const response = await api.delete(endpoints.billing.jobcard.delete(id));
       if (response.success) {
         toast.success('Job Card deleted successfully!');
+        
+        // ADD NOTIFICATION
+        if (existing) {
+          addNotification(
+            'Deleted', 
+            existing.jobCardNo, 
+            'Job Card', 
+            `Job card ${existing.jobCardNo} for ${existing.vehicleNumber} was deleted`
+          );
+        }
+
         await fetchJobCards();
+        triggerDashboardRefresh();
       } else {
         toast.error(response.message || 'Failed to delete job card');
       }
     } catch (error: any) {
-      console.error('Error deleting job card:', error);
       toast.error(error.message || 'Failed to delete job card');
       throw error;
     }
@@ -294,7 +342,6 @@ export function JobCardProvider({ children }: { children: ReactNode }) {
       }
       return null;
     } catch (error) {
-      console.error('Error fetching single job card:', error);
       return null;
     }
   };
@@ -312,7 +359,6 @@ export function JobCardProvider({ children }: { children: ReactNode }) {
         }
         return null;
     } catch (err) {
-        console.error('Failed to fetch next job card number:', err);
         return null;
     }
   };

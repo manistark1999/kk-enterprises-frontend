@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 // Notification Types
-export type NotificationAction = 'Created' | 'Edited' | 'Deleted' | 'Login' | 'Logout' | 'Updated' | 'Added' | 'Removed';
+export type NotificationAction = 'Created' | 'Edited' | 'Deleted' | 'Login' | 'Logout' | 'Updated' | 'Added' | 'Removed' | 'Downloaded' | 'Printed' | 'Saved';
 
 export interface Notification {
   id: string;
@@ -47,7 +47,6 @@ const MAX_NOTIFICATIONS = 100; // Keep only the latest 100 notifications
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [currentUser, setCurrentUser] = useState<string>('Admin'); // Default user
 
   // Load notifications from localStorage on mount
   useEffect(() => {
@@ -58,12 +57,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         setNotifications(parsed);
       }
     } catch (error) {
-      console.error('Failed to load notifications:', error);
     }
-
-    // Get current user from localStorage if available
-    const user = localStorage.getItem('currentUser') || 'Admin';
-    setCurrentUser(user);
   }, []);
 
   // Save notifications to localStorage whenever they change
@@ -71,7 +65,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications));
     } catch (error) {
-      console.error('Failed to save notifications:', error);
     }
   }, [notifications]);
 
@@ -91,12 +84,22 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       rate?: number;
     }
   ) => {
+    // Read latest user from localStorage directly to avoid provider order stale issues
+    let currentUserName = 'Admin';
+    try {
+      const userData = localStorage.getItem('kk_user_data');
+      if (userData) {
+        const parsed = JSON.parse(userData);
+        currentUserName = parsed.username || parsed.email?.split('@')[0] || 'Admin';
+      }
+    } catch (e) {}
+
     const newNotification: Notification = {
       id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       action,
       itemName,
       itemType,
-      userName: currentUser,
+      userName: currentUserName,
       timestamp: new Date().toISOString(),
       isRead: false,
       description,
@@ -177,6 +180,9 @@ export const getActionColor = (action: NotificationAction, isDarkMode: boolean):
     Removed: isDarkMode ? 'text-red-400' : 'text-red-600',
     Login: isDarkMode ? 'text-blue-400' : 'text-blue-600',
     Logout: isDarkMode ? 'text-gray-400' : 'text-gray-600',
+    Downloaded: isDarkMode ? 'text-purple-400' : 'text-purple-600',
+    Printed: isDarkMode ? 'text-orange-400' : 'text-orange-600',
+    Saved: isDarkMode ? 'text-green-400' : 'text-green-600',
   };
   return colors[action] || (isDarkMode ? 'text-gray-400' : 'text-gray-600');
 };
@@ -192,6 +198,9 @@ export const getActionIcon = (action: NotificationAction): string => {
     Removed: '✕',
     Login: '→',
     Logout: '←',
+    Downloaded: '↓',
+    Printed: '⎙',
+    Saved: '💾',
   };
   return icons[action] || '•';
 };

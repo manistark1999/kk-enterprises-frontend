@@ -41,15 +41,14 @@ export function BankTransactionProvider({ children }: { children: React.ReactNod
     setLoading(true);
     try {
       const response = await api.get('/bank-transactions');
-      if (response.success) {
-        setTransactions(response.data);
+      if (response.success && response.data) {
+        setTransactions(response.data.data || (Array.isArray(response.data) ? response.data : []));
       }
       const summaryRes = await api.get('/bank-transactions/summary');
-      if (summaryRes.success) {
-        setSummary(summaryRes.data);
+      if (summaryRes.success && summaryRes.data) {
+        setSummary(summaryRes.data.data || summaryRes.data);
       }
     } catch (error) {
-      console.error('Failed to fetch bank transactions:', error);
     } finally {
       setLoading(false);
     }

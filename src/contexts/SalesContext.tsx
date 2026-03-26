@@ -73,7 +73,6 @@ export function SalesProvider({ children }: { children: ReactNode }) {
         setSales(mapped);
       }
     } catch (error) {
-      console.error('Error fetching sales:', error);
     } finally {
       setIsLoading(false);
     }
@@ -108,7 +107,6 @@ export function SalesProvider({ children }: { children: ReactNode }) {
         throw new Error(response.message || 'Failed to add sale');
       }
     } catch (error: any) {
-      console.error('Error adding sale:', error);
       toast.error(error.message || 'Failed to add sale');
       throw error;
     }
@@ -142,7 +140,6 @@ export function SalesProvider({ children }: { children: ReactNode }) {
         throw new Error(response.message || 'Failed to update sale');
       }
     } catch (error: any) {
-      console.error('Error updating sale:', error);
       toast.error(error.message || 'Failed to update sale');
       throw error;
     }
@@ -155,7 +152,6 @@ export function SalesProvider({ children }: { children: ReactNode }) {
         await fetchSales();
       }
     } catch (error) {
-      console.error('Error deleting sale:', error);
       throw error;
     }
   };

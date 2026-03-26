@@ -16,6 +16,7 @@ export interface AlignmentEntry {
   billNo: string;
   vehicleNo: string;
   vehicleMake?: string;
+  vehicleModel?: string;
   customerName: string;
   alignmentType: 'Front' | 'Rear' | 'Both';
   technician?: string;
@@ -66,7 +67,6 @@ export const AlignmentProvider: React.FC<AlignmentProviderProps> = ({ children }
     setIsLoading(true);
     try {
       const response = await api.get('/alignments');
-      console.log('[AlignmentContext] fetchAlignments response:', response);
       
       if (response.success && response.data) {
         // Handle both: response.data.data (array) AND response.data (array)
@@ -78,6 +78,7 @@ export const AlignmentProvider: React.FC<AlignmentProviderProps> = ({ children }
             billNo: row.entry_no,
             vehicleNo: row.vehicle_no,
             vehicleMake: row.vehicle_make,
+            vehicleModel: row.vehicle_model,
             customerName: row.customer_name,
             alignmentType: row.alignment_type,
             technician: row.technician,
@@ -90,12 +91,10 @@ export const AlignmentProvider: React.FC<AlignmentProviderProps> = ({ children }
           }));
           setAlignmentEntries(mapped);
         } else {
-          console.warn('[AlignmentContext] Unexpected alignments format:', rawData);
           setAlignmentEntries([]);
         }
       }
     } catch (error: any) {
-      console.error('[AlignmentContext] Error fetching alignments:', error);
       toast.error('Failed to load alignment entries');
     } finally {
       setIsLoading(false);
@@ -112,6 +111,7 @@ export const AlignmentProvider: React.FC<AlignmentProviderProps> = ({ children }
         date: entry.date,
         vehicleNo: entry.vehicleNo,
         vehicleMake: entry.vehicleMake,
+        vehicleModel: entry.vehicleModel,
         customerName: entry.customerName,
         alignmentType: entry.alignmentType,
         technician: entry.technician,
@@ -120,7 +120,6 @@ export const AlignmentProvider: React.FC<AlignmentProviderProps> = ({ children }
         status: entry.status || 'Completed'
       };
 
-      console.log('[AlignmentContext] Sending to API:', payload);
 
       const response = await api.post('/alignments', payload);
       if (response.success) {
@@ -130,7 +129,6 @@ export const AlignmentProvider: React.FC<AlignmentProviderProps> = ({ children }
         throw new Error(response.message || 'Failed to add alignment entry');
       }
     } catch (error: any) {
-      console.error('[AlignmentContext] addAlignmentEntry error:', error);
       toast.error(error.message || 'Failed to add alignment entry');
       throw error;
     }
@@ -145,6 +143,7 @@ export const AlignmentProvider: React.FC<AlignmentProviderProps> = ({ children }
         date: merged.date,
         vehicleNo: merged.vehicleNo,
         vehicleMake: merged.vehicleMake,
+        vehicleModel: merged.vehicleModel,
         customerName: merged.customerName,
         alignmentType: merged.alignmentType,
         technician: merged.technician,
@@ -153,7 +152,6 @@ export const AlignmentProvider: React.FC<AlignmentProviderProps> = ({ children }
         status: merged.status
       };
 
-      console.log('[AlignmentContext] Updating with:', payload);
 
       const response = await api.put(`/alignments/${id}`, payload);
       if (response.success) {
@@ -163,7 +161,6 @@ export const AlignmentProvider: React.FC<AlignmentProviderProps> = ({ children }
         throw new Error(response.message || 'Failed to update alignment entry');
       }
     } catch (error: any) {
-      console.error('[AlignmentContext] updateAlignmentEntry error:', error);
       toast.error(error.message || 'Failed to update alignment entry');
       throw error;
     }
@@ -202,7 +199,6 @@ export const AlignmentProvider: React.FC<AlignmentProviderProps> = ({ children }
         toast.success('Alignment history saved to database successfully!');
       }
     } catch (error: any) {
-      console.error('[AlignmentContext] Error saving alignment history:', error);
       toast.error('Failed to save alignment history to database');
       throw error;
     }

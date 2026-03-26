@@ -13,12 +13,14 @@ import {
   Bell,
   User
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PaymentsVouchersScreenProps {
   isDarkMode: boolean;
 }
 
 export function PaymentsVouchersScreen({ isDarkMode }: PaymentsVouchersScreenProps) {
+  const { canCreate } = useAuth();
   const [activeTab, setActiveTab] = useState<'journal' | 'vouchers' | 'creditors' | 'invoices'>('vouchers');
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [selectedVoucherType, setSelectedVoucherType] = useState('Payment');
@@ -29,7 +31,8 @@ export function PaymentsVouchersScreen({ isDarkMode }: PaymentsVouchersScreenPro
     creditGroup: '',
     creditLedger: '',
     amount: '',
-    narration: ''
+    narration: '',
+    voucherNo: 'PV-0001' // Example preview
   });
 
   const tabs = [
@@ -91,7 +94,7 @@ export function PaymentsVouchersScreen({ isDarkMode }: PaymentsVouchersScreenPro
               <Bell className={`w-5 h-5 ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`} />
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-700 text-white text-xs font-bold rounded-full flex items-center justify-center">
                 2
               </span>
             </button>
@@ -256,8 +259,29 @@ export function PaymentsVouchersScreen({ isDarkMode }: PaymentsVouchersScreenPro
                     </h3>
 
                     <div className="space-y-5">
-                      {/* Date and Voucher Type Row */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      {/* Voucher Info Row */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        {/* Voucher No */}
+                        <div>
+                          <label className={`block text-sm font-medium mb-2 ${
+                            isDarkMode ? 'text-gray-300' : 'text-gray-700'
+                          }`}>
+                            Voucher No
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.voucherNo}
+                            readOnly
+                            disabled
+                            placeholder="Auto-generated"
+                            className={`w-full px-4 py-3 rounded-lg border-2 transition-all ${
+                              isDarkMode
+                                ? 'bg-gray-700/50 border-gray-600 text-white'
+                                : 'bg-gray-100/50 border-gray-300 text-gray-900 shadow-inner'
+                            }`}
+                          />
+                        </div>
+
                         {/* Date */}
                         <div>
                           <label className={`block text-sm font-medium mb-2 ${
@@ -457,9 +481,11 @@ export function PaymentsVouchersScreen({ isDarkMode }: PaymentsVouchersScreenPro
                         }`}>
                           Cancel
                         </button>
-                        <button className="px-6 py-3 rounded-lg font-medium bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-700 hover:to-blue-600 transition-all shadow-lg hover:shadow-xl">
-                          Save Entry
-                        </button>
+                        {canCreate('Payment') && (
+                          <button className="px-6 py-3 rounded-lg font-medium bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-700 hover:to-blue-600 transition-all shadow-lg hover:shadow-xl">
+                            Save Entry
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

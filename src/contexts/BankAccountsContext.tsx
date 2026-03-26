@@ -64,7 +64,6 @@ export function BankAccountsProvider({ children }: { children: ReactNode }) {
         setBankAccounts((res.data.data || res.data).map(mapRow));
       }
     } catch (err) {
-      console.error('Error fetching bank accounts:', err);
     } finally {
       setIsLoading(false);
     }

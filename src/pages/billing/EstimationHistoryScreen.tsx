@@ -34,15 +34,16 @@ export function EstimationHistoryScreen({ isDarkMode, onNavigate }: EstimationHi
   const fetchEstimations = async () => {
     try {
       const response = await api.get(endpoints.billing.estimation.list);
-
-      if (response.success && response.data) {
-        setEstimations(response.data.data || response.data);
-      } else {
-        toast.error('Failed to load estimations');
-      }
+      // Safely unwrap: backend returns { success, data: [...] }
+      const rows = Array.isArray(response?.data?.data)
+        ? response.data.data
+        : Array.isArray(response?.data)
+        ? response.data
+        : [];
+      setEstimations(rows);
     } catch (error) {
-      toast.error('Error connecting to backend API');
-      console.error(error);
+      // On network error, show empty state gracefully
+      setEstimations([]);
     }
   };
 
@@ -117,11 +118,11 @@ export function EstimationHistoryScreen({ isDarkMode, onNavigate }: EstimationHi
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Completed':
-        return 'bg-green-500/20 text-green-500';
+        return 'bg-blue-600/20 text-blue-600';
       case 'Pending':
-        return 'bg-orange-500/20 text-orange-500';
+        return 'bg-blue-800/20 text-blue-800';
       case 'Cancelled':
-        return 'bg-red-500/20 text-red-500';
+        return 'bg-blue-700/20 text-blue-700';
       default:
         return 'bg-gray-500/20 text-gray-500';
     }
@@ -286,7 +287,7 @@ export function EstimationHistoryScreen({ isDarkMode, onNavigate }: EstimationHi
         </div>
       </motion.div>
       <UnifiedPrintPreview
-        type="bill"
+        type="estimation"
         data={printData}
         isOpen={isPrintModalOpen}
         onClose={() => setIsPrintModalOpen(false)}

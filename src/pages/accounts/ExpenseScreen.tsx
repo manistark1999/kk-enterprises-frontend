@@ -283,7 +283,7 @@ export function ExpenseScreen({ isDarkMode }: ExpenseScreenProps) {
             <div className={`${FORM_CONSTANTS.TWO_COLUMN_GRID} ${FORM_CONSTANTS.FIELD_GAP} mb-6`}>
               <div>
                 <label className={`${getLabelClass(isDarkMode)} flex items-center gap-1`}>
-                  Expense Date {!formData.date && <span className="text-red-500">*</span>}
+                  Expense Date {!formData.date && <span className="text-blue-700">*</span>}
                 </label>
                 <input 
                   type="date" 
@@ -296,7 +296,7 @@ export function ExpenseScreen({ isDarkMode }: ExpenseScreenProps) {
 
               <div>
                 <label className={`${getLabelClass(isDarkMode)} flex items-center gap-1`}>
-                  Expense Category {!formData.category && <span className="text-red-500">*</span>}
+                  Expense Category {!formData.category && <span className="text-blue-700">*</span>}
                 </label>
                 <select 
                   className={getSelectClassWithValidation(isDarkMode, validationErrors.category)}
@@ -314,13 +314,13 @@ export function ExpenseScreen({ isDarkMode }: ExpenseScreenProps) {
                   <option value="other">Other</option>
                 </select>
                 {validationErrors.category && (
-                  <p className="text-red-500 text-xs mt-1">Please select a category</p>
+                  <p className="text-blue-700 text-xs mt-1">Please select a category</p>
                 )}
               </div>
 
               <div className="lg:col-span-2">
                 <label className={`${getLabelClass(isDarkMode)} flex items-center gap-1`}>
-                  Description {!formData.description && <span className="text-red-500">*</span>}
+                  Description {!formData.description && <span className="text-blue-700">*</span>}
                 </label>
                 <input 
                   type="text" 
@@ -331,13 +331,13 @@ export function ExpenseScreen({ isDarkMode }: ExpenseScreenProps) {
                   onChange={handleInputChange}
                 />
                 {validationErrors.description && (
-                  <p className="text-red-500 text-xs mt-1">Please enter a description</p>
+                  <p className="text-blue-700 text-xs mt-1">Please enter a description</p>
                 )}
               </div>
 
               <div>
                 <label className={`${getLabelClass(isDarkMode)} flex items-center gap-1`}>
-                  Amount (₹) {!formData.amount && <span className="text-red-500">*</span>}
+                  Amount (₹) {!formData.amount && <span className="text-blue-700">*</span>}
                 </label>
                 <input 
                   type="number" 
@@ -350,13 +350,13 @@ export function ExpenseScreen({ isDarkMode }: ExpenseScreenProps) {
                   step="0.01"
                 />
                 {validationErrors.amount && (
-                  <p className="text-red-500 text-xs mt-1">Please enter an amount</p>
+                  <p className="text-blue-700 text-xs mt-1">Please enter an amount</p>
                 )}
               </div>
 
               <div>
                 <label className={`${getLabelClass(isDarkMode)} flex items-center gap-1`}>
-                  Payment Mode {!formData.paymentMode && <span className="text-red-500">*</span>}
+                  Payment Mode {!formData.paymentMode && <span className="text-blue-700">*</span>}
                 </label>
                 <select className={getInputClass(isDarkMode)}
                   name="paymentMode"
@@ -534,8 +534,8 @@ export function ExpenseScreen({ isDarkMode }: ExpenseScreenProps) {
                     <td className="py-4 px-4">
                       <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
                         expense.status === 'Paid'
-                          ? 'bg-green-500/20 text-green-500'
-                          : 'bg-orange-500/20 text-orange-500'
+                          ? 'bg-blue-600/20 text-blue-600'
+                          : 'bg-blue-800/20 text-blue-800'
                       }`}>
                         {expense.status}
                       </span>
@@ -557,8 +557,8 @@ export function ExpenseScreen({ isDarkMode }: ExpenseScreenProps) {
                           onClick={() => handlePrint(expense as any)}
                           className={`p-1.5 rounded-lg transition-all ${
                             isDarkMode 
-                              ? 'hover:bg-green-500/20 text-green-400' 
-                              : 'hover:bg-green-50 text-green-600'
+                              ? 'hover:bg-blue-600/20 text-blue-400' 
+                              : 'hover:bg-blue-50 text-blue-600'
                           }`}
                           title="Print"
                         >
@@ -579,8 +579,8 @@ export function ExpenseScreen({ isDarkMode }: ExpenseScreenProps) {
                           onClick={() => handleDelete(expense.id)}
                           className={`p-1.5 rounded-lg transition-all ${
                             isDarkMode 
-                              ? 'hover:bg-red-500/20 text-red-400' 
-                              : 'hover:bg-red-50 text-red-600'
+                              ? 'hover:bg-blue-700/20 text-blue-400' 
+                              : 'hover:bg-blue-50 text-blue-700'
                           }`}
                           title="Delete"
                         >
@@ -748,8 +748,8 @@ export function ExpenseScreen({ isDarkMode }: ExpenseScreenProps) {
                 onClick={confirmDelete}
                 className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium transition-all ${
                   isDarkMode
-                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
-                    : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                    ? 'bg-blue-700/20 text-blue-400 hover:bg-blue-700/30 border border-red-500/30'
+                    : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-red-200'
                 }`}
               >
                 <Trash2 className="w-4 h-4" />

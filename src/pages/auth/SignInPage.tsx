@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Lock, User, Eye, EyeOff } from 'lucide-react';
-import workshopImage from 'figma:asset/83f0e334507df0d1c94e11c3b5339bdfa586ce07.png';
+import workshopIllustration from '../../assets/images/workshop-illustration.png';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -11,7 +11,7 @@ interface SignInPageProps {
 
 export function SignInPage({ isDarkMode }: SignInPageProps) {
   const [email, setEmail] = useState('admin@kkenterprises.com');
-  const [password, setPassword] = useState('admin123');
+  const [password, setPassword] = useState('admin');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   
@@ -27,7 +27,6 @@ export function SignInPage({ isDarkMode }: SignInPageProps) {
       await login(email, password);
       // If the user was redirected here from a protected route, send them back
       const from = (location.state as any)?.from?.pathname || '/dashboard';
-      console.log(`[SignIn] Login success. Redirecting to: ${from}`);
       navigate(from, { replace: true });
     } catch (err: any) {
       setError(err instanceof Error ? err.message : 'Sign in failed');
@@ -82,7 +81,7 @@ export function SignInPage({ isDarkMode }: SignInPageProps) {
             : 'bg-white/80 border border-white/60'
         } backdrop-blur-xl`}
       >
-        {/* Left Side - Logo & Branding */}
+        {/* Left Side - Image & Global Branding */}
         <div className={`relative p-12 flex flex-col items-center justify-center ${
           isDarkMode 
             ? 'bg-gradient-to-br from-[#2563EB]/20 to-[#1E3A8A]/20' 
@@ -120,21 +119,19 @@ export function SignInPage({ isDarkMode }: SignInPageProps) {
             />
           </div>
 
-          {/* Logo & Content */}
+          {/* Image & Main Identity */}
           <div className="relative z-10 text-center w-full">
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.5 }}
-              className="mb-6 px-4"
+              className="mb-12 w-full flex justify-center"
             >
-              <div className={`rounded-2xl overflow-hidden ${
-                isDarkMode ? 'bg-white/5' : 'bg-white/50'
-              } p-6 backdrop-blur-sm`}>
+              <div className="w-full max-w-lg">
                 <img 
-                  src={workshopImage} 
-                  alt="KK Enterprises Workshop" 
-                  className="w-full h-auto object-contain drop-shadow-xl"
+                  src={workshopIllustration} 
+                  alt="Workshop Illustration" 
+                  className="w-full h-auto object-contain drop-shadow-2xl"
                 />
               </div>
             </motion.div>
@@ -144,22 +141,22 @@ export function SignInPage({ isDarkMode }: SignInPageProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
             >
-              <h1 className={`text-4xl font-bold mb-3 ${
+              <h1 className={`text-5xl font-bold mb-4 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>
                 KK Enterprises
               </h1>
-              <p className={`text-lg ${
-                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              <p className={`text-xl font-medium opacity-80 ${
+                isDarkMode ? 'text-blue-200' : 'text-blue-800'
               }`}>
                 Automobile Workshop Management
               </p>
-              <div className={`mt-6 inline-block px-6 py-2 rounded-full ${
+              <div className={`mt-8 inline-block px-8 py-3 rounded-full ${
                 isDarkMode 
                   ? 'bg-blue-600/30 border border-blue-500/50' 
-                  : 'bg-blue-100 border border-blue-200'
+                  : 'bg-blue-100 border border-blue-200 shadow-sm'
               }`}>
-                <p className={`text-sm font-medium ${
+                <p className={`text-sm font-semibold ${
                   isDarkMode ? 'text-blue-300' : 'text-blue-700'
                 }`}>
                   Premium Workshop Solutions
@@ -169,14 +166,14 @@ export function SignInPage({ isDarkMode }: SignInPageProps) {
           </div>
         </div>
 
-        {/* Right Side - Sign In Form */}
-        <div className="p-12 flex flex-col justify-center">
+        {/* Bottom Section - Sign In Form */}
+        <div className="p-12 pb-16 flex flex-col justify-center">
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
           >
-            <div className="mb-10">
+            <div className="mb-10 lg:text-left text-center">
               <h2 className={`text-3xl font-bold mb-2 ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>
@@ -192,7 +189,7 @@ export function SignInPage({ isDarkMode }: SignInPageProps) {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Error Message */}
               {error && (
-                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/50 text-red-500 text-sm font-semibold">
+                <div className="p-4 rounded-xl bg-blue-700/10 border border-red-500/50 text-blue-700 text-sm font-semibold">
                   {error}
                 </div>
               )}
@@ -357,7 +354,7 @@ export function SignInPage({ isDarkMode }: SignInPageProps) {
                   isDarkMode ? 'text-blue-200' : 'text-blue-600'
                 }`}>
                   <p>Email: <span className="font-mono font-semibold">admin@kkenterprises.com</span></p>
-                  <p>Password: <span className="font-mono font-semibold">admin123</span></p>
+                  <p>Password: <span className="font-mono font-semibold">admin</span></p>
                 </div>
               </div>
             </form>

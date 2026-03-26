@@ -1,5 +1,6 @@
 import React from 'react';
 import { Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ServiceItem {
   id: string;
@@ -38,15 +39,14 @@ export const ServiceItemsTable: React.FC<ServiceItemsTableProps> = ({
   onServiceSelect,
   onItemChange,
 }) => {
+  const { canCreate, canEdit, canDelete } = useAuth();
+  
   // State for tracking current visible item
   const [currentIndex, setCurrentIndex] = React.useState(0);
 
   // Get active services
   const activeServices = services.filter(s => s.status === 'Active');
   
-  console.log('🔧 ServiceItemsTable - Services:', services.length);
-  console.log('✅ ServiceItemsTable - Active Services:', activeServices.length);
-  console.log('📋 ServiceItemsTable - First service:', activeServices[0]);
 
   // Reset index if it's out of bounds
   React.useEffect(() => {
@@ -108,7 +108,7 @@ export const ServiceItemsTable: React.FC<ServiceItemsTableProps> = ({
 
   // Amount display styling
   const amountClass = `h-10 flex items-center px-3 py-2 rounded-lg font-semibold text-sm ${
-    isDarkMode ? 'text-green-400 bg-gray-800/50' : 'text-green-600 bg-green-50'
+    isDarkMode ? 'text-blue-400 bg-gray-800/50' : 'text-blue-600 bg-blue-50'
   }`;
 
   // If no items exist
@@ -119,14 +119,16 @@ export const ServiceItemsTable: React.FC<ServiceItemsTableProps> = ({
           <h3 className={`text-base font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
             Service Items
           </h3>
-          <button
-            type="button"
-            onClick={onAddItem}
-            className={`${primaryButtonClass} flex items-center gap-2 px-4 py-2 text-sm`}
-          >
-            <Plus className="w-4 h-4" />
-            Add Item
-          </button>
+          {canCreate('Job Card') && (
+            <button
+              type="button"
+              onClick={onAddItem}
+              className={`${primaryButtonClass} flex items-center gap-2 px-4 py-2 text-sm`}
+            >
+              <Plus className="w-4 h-4" />
+              Add Item
+            </button>
+          )}
         </div>
         <div className={`text-center py-12 rounded-lg border-2 border-dashed ${
           isDarkMode ? 'border-gray-700 bg-gray-800/30' : 'border-gray-300 bg-gray-50'
@@ -192,14 +194,16 @@ export const ServiceItemsTable: React.FC<ServiceItemsTableProps> = ({
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={handleAddItem}
-          className={`${primaryButtonClass} flex items-center gap-2 px-4 py-2 text-sm`}
-        >
-          <Plus className="w-4 h-4" />
-          Add Item
-        </button>
+        {canCreate('Job Card') && (
+          <button
+            type="button"
+            onClick={handleAddItem}
+            className={`${primaryButtonClass} flex items-center gap-2 px-4 py-2 text-sm`}
+          >
+            <Plus className="w-4 h-4" />
+            Add Item
+          </button>
+        )}
       </div>
 
       {/* Single Item Card */}
@@ -213,7 +217,7 @@ export const ServiceItemsTable: React.FC<ServiceItemsTableProps> = ({
             {/* Item Name - Full Width */}
             <div className="md:col-span-2">
               <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Item Name <span className="text-red-500">*</span>
+                Item Name <span className="text-blue-700">*</span>
               </label>
               <select
                 value={currentItem.serviceName}
@@ -284,15 +288,15 @@ export const ServiceItemsTable: React.FC<ServiceItemsTableProps> = ({
           </div>
 
           {/* Remove Button */}
-          {serviceItems.length > 1 && (
+          {serviceItems.length > 1 && canDelete('Job Card') && (
             <div className={`mt-6 pt-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
               <button
                 type="button"
                 onClick={handleRemoveItem}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                   isDarkMode
-                    ? 'text-red-400 hover:bg-red-500/10'
-                    : 'text-red-600 hover:bg-red-50'
+                    ? 'text-blue-400 hover:bg-blue-700/10'
+                    : 'text-blue-700 hover:bg-blue-50'
                 }`}
               >
                 <Trash2 className="w-4 h-4" />

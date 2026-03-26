@@ -6,11 +6,21 @@ import { useAuth } from './AuthContext';
 export interface VehicleMake {
   id: string;
   name: string;
+  make_name?: string; // KEEP FOR COMPATIBILITY
   country: string;
-  models: string[];
+  status: string;
+  createdAt: string;
+  models?: string[];
+}
+
+export interface VehicleModel {
+  id: string;
+  makeId: string;
+  modelName: string;
   status: string;
   createdAt: string;
 }
+
 
 export interface WorkType {
   id: string;
@@ -89,6 +99,7 @@ export interface Brand {
 interface MastersContextType {
   // Vehicle Makes
   vehicleMakes: VehicleMake[];
+  vehicleModels: VehicleModel[];
   addVehicleMake: (make: VehicleMake) => Promise<void>;
   updateVehicleMake: (id: string, make: VehicleMake) => Promise<void>;
   deleteVehicleMake: (id: string) => Promise<void>;
@@ -129,6 +140,13 @@ interface MastersContextType {
   updateBrand: (id: string, brand: Partial<Brand>) => Promise<void>;
   deleteBrand: (id: string) => Promise<void>;
   
+  // History
+  vehicleMakeHistory: any[];
+  refreshVehicleMakeHistory: () => Promise<void>;
+  mastersHistory: any[];
+  refreshMastersHistory: () => Promise<void>;
+
+  
   // Utility functions
   isLoading: boolean;
   refreshAllMasters: () => Promise<void>;
@@ -139,26 +157,32 @@ interface MastersContextType {
   getActiveTransports: () => Transport[];
   getActiveStaff: () => Staff[];
   getActiveBrands: () => Brand[];
-  getModelsByMake: (makeName: string) => string[];
+  getModelsByMake: (make: string) => string[];
 }
+
 
 const MastersContext = createContext<MastersContextType | undefined>(undefined);
 
 export const MastersProvider = ({ children }: { children: ReactNode }) => {
   const [vehicleMakes, setVehicleMakes] = useState<VehicleMake[]>([]);
+  const [vehicleModels, setVehicleModels] = useState<VehicleModel[]>([]);
   const [workTypes, setWorkTypes] = useState<WorkType[]>([]);
   const [workGroups, setWorkGroups] = useState<WorkGroup[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [transports, setTransports] = useState<Transport[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [vehicleMakeHistory, setVehicleMakeHistory] = useState<any[]>([]);
+  const [mastersHistory, setMastersHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
 
   const { isAuthenticated } = useAuth();
 
   const fetchAll = async () => {
     if (!isAuthenticated) {
       setVehicleMakes([]);
+      setVehicleModels([]);
       setWorkTypes([]);
       setWorkGroups([]);
       setSuppliers([]);
@@ -169,8 +193,9 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
     }
     setIsLoading(true);
     try {
-      const [vmRes, wtRes, wgRes, supRes, trRes, stRes, brRes] = await Promise.all([
+      const results = await Promise.allSettled([
         api.get('/vehicle-makes'),
+        api.get('/vehicle-makes/models'),
         api.get('/work/types'),
         api.get('/work/groups'),
         api.get('/suppliers'),
@@ -179,18 +204,36 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
         api.get('/brands')
       ]);
 
-      if (vmRes.success && vmRes.data) {
+      // Helper to extract successful response
+      const getVal = (res: any) => (res.status === 'fulfilled' && res.value?.success) ? res.value : null;
+
+      const [vmRes, vmodRes, wtRes, wgRes, supRes, trRes, stRes, brRes] = results.map(getVal);
+
+      if (vmRes && vmRes.data) {
         const rows = vmRes.data.data || vmRes.data;
         setVehicleMakes(rows.map((r: any) => ({
           id: r.id.toString(), 
-          name: r.name || r.make_name || '', 
-          models: Array.isArray(r.models) ? r.models : JSON.parse(r.models || '[]'),
+          name: r.make_name || r.name || '', 
+          make_name: r.make_name || r.name || '', 
           country: r.country || '', 
           status: r.status || 'Active', 
+          createdAt: r.created_at,
+          models: [] // Will be populated from vehicle_models table
+        })));
+      }
+
+      if (vmodRes && vmodRes.data) {
+        const rows = vmodRes.data.data || vmodRes.data;
+        setVehicleModels(rows.map((r: any) => ({
+          id: r.id.toString(),
+          makeId: r.make_id?.toString() || '',
+          modelName: r.model_name || '',
+          status: r.status || 'Active',
           createdAt: r.created_at
         })));
       }
-      if (wtRes.success && wtRes.data) {
+
+      if (wtRes && wtRes.data) {
         const rows = wtRes.data.data || wtRes.data;
         setWorkTypes(rows.map((r: any) => ({
           id: r.id.toString(),
@@ -205,55 +248,86 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
           createdAt: r.created_at
         })));
       }
-      if (wgRes.success && wgRes.data) {
+      
+      if (wgRes && wgRes.data) {
         const rows = wgRes.data.data || wgRes.data;
         setWorkGroups(rows.map((r: any) => ({
-          id: r.id.toString(), name: r.name || r.group_name || '', description: r.description || '',
+          id: r.id.toString(), 
+          name: r.name || r.group_name || '', 
+          description: r.description || '',
           category: r.category || 'General',
           workTypes: Array.isArray(r.work_types) ? r.work_types : JSON.parse(r.work_types || '[]'),
-          status: r.status || 'Active', createdAt: r.created_at
+          status: r.status || 'Active', 
+          createdAt: r.created_at
         })));
       }
-      if (supRes.success && supRes.data) {
+      
+      if (supRes && supRes.data) {
         const rows = supRes.data.data || supRes.data;
         setSuppliers(rows.map((r: any) => ({
-          id: r.id.toString(), name: r.name || '', contactPerson: r.contact_person || r.company || '',
-          phone: r.mobile || '', email: r.email || '', address: r.address || '',
-          gst: r.gst_number || '', category: r.category || 'General', 
-          status: r.status || 'Active', createdAt: r.created_at
+          id: r.id.toString(), 
+          name: r.name || '', 
+          contactPerson: r.contact_person || r.company || '',
+          phone: r.mobile || '', 
+          email: r.email || '', 
+          address: r.address || '',
+          gst: r.gst_number || '', 
+          category: r.category || 'General', 
+          status: r.status || 'Active', 
+          createdAt: r.created_at
         })));
       }
-      if (trRes.success && trRes.data) {
+      
+      if (trRes && trRes.data) {
         const rows = trRes.data.data || trRes.data;
         setTransports(rows.map((r: any) => ({
-          id: r.id.toString(), name: r.name || '', contactPerson: r.contact_person || '',
-          mobile: r.phone || '', email: r.email || '', address: r.address || '',
-          gst: r.gst_no || '', status: r.status || 'Active', createdAt: r.created_at
+          id: r.id.toString(), 
+          name: r.name || '', 
+          contactPerson: r.contact_person || '',
+          mobile: r.phone || '', 
+          email: r.email || '', 
+          address: r.address || '',
+          gst: r.gst_no || '', 
+          status: r.status || 'Active', 
+          createdAt: r.created_at
         })));
       }
-      if (stRes.success && stRes.data) {
+      
+      if (stRes && stRes.data) {
         const rows = stRes.data.data || stRes.data;
         setStaff(rows.map((r: any) => ({
-          id: r.id.toString(), name: r.name || '', designation: r.designation || '',
-          mobile: r.mobile || '', email: r.email || '',
+          id: r.id.toString(), 
+          name: r.name || '', 
+          designation: r.designation || '',
+          mobile: r.mobile || '', 
+          email: r.email || '',
           joiningDate: r.joining_date ? new Date(r.joining_date).toISOString().split('T')[0] : '',
-          salary: r.salary ? parseFloat(r.salary) : 0, address: r.address || '',
-          bankAccount: r.bank_account || '', ifscCode: r.ifsc_code || '',
-          status: r.status || 'Active', createdAt: r.created_at
+          salary: r.salary ? parseFloat(r.salary) : 0, 
+          address: r.address || '',
+          bankAccount: r.bank_account || '', 
+          ifscCode: r.ifsc_code || '',
+          status: r.status || 'Active', 
+          createdAt: r.created_at
         })));
       }
-      if (brRes && brRes.success && brRes.data) {
+      
+      if (brRes && brRes.data) {
         const rows = brRes.data.data || brRes.data;
         setBrands(rows.map((r: any) => ({
-          id: r.id.toString(), name: r.name || '', manufacturer: r.manufacturer || '',
-          category: r.category || '', origin: r.country || '',
+          id: r.id.toString(), 
+          name: r.name || '', 
+          manufacturer: r.manufacturer || '',
+          category: r.category || '', 
+          origin: r.country || '',
           description: r.description || '',
-          status: r.status || 'Active', createdAt: r.created_at
+          status: r.status || 'Active', 
+          createdAt: r.created_at
         })));
       }
-
-    } catch (err) {
-      console.error('Error loading masters:', err);
+      
+      await refreshVehicleMakeHistory();
+      await refreshMastersHistory();
+    } catch (err: any) {
     } finally {
       setIsLoading(false);
     }
@@ -265,40 +339,43 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
   const addVehicleMake = async (make: VehicleMake) => {
     try {
       await api.post('/vehicle-makes', { 
-        name: make.name, 
-        models: make.models, 
+        make_name: make.make_name || make.name, 
         country: make.country, 
         status: make.status 
       });
+
       await fetchAll();
+      await refreshVehicleMakeHistory();
+
     } catch (error) {
-      console.error('Failed to add vehicle make:', error);
       throw error;
     }
   };
   const updateVehicleMake = async (id: string, make: VehicleMake) => {
     try {
       await api.put(`/vehicle-makes/${id}`, { 
-        name: make.name, 
-        models: make.models, 
+        make_name: make.make_name || make.name, 
         country: make.country, 
         status: make.status 
       });
+
       await fetchAll();
+      await refreshVehicleMakeHistory();
+
     } catch (error) {
-      console.error('Failed to update vehicle make:', error);
       throw error;
     }
   };
   const deleteVehicleMake = async (id: string) => {
     try {
       await api.delete(`/vehicle-makes/${id}`);
-      await fetchAll(); // Safer to refetch everything
+      await fetchAll();
+      await refreshVehicleMakeHistory();
     } catch (error) {
-      console.error('Failed to delete vehicle make:', error);
       throw error;
     }
   };
+
 
   // Work Types
   const addWorkType = async (wt: WorkType) => {
@@ -307,11 +384,11 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
       description: wt.description, 
       category: wt.category, 
       status: wt.status, 
-      duration: Number(wt.duration) || 0, 
+      duration: wt.duration || '', 
       avg_price: Number(wt.avgPrice) || 0 
     };
-    console.log("Add Work Type Payload:", payload);
-    await api.post('/work/types', payload);
+    const res = await api.post('/work/types', payload);
+    if (!res.success) throw new Error(res.message || 'Failed to add work type');
     await fetchAll();
   };
   const updateWorkType = async (id: string, wt: WorkType) => {
@@ -323,12 +400,10 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
       duration: Number(wt.duration) || 0, 
       avg_price: Number(wt.avgPrice) || 0 
     };
-    console.log("Update Work Type Payload:", payload);
     try {
       await api.put(`/work/types/${id}`, payload);
       await fetchAll();
     } catch (error) {
-      console.error('Failed to update work type:', error);
       throw error;
     }
   };
@@ -337,7 +412,6 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
       await api.delete(`/work/types/${id}`);
       await fetchAll();
     } catch (error) {
-      console.error('Failed to delete work type:', error);
       throw error;
     }
   };
@@ -351,8 +425,8 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
       work_types: wg.workTypes, 
       status: wg.status 
     };
-    console.log("Add Work Group Payload:", payload);
-    await api.post('/work/groups', payload);
+    const res = await api.post('/work/groups', payload);
+    if (!res.success) throw new Error(res.message || 'Failed to add work group');
     await fetchAll();
   };
   const updateWorkGroup = async (id: string, wg: WorkGroup) => {
@@ -363,7 +437,6 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
       work_types: wg.workTypes, 
       status: wg.status 
     };
-    console.log("Update Work Group Payload:", payload);
     await api.put(`/work/groups/${id}`, payload);
     await fetchAll();
   };
@@ -428,16 +501,45 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
     await fetchAll();
   };
 
-  const getActiveVehicleMakes = () => vehicleMakes.filter(m => m.status === 'Active');
-  const getActiveWorkTypes = () => workTypes.filter(wt => wt.status === 'Active');
-  const getActiveWorkGroups = () => workGroups.filter(wg => wg.status === 'Active');
-  const getActiveSuppliers = () => suppliers.filter(s => s.status === 'Active');
-  const getActiveTransports = () => transports.filter(t => t.status === 'Active');
-  const getActiveStaff = () => staff.filter(s => s.status === 'Active');
-  const getActiveBrands = () => brands.filter(b => b.status === 'Active');
-  const getModelsByMake = (name: string) => {
-    const make = vehicleMakes.find(m => m.name === name);
-    return make ? make.models : [];
+  const getActiveVehicleMakes = () => vehicleMakes.filter(m => m.status.toLowerCase() === 'active');
+  const getActiveWorkTypes = () => workTypes.filter(wt => wt.status?.toLowerCase() === 'active');
+  const getActiveWorkGroups = () => workGroups.filter(wg => wg.status?.toLowerCase() === 'active');
+  const getActiveSuppliers = () => suppliers.filter(s => s.status?.toLowerCase() === 'active');
+  const getActiveTransports = () => transports.filter(t => t.status?.toLowerCase() === 'active');
+  const getActiveStaff = () => staff.filter(s => s.status?.toLowerCase() === 'active');
+  const getActiveBrands = () => brands.filter(b => b.status?.toLowerCase() === 'active');
+
+  const refreshVehicleMakeHistory = async () => {
+    try {
+      const res = await api.get('/vehicle-makes/history');
+      if (res.success && res.data) {
+        setVehicleMakeHistory(res.data.data || res.data);
+      }
+    } catch (err) {
+    }
+  };
+  
+  const refreshMastersHistory = async () => {
+    try {
+      const res = await api.get('/audit?module_name=Masters');
+      if (res.success && res.data) {
+        setMastersHistory(res.data.data || res.data);
+      }
+    } catch (err) {
+    }
+  };
+
+
+
+  const getModelsByMake = (makeName: string) => {
+    // Find the make by name
+    const make = vehicleMakes.find(vm => vm.name === makeName);
+    if (!make) return [];
+    
+    // Return models for this make
+    return vehicleModels
+      .filter(vm => vm.makeId === make.id && vm.status.toLowerCase() === 'active')
+      .map(vm => vm.modelName);
   };
 
   return (
@@ -445,7 +547,7 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
       value={{
         isLoading,
         refreshAllMasters: fetchAll,
-        vehicleMakes, addVehicleMake, updateVehicleMake, deleteVehicleMake,
+        vehicleMakes, vehicleModels, addVehicleMake, updateVehicleMake, deleteVehicleMake,
         workTypes, addWorkType, updateWorkType, deleteWorkType,
         workGroups, addWorkGroup, updateWorkGroup, deleteWorkGroup,
         suppliers, addSupplier, updateSupplier, deleteSupplier,
@@ -454,7 +556,11 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
         brands, addBrand, updateBrand, deleteBrand,
         getActiveVehicleMakes, getActiveWorkTypes, getActiveWorkGroups,
         getActiveSuppliers, getActiveTransports, getActiveStaff, getActiveBrands,
+        vehicleMakeHistory, refreshVehicleMakeHistory,
+        mastersHistory, refreshMastersHistory,
         getModelsByMake
+
+
       }}
     >
       {children}

@@ -112,7 +112,6 @@ export function CompanyScreen({ isDarkMode }: CompanyScreenProps) {
         });
       }
     } catch (error) {
-      console.error('Error fetching company data:', error);
       toast.error('Failed to load company data');
     } finally {
       setIsLoading(false);
@@ -169,7 +168,6 @@ export function CompanyScreen({ isDarkMode }: CompanyScreenProps) {
         toast.error(response.message || 'Failed to save company information');
       }
     } catch (error) {
-      console.error('Error saving company data:', error);
       toast.error('An error occurred while saving');
     } finally {
       setIsLoading(false);
@@ -261,7 +259,7 @@ export function CompanyScreen({ isDarkMode }: CompanyScreenProps) {
             <div className={`${FORM_CONSTANTS.TWO_COLUMN_GRID} ${FORM_CONSTANTS.FIELD_GAP}`}>
               <div>
                 <label className={getLabelClass(isDarkMode)}>
-                  Company Name <span className="text-red-500">*</span>
+                  Company Name <span className="text-blue-700">*</span>
                 </label>
                 <input
                   type="text"
@@ -274,7 +272,7 @@ export function CompanyScreen({ isDarkMode }: CompanyScreenProps) {
 
               <div>
                 <label className={getLabelClass(isDarkMode)}>
-                  Business Type <span className="text-red-500">*</span>
+                  Business Type <span className="text-blue-700">*</span>
                 </label>
                 <select
                   value={formData.businessType}
@@ -595,8 +593,8 @@ export function CompanyScreen({ isDarkMode }: CompanyScreenProps) {
         {/* Company Status Card */}
         <div className={`${getCardClass(isDarkMode)} p-5`}>
           <div className="flex items-center justify-between mb-3">
-            <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-green-500/20' : 'bg-green-50'}`}>
-              <Shield className="w-5 h-5 text-green-500" />
+            <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-600/20' : 'bg-blue-50'}`}>
+              <Shield className="w-5 h-5 text-blue-600" />
             </div>
           </div>
           <h3 className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
@@ -640,8 +638,8 @@ export function CompanyScreen({ isDarkMode }: CompanyScreenProps) {
         {/* Bank Card */}
         <div className={`${getCardClass(isDarkMode)} p-5`}>
           <div className="flex items-center justify-between mb-3">
-            <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-orange-500/20' : 'bg-orange-50'}`}>
-              <Landmark className="w-5 h-5 text-orange-500" />
+            <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-blue-800/20' : 'bg-blue-50'}`}>
+              <Landmark className="w-5 h-5 text-blue-800" />
             </div>
           </div>
           <h3 className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>

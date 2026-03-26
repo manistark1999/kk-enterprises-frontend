@@ -63,7 +63,6 @@ export function StaffProvider({ children }: { children: ReactNode }) {
         setStaff((res.data.data || res.data).map(mapRow));
       }
     } catch (err) {
-      console.error('Error fetching staff:', err);
     } finally {
       setIsLoading(false);
     }
@@ -112,7 +111,6 @@ export function StaffProvider({ children }: { children: ReactNode }) {
 export function useStaff() {
   const context = useContext(StaffContext);
   if (!context) {
-    console.warn('useStaff must be used within StaffProvider');
     return { staff: [], isLoading: false, addStaff: async () => {}, updateStaff: async () => {}, deleteStaff: async () => {}, getActiveStaff: () => [], getStaffById: () => undefined, refreshStaff: async () => {} };
   }
   return context;

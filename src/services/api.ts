@@ -1,7 +1,7 @@
 // API Configuration
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore – Vite injects import.meta.env at build time
-const API_BASE_URL: string = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL: string = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5001/api';
 
 
 // API Response Type
@@ -49,22 +49,11 @@ async function apiRequest<T = any>(
       // GET ALL RAW CONTENT FIRST FOR LOGGING & TO PREVENT .json() CRASHES
       const rawResponseText = await response.text();
       
-      console.log(`[API REQUEST] ${method} ${endpoint}`, {
-        status: response.status,
-        headers: Object.entries(headers),
-        body: options.body
-      });
-      console.log(`[API RESPONSE] ${method} ${endpoint}`, {
-        status: response.status,
-        text: rawResponseText.substring(0, 1000) // Log first 1000 chars
-      });
-
       let data: any = {};
       if (rawResponseText) {
         try {
           data = JSON.parse(rawResponseText);
         } catch (e) {
-          console.error('[API] JSON Parse Error:', e);
           throw new Error(`Invalid JSON response from server: ${rawResponseText.substring(0, 100)}...`);
         }
       }
@@ -72,7 +61,6 @@ async function apiRequest<T = any>(
       if (!response.ok) {
         // CRITICAL FIX: Throw so callers properly catch this as an error
         const errorMsg = data.message || data.error || `Server error ${response.status}`;
-        console.error(`[API] ${method} ${endpoint} failed (${response.status}):`, errorMsg);
         throw new Error(errorMsg);
       }
 
@@ -83,7 +71,6 @@ async function apiRequest<T = any>(
       } as ApiResponse<T>;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Network error occurred';
-      console.error(`[API] ${method} ${endpoint} error:`, errorMsg);
       // Re-throw so calling code (context functions) can catch and show proper error toast
       throw error;
     } finally {
@@ -214,15 +201,18 @@ export const endpoints = {
       delete: (id: string) => `/expenses/${id}`,
     },
     advance: {
-      create: '/hr/advance',
-      list: '/hr/advance',
-      getById: (id: string) => `/hr/advance/${id}`,
-      update: (id: string) => `/hr/advance/${id}`,
-      delete: (id: string) => `/hr/advance/${id}`,
+      create: '/staff-advances',
+      list: '/staff-advances',
+      getById: (id: string) => `/staff-advances/${id}`,
+      update: (id: string) => `/staff-advances/${id}`,
+      delete: (id: string) => `/staff-advances/${id}`,
     },
     salary: {
-      create: '/hr/salary',
-      list: '/hr/salary',
+      create: '/salary-entries',
+      list: '/salary-entries',
+      getById: (id: string) => `/salary-entries/${id}`,
+      update: (id: string) => `/salary-entries/${id}`,
+      delete: (id: string) => `/salary-entries/${id}`,
     },
     bankAccounts: {
       create: '/bank-accounts',
@@ -267,6 +257,7 @@ export const endpoints = {
       getById: (id: string) => `/vehicle-registry/${id}`,
       update: (id: string) => `/vehicle-registry/${id}`,
       delete: (id: string) => `/vehicle-registry/${id}`,
+      lookup: (vNo: string) => `/vehicle-registry/lookup/${encodeURIComponent(vNo)}`,
     },
     work: {
       create: '/work',
@@ -335,8 +326,8 @@ export const endpoints = {
 
   // Audit Logs
   audit: {
-    logs: '/audit-logs',
-    create: '/audit-logs',
-    getById: (id: string) => `/audit-logs/${id}`,
+    logs: '/audit',
+    create: '/audit',
+    getById: (id: string) => `/audit/${id}`,
   }
 };

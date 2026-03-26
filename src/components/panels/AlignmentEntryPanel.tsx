@@ -11,6 +11,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Car, User, Calendar, DollarSign, FileText, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAlignment, AlignmentEntry } from '@/contexts/AlignmentContext';
+import { useMasters } from '@/contexts/MastersContext';
+import { useCustomers } from '@/contexts/CustomerContext';
+import { useVehicleRegistry } from '@/contexts/VehicleRegistryContext';
+import { SearchableDropdown } from '@/components/ui/SearchableDropdown';
+import { VehicleAutocomplete } from '@/components/ui/VehicleAutocomplete';
 import {
   getInputClass,
   getLabelClass,
@@ -28,6 +33,9 @@ interface AlignmentEntryPanelProps {
 
 export function AlignmentEntryPanel({ isDarkMode, isOpen, onClose, editingEntry }: AlignmentEntryPanelProps) {
   const { addAlignmentEntry, updateAlignmentEntry } = useAlignment();
+  const { vehicleMakes, vehicleModels, staff } = useMasters();
+  const { customers } = useCustomers();
+  const { vehicles, getVehicleByNumber, lookupVehicle } = useVehicleRegistry();
   
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -39,8 +47,89 @@ export function AlignmentEntryPanel({ isDarkMode, isOpen, onClose, editingEntry 
     status: 'Completed' as 'Completed' | 'Pending' | 'In Progress',
     billNo: '',
     vehicleMake: '',
+    vehicleModel: '',
     technician: ''
   });
+
+  // Master Data Options
+  const technicianOptions = staff.filter(s => s.status?.toLowerCase() === 'active').map(s => s.name);
+  const vehicleMakeOptions = vehicleMakes.filter(vm => vm.status?.toLowerCase() === 'active').map(vm => vm.name);
+  
+  const vehicleModelOptions = React.useMemo(() => {
+    if (!formData.vehicleMake) return [];
+    
+    // Find make case-insensitively
+    const make = vehicleMakes.find(vm => 
+      (vm.name || vm.make_name || '').toLowerCase() === formData.vehicleMake.toLowerCase()
+    );
+    
+    let options: string[] = [];
+    
+    if (make) {
+      options = vehicleModels
+        .filter(vm => String(vm.makeId) === String(make.id) && vm.status?.toLowerCase() === 'active')
+        .map(vm => vm.modelName);
+    }
+    
+    // If we have a selected model but it's not in the filtered master list, 
+    // we must include it so the dropdown can display it correctly.
+    if (formData.vehicleModel && !options.some(opt => opt.toLowerCase() === formData.vehicleModel.toLowerCase())) {
+      options = [formData.vehicleModel, ...options];
+    }
+    
+    return options;
+  }, [formData.vehicleMake, formData.vehicleModel, vehicleMakes, vehicleModels]);
+
+  const customerOptions = customers.map(c => ({
+    value: c.name,
+    label: `${c.name} - ${c.phone}`
+  }));
+
+  const handleVehicleNumberChange = (number: string) => {
+    setFormData(prev => ({ ...prev, vehicleNo: number }));
+  };
+
+  const handleVehicleSelect = (vehicle: any) => {
+    const vn = vehicle.vehicleNumber || vehicle.vehicle_number || '';
+    const vm = vehicle.vehicleMake || vehicle.vehicle_make || '';
+    const vmod = vehicle.vehicleModel || vehicle.model || '';
+    const cn = vehicle.customerName || vehicle.owner_name || '';
+
+    setFormData(prev => ({
+      ...prev,
+      vehicleNo: vn || prev.vehicleNo,
+      vehicleMake: vm || prev.vehicleMake,
+      vehicleModel: vmod || prev.vehicleModel,
+      customerName: cn || prev.customerName
+    }));
+    if (vn) toast.success('Vehicle details auto-filled');
+  };
+
+  // Auto-lookup logic for manual entry
+  React.useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (formData.vehicleNo && formData.vehicleNo.length >= 6) {
+        try {
+          // Check if this vehicle exists in master
+          const vehicle = await lookupVehicle(formData.vehicleNo);
+          if (vehicle) {
+             // If we found it and some fields are empty, fill them
+             if (!formData.vehicleMake || !formData.vehicleModel || !formData.customerName) {
+                handleVehicleSelect({
+                  ...vehicle,
+                  vehicleNumber: vehicle.vehicle_number,
+                  vehicleMake: vehicle.vehicle_make,
+                  vehicleModel: vehicle.model,
+                  customerName: vehicle.owner_name
+                });
+             }
+          }
+        } catch (err) {
+        }
+      }
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [formData.vehicleNo, lookupVehicle]);
 
   // Populate form when editing
   useEffect(() => {
@@ -55,6 +144,7 @@ export function AlignmentEntryPanel({ isDarkMode, isOpen, onClose, editingEntry 
         status: editingEntry.status,
         billNo: editingEntry.billNo,
         vehicleMake: editingEntry.vehicleMake || '',
+        vehicleModel: editingEntry.vehicleModel || '',
         technician: editingEntry.technician || ''
       });
     } else {
@@ -69,6 +159,7 @@ export function AlignmentEntryPanel({ isDarkMode, isOpen, onClose, editingEntry 
         status: 'Completed',
         billNo: `LB-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`,
         vehicleMake: '',
+        vehicleModel: '',
         technician: ''
       });
     }
@@ -108,21 +199,16 @@ export function AlignmentEntryPanel({ isDarkMode, isOpen, onClose, editingEntry 
       status: formData.status
     };
 
-    console.log('🚀 AlignmentEntryPanel: Submitting entry data:', entryData);
 
     try {
       if (editingEntry) {
-        console.log('📝 AlignmentEntryPanel: Updating entry:', editingEntry.id);
         await updateAlignmentEntry(editingEntry.id, entryData);
       } else {
-        console.log('➕ AlignmentEntryPanel: Adding new entry');
         await addAlignmentEntry(entryData);
       }
 
-      console.log('✅ AlignmentEntryPanel: Save complete, closing panel');
       onClose();
     } catch (error) {
-      console.error('❌ AlignmentEntryPanel: Error saving entry:', error);
       // Toast is already shown in context
     }
   };
@@ -228,35 +314,44 @@ export function AlignmentEntryPanel({ isDarkMode, isOpen, onClose, editingEntry 
                     />
                   </div>
 
-                  {/* Vehicle Number */}
+                  {/* Vehicle Number - Master Lookup */}
                   <div>
                     <label className={labelClass}>
                       <Car className="w-4 h-4 inline mr-1" />
                       Vehicle Number <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
+                    <VehicleAutocomplete
                       value={formData.vehicleNo}
-                      onChange={(e) => setFormData({ ...formData, vehicleNo: e.target.value.toUpperCase() })}
-                      className={inputClass}
-                      placeholder="e.g., GJ-01-AB-1234"
-                      required
+                      onChange={handleVehicleNumberChange}
+                      onSelect={handleVehicleSelect}
+                      isDarkMode={isDarkMode}
+                      placeholder="Search Master: KA-01-AB-1234"
                     />
                   </div>
 
-                  {/* Vehicle Make (Optional) */}
-                  <div>
-                    <label className={labelClass}>
-                      <Car className="w-4 h-4 inline mr-1" />
-                      Vehicle Make/Model
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.vehicleMake}
-                      onChange={(e) => setFormData({ ...formData, vehicleMake: e.target.value })}
-                      className={inputClass}
-                      placeholder="e.g., Maruti Swift"
-                    />
+                  {/* Vehicle Make */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelClass}>Vehicle Make</label>
+                      <SearchableDropdown
+                        options={vehicleMakeOptions}
+                        value={formData.vehicleMake}
+                        onChange={(value) => setFormData({ ...formData, vehicleMake: value, vehicleModel: '' })}
+                        placeholder="Select Make"
+                        isDarkMode={isDarkMode}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Vehicle Model</label>
+                      <SearchableDropdown
+                        options={vehicleModelOptions}
+                        value={formData.vehicleModel}
+                        onChange={(value) => setFormData({ ...formData, vehicleModel: value })}
+                        placeholder="Select Model"
+                        disabled={!formData.vehicleMake}
+                        isDarkMode={isDarkMode}
+                      />
+                    </div>
                   </div>
 
                   {/* Customer Name */}
@@ -265,13 +360,12 @@ export function AlignmentEntryPanel({ isDarkMode, isOpen, onClose, editingEntry 
                       <User className="w-4 h-4 inline mr-1" />
                       Customer Name <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
+                    <SearchableDropdown
+                      options={customerOptions}
                       value={formData.customerName}
-                      onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                      className={inputClass}
-                      placeholder="Enter customer name"
-                      required
+                      onChange={(value) => setFormData({ ...formData, customerName: value })}
+                      placeholder="Select or enter customer"
+                      isDarkMode={isDarkMode}
                     />
                   </div>
 
@@ -293,18 +387,18 @@ export function AlignmentEntryPanel({ isDarkMode, isOpen, onClose, editingEntry 
                     </select>
                   </div>
 
-                  {/* Technician (Optional) */}
+                  {/* Technician */}
                   <div>
                     <label className={labelClass}>
                       <User className="w-4 h-4 inline mr-1" />
                       Technician
                     </label>
-                    <input
-                      type="text"
+                    <SearchableDropdown
+                      options={technicianOptions}
                       value={formData.technician}
-                      onChange={(e) => setFormData({ ...formData, technician: e.target.value })}
-                      className={inputClass}
-                      placeholder="Technician name"
+                      onChange={(value) => setFormData({ ...formData, technician: value })}
+                      placeholder="Select Technician"
+                      isDarkMode={isDarkMode}
                     />
                   </div>
 

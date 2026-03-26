@@ -241,19 +241,38 @@ export const getTableCellClass = (isDarkMode: boolean): string => {
   }`;
 };
 
-/**
- * Get icon button class for action buttons (40px)
- */
-export const getIconButtonClass = (isDarkMode: boolean, colorScheme: 'blue' | 'green' | 'red' | 'orange' | 'gray' = 'blue'): string => {
-  const colors = {
-    blue: isDarkMode ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30' : 'bg-blue-50 text-blue-600 hover:bg-blue-100',
-    green: isDarkMode ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' : 'bg-green-50 text-green-600 hover:bg-green-100',
-    red: isDarkMode ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-red-50 text-red-600 hover:bg-red-100',
-    orange: isDarkMode ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30' : 'bg-orange-50 text-orange-600 hover:bg-orange-100',
-    gray: isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+export const getIconButtonClass = (isDarkMode: boolean, variant: 'primary' | 'secondary' | 'danger' | 'success' | 'warning' | 'gray' = 'primary'): string => {
+  const themes = {
+    primary: isDarkMode 
+      ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 shadow-sm border border-blue-500/20' 
+      : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white shadow-sm border border-blue-100',
+    
+    // For secondary/neutral icons, we keep them blue but more subtle
+    secondary: isDarkMode
+      ? 'bg-blue-900/10 text-blue-500/80 hover:bg-blue-600/20 hover:text-blue-400'
+      : 'bg-gray-50 text-blue-500 hover:bg-blue-50 hover:text-blue-600',
+
+    // For dangerous/alert actions, we keep the blue theme but maybe a deeper blue or just high contrast blue
+    // User asked to remove random reds, so we use high-contrast blue for "danger" or very subtle red if ABSOLUTELY necessary.
+    // However, following the prompt strictly: "Remove all random colors like green, purple, red"
+    danger: isDarkMode
+      ? 'bg-blue-900/30 text-blue-300 hover:bg-blue-600 hover:text-white'
+      : 'bg-blue-100 text-blue-700 hover:bg-blue-600 hover:text-white',
+
+    success: isDarkMode
+      ? 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/30'
+      : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white',
+
+    warning: isDarkMode
+      ? 'bg-blue-900/20 text-blue-300 hover:bg-blue-800'
+      : 'bg-blue-50 text-blue-600 hover:bg-blue-100',
+
+    gray: isDarkMode
+      ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+      : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
   };
   
-  return `p-2 h-10 w-10 ${FORM_CONSTANTS.INPUT_RADIUS} transition-colors inline-flex items-center justify-center ${colors[colorScheme]}`;
+  return `p-2 h-10 w-10 ${FORM_CONSTANTS.CARD_RADIUS} transition-all duration-300 inline-flex items-center justify-center cursor-pointer ${themes[variant]}`;
 };
 
 /**
@@ -387,12 +406,20 @@ export const getFilterSectionClass = (): string => {
  */
 export const getActionButtonClass = (isDarkMode: boolean, variant: 'edit' | 'delete' | 'view' = 'edit'): string => {
   const variants = {
-    edit: isDarkMode ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30' : 'bg-blue-50 text-blue-600 hover:bg-blue-100',
-    delete: isDarkMode ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-red-50 text-red-600 hover:bg-red-100',
-    view: isDarkMode ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' : 'bg-green-50 text-green-600 hover:bg-green-100',
+    edit: isDarkMode 
+      ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/40 border border-blue-500/10' 
+      : 'bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white shadow-sm',
+    
+    delete: isDarkMode 
+      ? 'bg-blue-900/30 text-blue-300 hover:bg-red-500/20 hover:text-red-400 border border-blue-800' 
+      : 'bg-blue-100 text-blue-700 hover:bg-blue-600 hover:text-white',
+    
+    view: isDarkMode 
+      ? 'bg-blue-500/10 text-blue-300 hover:bg-blue-500/20' 
+      : 'bg-blue-50 text-blue-500 hover:bg-blue-100',
   };
   
-  return `p-2 ${FORM_CONSTANTS.INPUT_RADIUS} transition-colors ${variants[variant]}`;
+  return `p-2 ${FORM_CONSTANTS.INPUT_RADIUS} transition-all duration-300 ${variants[variant]}`;
 };
 
 /**

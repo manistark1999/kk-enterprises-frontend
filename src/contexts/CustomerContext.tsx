@@ -48,6 +48,7 @@ interface CustomerContextType {
   getActiveCustomers: () => Customer[];
   isLoading: boolean;
   refreshCustomers: () => Promise<void>;
+  fetchNextCode: () => Promise<string>;
 }
 
 const CustomerContext = createContext<CustomerContextType | undefined>(undefined);
@@ -63,69 +64,61 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const { addNotification } = useNotifications();
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, hasPermission } = useAuth();
 
   const fetchCustomers = async () => {
-    if (!isAuthenticated) {
-      setCustomers([]);
-      setSummary({ total: 0, active: 0, inactive: 0, totalVehicles: 0 });
+    if (!isAuthenticated || !hasPermission('Customer', 'view')) {
+      if (!isAuthenticated) setCustomers([]);
       return;
     }
+    
     try {
       setIsLoading(true);
-      const [customersRes, summaryRes] = await Promise.all([
-        api.get("/customers"),
-        api.get("/customers/summary")
-      ]);
       
-      console.log('[CustomerContext] fetchCustomers called');
-      console.log('[CustomerContext] customersRes:', customersRes);
-      console.log('[CustomerContext] customersRes.data:', customersRes.data);
+      // Direct call to fetch all customers
+      const response = await api.get("/customers");
       
-      if (customersRes.success && customersRes.data) {
-        const customersArray = customersRes.data.data || customersRes.data;
-        if (Array.isArray(customersArray)) {
-          const mappedCustomers = customersArray.map((c: any): Customer => ({
-            id: c.id.toString(),
-            customerCode: c.customer_code || '',
-            customer_code: c.customer_code || '',
-            name: c.customer_name || '',
-            customerName: c.customer_name || '',
-            phone: c.phone || '',
-            phoneNumber: c.phone || '',
-            alternatePhone: c.alternate_phone || '',
-            contactPerson: c.contact_person || '',
-            email: c.email || '',
-            address: c.address || '',
-            city: c.city || '',
-            state: c.state || '',
-            pincode: c.pincode || '',
-            gstNumber: c.gst_no || '',
-            isActive: c.status === 'active' || c.status === 'Active' || !c.status,
-            status: c.status || 'active',
-            vehicleDetails: [],
-            createdAt: c.created_at,
-            updatedAt: c.updated_at
-          }));
-          setCustomers(mappedCustomers);
-        } else {
-          console.error('[CustomerContext] Expected array but got:', typeof customersArray);
-          setCustomers([]);
-        }
-      } else {
-        console.warn('[CustomerContext] No data in response, customersRes.success:', customersRes.success);
+      if (response.success && response.data) {
+        // Handle both { data: [...] } and simply [...] formats from backend
+        const array = Array.isArray(response.data.data) 
+                      ? response.data.data 
+                      : (Array.isArray(response.data) ? response.data : []);
+        
+        // Exact mapping: Backend fields to UI fields
+        const mapped = array.map((c: any): Customer => ({
+          id: String(c.id),
+          customerCode: c.customer_code || '',
+          customer_code: c.customer_code || '', // Compatibility
+          name: c.customer_name || '',
+          customerName: c.customer_name || '', // Compatibility
+          phone: c.phone || '',
+          phoneNumber: c.phone || '', // Compatibility
+          email: c.email || '',
+          contactPerson: c.contact_person || '',
+          alternatePhone: c.alternate_phone || '',
+          address: c.address || '',
+          city: c.city || '',
+          state: c.state || '',
+          pincode: c.pincode || '',
+          gstNumber: c.gst_no || '',
+          isActive: c.status === 'active' || c.status === 'Active' || !c.status,
+          status: c.status || 'active',
+          vehicleDetails: [], // Placeholder
+          createdAt: c.created_at,
+          updatedAt: c.updated_at
+        }));
+        
+        setCustomers(mapped);
       }
-
+      
+      // Fetch summary independently to ensure accurate counts
+      const summaryRes = await api.get("/customers/summary");
       if (summaryRes.success && summaryRes.data) {
-        setSummary(summaryRes.data.data || summaryRes.data);
-        console.log('[CustomerContext] Set summary:', summaryRes.data.data || summaryRes.data);
+        const payload = summaryRes.data.data || summaryRes.data;
+        setSummary(payload);
       }
+      
     } catch (error) {
-      console.error('Error fetching customers:', error);
-      // Only show error toast if we're actually logged in
-      if (isAuthenticated) {
-        toast.error('Failed to fetch customers from database');
-      }
     } finally {
       setIsLoading(false);
     }
@@ -156,11 +149,18 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
       if (response.success) {
         await fetchCustomers();
         toast.success('Customer added successfully');
+        
+        // ADD NOTIFICATION
+        addNotification(
+          'Created', 
+          customerData.name || customerData.customerName || 'New Customer', 
+          'Customer', 
+          `Registered new customer ${customerData.name || customerData.customerName}`
+        );
       } else {
         throw new Error(response.message || 'Failed to add customer');
       }
     } catch (error: any) {
-      console.error('Error adding customer:', error);
       toast.error(error.message || 'Failed to add customer');
       throw error;
     }
@@ -190,11 +190,18 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
       if (response.success) {
         await fetchCustomers();
         toast.success('Customer updated successfully');
+        
+        // ADD NOTIFICATION
+        addNotification(
+          'Updated', 
+          customerData.name || customerData.customerName || existing?.name || 'Customer', 
+          'Customer', 
+          `Updated information for customer ${customerData.name || customerData.customerName || existing?.name}`
+        );
       } else {
         throw new Error(response.message || 'Failed to update customer');
       }
     } catch (error: any) {
-      console.error('Error updating customer:', error);
       toast.error(error.message || 'Failed to update customer');
       throw error;
     }
@@ -202,6 +209,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
 
   const deleteCustomer = async (id: string) => {
     try {
+      const existing = customers.find(c => c.id === id);
       const response = await api.delete(`/customers/${id}`);
 
       if (response.success) {
@@ -209,14 +217,24 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
         // Refresh summary after delete
         const summaryRes = await api.get("/customers/summary");
         if (summaryRes.success && summaryRes.data) {
-          setSummary(summaryRes.data.data);
+          const sPayload = summaryRes.data.data || summaryRes.data;
+          setSummary(sPayload);
         }
         toast.success('Customer deleted successfully');
+
+        // ADD NOTIFICATION
+        if (existing) {
+          addNotification(
+            'Deleted', 
+            existing.name, 
+            'Customer', 
+            `Removed customer record for ${existing.name}`
+          );
+        }
       } else {
-        throw new Error(response.error || 'Failed to delete customer');
+        throw new Error(response.message || 'Failed to delete customer');
       }
     } catch (error: any) {
-      console.error('Error deleting customer:', error);
       toast.error(error.message || 'Failed to delete customer');
       throw error;
     }
@@ -230,6 +248,15 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     return customers.filter(customer => customer.isActive);
   };
 
+  const fetchNextCode = async (): Promise<string> => {
+    try {
+      const res = await api.get('/customers/next-code');
+      return res.success && res.data ? res.data : 'CUS-0001';
+    } catch (error) {
+      return 'CUS-0001';
+    }
+  };
+
   return (
     <CustomerContext.Provider
       value={{
@@ -241,7 +268,8 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
         getCustomerById,
         getActiveCustomers,
         isLoading,
-        refreshCustomers: fetchCustomers
+        refreshCustomers: fetchCustomers,
+        fetchNextCode
       }}
     >
       {children}

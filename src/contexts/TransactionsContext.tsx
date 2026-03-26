@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { api } from '@/services/api';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
+import { useDashboardRefresh } from './DashboardRefreshContext';
 
 // Type definitions for all transaction data
 export interface LabourBill {
@@ -179,10 +180,14 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [cashEntries, setCashEntries] = useState<CashEntry[]>([]);
   
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, hasPermission } = useAuth();
+  const { triggerDashboardRefresh } = useDashboardRefresh();
 
   const fetchExpenses = useCallback(async () => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !hasPermission('Expense Entry', 'view')) {
+      if (!isAuthenticated) setExpenses([]);
+      return;
+    }
     try {
       const res = await api.get('/expenses');
       if (res.success && res.data) {
@@ -203,12 +208,14 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
         }
       }
     } catch (error) {
-      console.error('[Transactions] fetchExpenses error:', error);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, hasPermission]);
 
   const fetchCashEntries = useCallback(async () => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !hasPermission('Cash Entry', 'view')) {
+      if (!isAuthenticated) setCashEntries([]);
+      return;
+    }
     try {
       const res = await api.get('/inventory/cash');
       if (res.success && res.data) {
@@ -231,22 +238,32 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
         }
       }
     } catch (error) {
-      console.error('[Transactions] fetchCashEntries error:', error);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, hasPermission]);
 
   const fetchOthers = useCallback(async () => {
     if (!isAuthenticated) return;
     try {
-      // For summary calculations, we can fetch basic lists
-      const [lbRes, estRes, recRes, payRes, purRes, salRes] = await Promise.all([
-        api.get('/labour-bills'),
-        api.get('/estimations'),
-        api.get('/receipts'),
-        api.get('/payments'),
-        api.get('/inventory/purchases'),
-        api.get('/inventory/sales')
-      ]);
+      const tasks = [];
+      if (hasPermission('Labour Bill', 'view')) tasks.push(api.get('/labour-bills'));
+      else tasks.push(Promise.resolve({ success: true, data: [] }));
+
+      if (hasPermission('Estimation', 'view')) tasks.push(api.get('/estimations'));
+      else tasks.push(Promise.resolve({ success: true, data: [] }));
+
+      if (hasPermission('Receipt', 'view')) tasks.push(api.get('/receipts'));
+      else tasks.push(Promise.resolve({ success: true, data: [] }));
+
+      if (hasPermission('Payment', 'view')) tasks.push(api.get('/payments'));
+      else tasks.push(Promise.resolve({ success: true, data: [] }));
+
+      if (hasPermission('Purchase', 'view')) tasks.push(api.get('/inventory/purchases'));
+      else tasks.push(Promise.resolve({ success: true, data: [] }));
+
+      if (hasPermission('Sales', 'view')) tasks.push(api.get('/inventory/sales'));
+      else tasks.push(Promise.resolve({ success: true, data: [] }));
+
+      const [lbRes, estRes, recRes, payRes, purRes, salRes] = await Promise.all(tasks);
 
       if (lbRes.success) setLabourBills(lbRes.data.data || lbRes.data || []);
       if (estRes.success) setEstimations(estRes.data.data || estRes.data || []);
@@ -255,13 +272,16 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
       if (purRes.success) setPurchases(purRes.data.data || purRes.data || []);
       if (salRes.success) setSales(salRes.data.data || salRes.data || []);
     } catch (error) {
-      console.warn('[Transactions] Partial fetch failed for summaries');
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, hasPermission]);
 
   const refreshAll = useCallback(async () => {
     if (!isAuthenticated) return;
-    await Promise.all([fetchExpenses(), fetchCashEntries(), fetchOthers()]);
+    await Promise.all([
+      fetchExpenses(),
+      fetchCashEntries(),
+      fetchOthers()
+    ]);
   }, [fetchExpenses, fetchCashEntries, fetchOthers, isAuthenticated]);
 
   useEffect(() => {
@@ -295,6 +315,7 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
     if (res.success) {
       toast.success('Expense recorded');
       await fetchExpenses();
+      triggerDashboardRefresh();
     }
   };
 
@@ -313,6 +334,7 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
     if (res.success) {
       toast.success('Expense updated');
       await fetchExpenses();
+      triggerDashboardRefresh();
     }
   };
 
@@ -321,6 +343,7 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
     if (res.success) {
       toast.success('Expense deleted');
       await fetchExpenses();
+      triggerDashboardRefresh();
     }
   };
 

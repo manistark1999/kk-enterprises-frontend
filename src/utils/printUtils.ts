@@ -21,7 +21,6 @@ export const handlePrintPage = (pageName: string = 'Document') => {
     }, 100);
   } catch (error) {
     toast.error('Failed to print page');
-    console.error('Print error:', error);
     document.body.classList.remove('printing');
   }
 };
@@ -520,7 +519,6 @@ export const handlePrintWithTemplate = async (printData: PrintData) => {
     
   } catch (error) {
     toast.error('Failed to open print window');
-    console.error('Print error:', error);
   }
 };
 
@@ -587,7 +585,6 @@ export const handlePrintElement = (elementId: string, pageName: string = 'Docume
     
   } catch (error) {
     toast.error('Failed to print content');
-    console.error('Print error:', error);
   }
 };
 

@@ -29,6 +29,7 @@ import {
   getSecondaryButtonClass,
   isFieldEmpty
 } from '@/utils/formStyles';
+import { useAuth } from '@/contexts/AuthContext';
 import { useCustomers, Customer } from '@/contexts/CustomerContext';
 import { UnifiedPrintPreview } from '@/components/print/UnifiedPrintPreview';
 
@@ -37,6 +38,7 @@ interface CustomerMasterScreenProps {
 }
 
 export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) {
+  const { canCreate, canEdit, canDelete, canPrint } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -69,7 +71,8 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
     updateCustomer, 
     deleteCustomer, 
     isLoading,
-    refreshCustomers 
+    refreshCustomers,
+    fetchNextCode
   } = useCustomers();
 
   const cardClass = getCardClass(isDarkMode);
@@ -95,10 +98,11 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
   });
 
   // Open drawer for adding new customer
-  const handleAddNew = () => {
+  const handleAddNew = async () => {
     setEditingCustomer(null);
+    const nextCode = await fetchNextCode();
     setFormData({
-      customerCode: '',
+      customerCode: nextCode,
       name: '',
       contactPerson: '',
       phone: '',
@@ -164,7 +168,6 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
 
     setIsSubmitting(true);
     try {
-      console.log('Saving customer with payload:', formData);
       if (editingCustomer) {
         // Update existing customer
         await updateCustomer(editingCustomer.id, formData);
@@ -244,13 +247,16 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
-          <button 
-            onClick={handleAddNew}
-            className={`${primaryButtonClass} flex items-center gap-2`}
-          >
-            <Plus className="w-4 h-4" />
-            Add Customer
-          </button>
+          
+          {canCreate('Customer') && (
+            <button 
+              onClick={handleAddNew}
+              className={`${primaryButtonClass} flex items-center gap-2`}
+            >
+              <Plus className="w-4 h-4" />
+              Add Customer
+            </button>
+          )}
         </div>
       </div>
 
@@ -294,13 +300,13 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
                   Active
                 </p>
                 <p className={`text-2xl font-bold mt-1 ${
-                  isDarkMode ? 'text-green-400' : 'text-green-600'
+                  isDarkMode ? 'text-blue-400' : 'text-blue-600'
                 }`}>{summary.active}</p>
               </div>
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-green-500/20' : 'bg-green-100'
+                isDarkMode ? 'bg-blue-600/20' : 'bg-blue-100'
               }`}>
-                <Users className={`w-6 h-6 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                <Users className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
               </div>
             </div>
           </div>
@@ -319,13 +325,13 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
                   Inactive
                 </p>
                 <p className={`text-2xl font-bold mt-1 ${
-                  isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                  isDarkMode ? 'text-blue-400' : 'text-blue-800'
                 }`}>{summary.inactive}</p>
               </div>
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-orange-500/20' : 'bg-orange-100'
+                isDarkMode ? 'bg-blue-800/20' : 'bg-blue-100'
               }`}>
-                <Users className={`w-6 h-6 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
+                <Users className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-800'}`} />
               </div>
             </div>
           </div>
@@ -417,26 +423,29 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
                   <tr className={`border-b ${
                     isDarkMode ? 'border-gray-700' : 'border-gray-200'
                   }`}>
-                    <th className={`text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider ${
-                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>ID</th>
-                    <th className={`text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider ${
-                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    <th className={`py-4 px-4 text-left text-xs font-bold uppercase tracking-wider ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                    }`}>S.No</th>
+                    <th className={`py-4 px-4 text-left text-xs font-bold uppercase tracking-wider ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                    }`}>Customer ID</th>
+                    <th className={`py-4 px-4 text-left text-xs font-bold uppercase tracking-wider ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-500'
                     }`}>Name</th>
-                    <th className={`text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider ${
-                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>Contact</th>
-                    <th className={`text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider ${
-                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    <th className={`py-4 px-4 text-left text-xs font-bold uppercase tracking-wider ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                    }`}>Contact Details</th>
+                    <th className={`py-4 px-4 text-left text-xs font-bold uppercase tracking-wider ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-500'
                     }`}>Location</th>
-                    <th className={`text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider ${
-                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>GST Number</th>
-                    <th className={`text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider ${
-                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    <th className={`py-4 px-4 text-left text-xs font-bold uppercase tracking-wider ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                    }`}>GST & Details</th>
+                    <th className={`py-4 px-4 text-left text-xs font-bold uppercase tracking-wider ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-500'
                     }`}>Status</th>
-                    <th className={`text-center py-3 px-4 text-xs font-semibold uppercase tracking-wider ${
-                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
+                    <th className={`py-4 px-4 text-center text-xs font-bold uppercase tracking-wider ${
+                      isDarkMode ? 'text-gray-400' : 'text-gray-500'
                     }`}>Actions</th>
                   </tr>
                 </thead>
@@ -460,9 +469,12 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
                         isDarkMode ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50'
                       }`}
                     >
-                      <td className={`py-3 px-4 text-sm font-medium ${
+                      <td className={`py-3 px-4 text-sm text-gray-500`}>
+                        {index + 1}
+                      </td>
+                      <td className={`py-3 px-4 text-sm font-bold ${
                         isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                      }`}>{customer.id}</td>
+                      }`}>{customer.customerCode || customer.customer_code}</td>
                       <td className={`py-3 px-4 text-sm font-medium ${
                         isDarkMode ? 'text-white' : 'text-gray-900'
                       }`}>{customer.name}</td>
@@ -508,47 +520,55 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
                       <td className="py-3 px-4">
                         <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
                           customer.isActive
-                            ? 'bg-green-500/20 text-green-500'
-                            : 'bg-red-500/20 text-red-500'
+                            ? 'bg-blue-600/20 text-blue-600'
+                            : 'bg-blue-700/20 text-blue-700'
                         }`}>
                           {customer.isActive ? 'Active' : 'Inactive'}
                         </span>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center justify-center gap-2">
-                          <button 
-                            onClick={() => handlePrint(customer)}
-                            className={`p-1.5 rounded-lg transition-all ${
-                              isDarkMode 
-                                ? 'hover:bg-green-500/20 text-green-400' 
-                                : 'hover:bg-green-50 text-green-600'
-                            }`}
-                            title="View/Print"
-                          >
-                            <Printer className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => handleEdit(customer)}
-                            className={`p-1.5 rounded-lg transition-all ${
-                              isDarkMode 
-                                ? 'hover:bg-blue-500/20 text-blue-400' 
-                                : 'hover:bg-blue-50 text-blue-600'
-                            }`}
-                            title="Edit"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(customer.id, customer.name)}
-                            className={`p-1.5 rounded-lg transition-all ${
-                              isDarkMode 
-                                ? 'hover:bg-red-500/20 text-red-400' 
-                                : 'hover:bg-red-50 text-red-600'
-                            }`}
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {canPrint('Customer') && (
+                            <button 
+                              onClick={() => handlePrint(customer)}
+                              className={`p-1.5 rounded-lg transition-all ${
+                                isDarkMode 
+                                  ? 'hover:bg-blue-600/20 text-blue-400' 
+                                  : 'hover:bg-blue-50 text-blue-600'
+                              }`}
+                              title="View/Print"
+                            >
+                              <Printer className="w-4 h-4" />
+                            </button>
+                          )}
+                          
+                          {canEdit('Customer') && (
+                            <button 
+                              onClick={() => handleEdit(customer)}
+                              className={`p-1.5 rounded-lg transition-all ${
+                                isDarkMode 
+                                  ? 'hover:bg-blue-500/20 text-blue-400' 
+                                  : 'hover:bg-blue-50 text-blue-600'
+                              }`}
+                              title="Edit"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          
+                          {canDelete('Customer') && (
+                            <button 
+                              onClick={() => handleDelete(customer.id, customer.name)}
+                              className={`p-1.5 rounded-lg transition-all ${
+                                isDarkMode 
+                                  ? 'hover:bg-blue-700/20 text-blue-400' 
+                                  : 'hover:bg-blue-50 text-blue-700'
+                              }`}
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </motion.tr>
@@ -640,13 +660,13 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
                   
                   <div className={`${FORM_CONSTANTS.TWO_COLUMN_GRID} ${FORM_CONSTANTS.FIELD_GAP}`}>
                     <div>
-                      {renderLabel('Customer Code', false, isDarkMode)}
+                      {renderLabel('Customer ID', false, isDarkMode)}
                       <input
                         type="text"
                         value={formData.customerCode}
-                        onChange={(e) => setFormData({ ...formData, customerCode: e.target.value.toUpperCase() })}
-                        className={inputClass}
-                        placeholder="e.g., CUST001"
+                        readOnly
+                        className={`${inputClass} opacity-70 cursor-not-allowed select-none bg-gray-100/50`}
+                        placeholder="Generating..."
                       />
                     </div>
 
@@ -811,18 +831,21 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
                     <X className="w-4 h-4" />
                     Cancel
                   </button>
-                  <button
-                    onClick={handleSave}
-                    className={primaryButtonClass}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Save className="w-4 h-4" />
-                    )}
-                    {isSubmitting ? 'Saving...' : editingCustomer ? 'Update Customer' : 'Save Customer'}
-                  </button>
+                  
+                  {(editingCustomer ? canEdit('Customer') : canCreate('Customer')) && (
+                    <button
+                      onClick={handleSave}
+                      className={primaryButtonClass}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4" />
+                      )}
+                      {isSubmitting ? 'Saving...' : editingCustomer ? 'Update Customer' : 'Save Customer'}
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>

@@ -75,9 +75,9 @@ export function StockRegisterScreen({ isDarkMode }: StockRegisterScreenProps) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'In Stock': return 'bg-green-500/20 text-green-500';
-      case 'Low Stock': return 'bg-orange-500/20 text-orange-500';
-      case 'Out of Stock': return 'bg-red-500/20 text-red-500';
+      case 'In Stock': return 'bg-blue-600 text-white shadow-sm';
+      case 'Low Stock': return isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-100 text-blue-700';
+      case 'Out of Stock': return 'bg-blue-900/40 text-blue-300 border border-blue-800';
       case 'Overstocked': return 'bg-blue-500/20 text-blue-500';
       default: return 'bg-gray-500/20 text-gray-500';
     }
@@ -166,7 +166,7 @@ export function StockRegisterScreen({ isDarkMode }: StockRegisterScreenProps) {
                     isDarkMode ? 'text-white' : 'text-gray-900'
                   }`}>{totalStock}</p>
                 </div>
-                <TrendingUp className="w-8 h-8 text-green-500" />
+                <TrendingUp className="w-8 h-8 text-blue-500" />
               </div>
             </div>
 
@@ -198,7 +198,7 @@ export function StockRegisterScreen({ isDarkMode }: StockRegisterScreenProps) {
                     isDarkMode ? 'text-white' : 'text-gray-900'
                   }`}>{lowStockCount + outOfStockCount}</p>
                 </div>
-                <AlertCircle className="w-8 h-8 text-orange-500" />
+                <AlertCircle className="w-8 h-8 text-blue-500" />
               </div>
             </div>
           </div>
@@ -357,13 +357,17 @@ export function StockRegisterScreen({ isDarkMode }: StockRegisterScreenProps) {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.02 }}
                       className={`border-b ${
-                        isDarkMode 
-                          ? 'border-gray-700/50 hover:bg-gray-700/30' 
+                        isDarkMode
+                          ? 'border-gray-700/50 hover:bg-gray-700/30'
                           : 'border-gray-100 hover:bg-gray-50'
                       } transition-colors cursor-pointer`}
                     >
                       <td className={`py-4 px-4 text-sm font-medium truncate ${
-                        isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                        item.status === 'Low Stock'
+                          ? isDarkMode ? 'hover:bg-blue-600/20 text-blue-400' : 'hover:bg-blue-100 text-blue-600'
+                          : item.status === 'Out of Stock'
+                              ? isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-900/10 text-blue-800'
+                              : isDarkMode ? 'text-blue-400' : 'text-blue-600'
                       }`} title={item.itemCode}>{item.itemCode}</td>
                       <td className={`py-4 px-4 text-sm font-medium truncate ${
                         isDarkMode ? 'text-white' : 'text-gray-900'

@@ -212,9 +212,9 @@ export function CashRegisterReportScreen({ isDarkMode }: CashRegisterReportScree
               <span className={`text-sm font-medium ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>Total Cash In</span>
-              <ArrowUpCircle className="w-5 h-5 text-green-500" />
+              <ArrowUpCircle className="w-5 h-5 text-blue-600" />
             </div>
-            <div className="text-3xl font-bold text-green-500">₹{totalCashIn.toLocaleString()}</div>
+            <div className="text-3xl font-bold text-blue-600">₹{totalCashIn.toLocaleString()}</div>
             <p className={`text-xs mt-1 ${
               isDarkMode ? 'text-gray-500' : 'text-gray-500'
             }`}>{filteredEntries.filter(e => e.transactionType === 'Cash In').length} receipts</p>
@@ -232,9 +232,9 @@ export function CashRegisterReportScreen({ isDarkMode }: CashRegisterReportScree
               <span className={`text-sm font-medium ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>Total Cash Out</span>
-              <ArrowDownCircle className="w-5 h-5 text-red-500" />
+              <ArrowDownCircle className="w-5 h-5 text-blue-700" />
             </div>
-            <div className="text-3xl font-bold text-red-500">₹{totalCashOut.toLocaleString()}</div>
+            <div className="text-3xl font-bold text-blue-700">₹{totalCashOut.toLocaleString()}</div>
             <p className={`text-xs mt-1 ${
               isDarkMode ? 'text-gray-500' : 'text-gray-500'
             }`}>{filteredEntries.filter(e => e.transactionType === 'Cash Out').length} payments</p>
@@ -259,7 +259,7 @@ export function CashRegisterReportScreen({ isDarkMode }: CashRegisterReportScree
             <div className={`text-3xl font-bold ${
               netBalance >= 0 
                 ? isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                : 'text-red-500'
+                : 'text-blue-700'
             }`}>₹{netBalance.toLocaleString()}</div>
             <p className={`text-xs mt-1 ${
               isDarkMode ? 'text-gray-500' : 'text-gray-500'
@@ -285,7 +285,7 @@ export function CashRegisterReportScreen({ isDarkMode }: CashRegisterReportScree
             <div className={`text-3xl font-bold ${
               finalBalance >= 0
                 ? isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                : 'text-red-500'
+                : 'text-blue-700'
             }`}>₹{finalBalance.toLocaleString()}</div>
             <p className={`text-xs mt-1 ${
               isDarkMode ? 'text-gray-500' : 'text-gray-500'
@@ -461,14 +461,14 @@ export function CashRegisterReportScreen({ isDarkMode }: CashRegisterReportScree
                         }`}>{entry.description}</td>
                         <td className={`py-3 px-4 text-sm font-bold text-right ${
                           entry.transactionType === 'Cash In' 
-                            ? 'text-green-500' 
+                            ? 'text-blue-600' 
                             : isDarkMode ? 'text-gray-600' : 'text-gray-400'
                         }`}>
                           {entry.transactionType === 'Cash In' ? `₹${entry.amount.toLocaleString()}` : '-'}
                         </td>
                         <td className={`py-3 px-4 text-sm font-bold text-right ${
                           entry.transactionType === 'Cash Out' 
-                            ? 'text-red-500' 
+                            ? 'text-blue-700' 
                             : isDarkMode ? 'text-gray-600' : 'text-gray-400'
                         }`}>
                           {entry.transactionType === 'Cash Out' ? `₹${entry.amount.toLocaleString()}` : '-'}
@@ -476,7 +476,7 @@ export function CashRegisterReportScreen({ isDarkMode }: CashRegisterReportScree
                         <td className={`py-3 px-4 text-sm font-bold text-right ${
                           entry.balance >= 0
                             ? isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                            : 'text-red-500'
+                            : 'text-blue-700'
                         }`}>₹{entry.balance.toLocaleString()}</td>
                         <td className={`py-3 px-4 text-sm ${
                           isDarkMode ? 'text-gray-400' : 'text-gray-600'

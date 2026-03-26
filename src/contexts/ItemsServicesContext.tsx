@@ -37,6 +37,7 @@ interface ItemsServicesContextType {
   getItemServiceById: (id: string) => ItemService | undefined;
   updateStock: (id: string, quantity: number, operation: 'add' | 'subtract') => Promise<void>;
   refreshItems: () => Promise<void>;
+  fetchNextItemCode: () => Promise<string | null>;
   isLoading: boolean;
 }
 
@@ -80,7 +81,6 @@ export function ItemsServicesProvider({ children }: { children: ReactNode }) {
         setItemsServices(rows.map(mapRow));
       }
     } catch (err) {
-      console.error('Error fetching items:', err);
     } finally {
       setIsLoading(false);
     }
@@ -117,7 +117,6 @@ export function ItemsServicesProvider({ children }: { children: ReactNode }) {
         throw new Error(response.message || 'Failed to add item/service');
       }
     } catch (error: any) {
-      console.error('Error adding item/service:', error);
       toast.error(error.message || 'Failed to add item/service');
       throw error;
     }
@@ -153,27 +152,21 @@ export function ItemsServicesProvider({ children }: { children: ReactNode }) {
         throw new Error(response.message || 'Failed to update item/service');
       }
     } catch (error: any) {
-      console.error('Error updating item/service:', error);
       toast.error(error.message || 'Failed to update item/service');
       throw error;
     }
   };
 
   const deleteItemService = async (id: string) => {
-    console.log(`[ItemsServicesContext] Attempting to delete item/service ${id}...`);
     try {
         const response = await api.delete(`/items/${id}`);
-        console.log('[ItemsServicesContext] API response received:', response);
         if (response.success) {
-            console.log('[ItemsServicesContext] API call successful. Refetching items...');
             await fetchItems();
             toast.success('Item/Service deleted successfully.');
         } else {
-            console.error('[ItemsServicesContext] API call returned success:false.', response);
             throw new Error(response.message || response.error || 'Failed to delete item/service');
         }
     } catch (error: any) {
-        console.error(`[ItemsServicesContext] Error in deleteItemService catch block (ID: ${id}):`, error);
         toast.error(error.message || 'An error occurred while deleting the item/service.');
         throw error;
     }
@@ -192,6 +185,18 @@ export function ItemsServicesProvider({ children }: { children: ReactNode }) {
   const getActiveItemsServices = () => itemsServices.filter(item => item.status === 'Active');
   const getActiveItems = () => itemsServices.filter(item => item.type === 'Item' && item.status === 'Active');
   const getActiveServices = () => itemsServices.filter(item => item.type === 'Service' && item.status === 'Active');
+  const fetchNextItemCode = async (): Promise<string | null> => {
+    try {
+      const res = await api.get('/items/next-code');
+      if (res.success && res.data) {
+        return res.data.data || res.data;
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
+  };
+
   const getItemServiceById = (id: string) => itemsServices.find(item => item.id === id);
 
   return (
@@ -207,6 +212,7 @@ export function ItemsServicesProvider({ children }: { children: ReactNode }) {
         getItemServiceById,
         updateStock,
         refreshItems: fetchItems,
+        fetchNextItemCode,
         isLoading
       }}
     >

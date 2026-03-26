@@ -24,6 +24,8 @@ import {
   isFieldEmpty
 } from '@/utils/formStyles';
 import { toast } from 'react-toastify';
+import { api, endpoints } from '@/services/api';
+import { useMasters } from '@/contexts/MastersContext';
 
 interface AdvanceScreenProps {
   isDarkMode: boolean;
@@ -46,24 +48,44 @@ interface AdvanceRecord {
 }
 
 export function AdvanceScreen({ isDarkMode }: AdvanceScreenProps) {
-  // Staff database with IDs
-  const staffDatabase = [
-    { id: 'EMP-001', name: 'Ramesh Singh - Mechanic', designation: 'Mechanic' },
-    { id: 'EMP-002', name: 'Priya Sharma - Accountant', designation: 'Accountant' },
-    { id: 'EMP-003', name: 'Vijay Kumar - Technician', designation: 'Technician' },
-    { id: 'EMP-004', name: 'Anita Desai - Receptionist', designation: 'Receptionist' },
-    { id: 'EMP-005', name: 'Suresh Patel - Supervisor', designation: 'Supervisor' },
-    { id: 'EMP-006', name: 'Kavita Reddy - Manager', designation: 'Manager' },
-    { id: 'EMP-007', name: 'Rahul Verma - Helper', designation: 'Helper' },
-  ];
+  const { staff } = useMasters();
+  const [advanceHistory, setAdvanceHistory] = useState<AdvanceRecord[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const [advanceHistory, setAdvanceHistory] = useState<AdvanceRecord[]>([
-    { id: 'ADV-001', date: '2024-02-20', staffName: 'Ramesh Singh', purpose: 'Medical Emergency', amount: 5000, paymentMode: 'Cash', status: 'Paid', adjustedAmount: 0 },
-    { id: 'ADV-002', date: '2024-02-18', staffName: 'Priya Sharma', purpose: 'Personal Loan', amount: 10000, paymentMode: 'Bank Transfer', status: 'Paid', adjustedAmount: 5000 },
-    { id: 'ADV-003', date: '2024-02-15', staffName: 'Vijay Kumar', purpose: 'Festival Advance', amount: 8000, paymentMode: 'Cash', status: 'Adjusted', adjustedAmount: 8000 },
-    { id: 'ADV-004', date: '2024-02-12', staffName: 'Anita Desai', purpose: 'Education Fee', amount: 12000, paymentMode: 'UPI', status: 'Paid', adjustedAmount: 4000 },
-    { id: 'ADV-005', date: '2024-02-10', staffName: 'Suresh Patel', purpose: 'Home Renovation', amount: 15000, paymentMode: 'Bank Transfer', status: 'Paid', adjustedAmount: 10000 },
-  ]);
+  // Fetch advances from backend
+  const fetchAdvances = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get(endpoints.accounts.advance.list);
+      if (response.success && response.data) {
+        // Map from backend snake_case to frontend camelCase
+        const mapped = (response.data.data || response.data).map((r: any) => ({
+          id: r.id,
+          advanceNo: r.advance_no,
+          date: r.advance_date?.split('T')[0] || '',
+          staffId: r.staff_id,
+          staffName: r.staff_name,
+          purpose: r.purpose,
+          amount: parseFloat(r.advance_amount || 0),
+          paymentMode: r.payment_mode,
+          repaymentType: r.repayment_type,
+          installments: r.no_of_installments,
+          remarks: r.remarks,
+          status: r.status,
+          adjustedAmount: 0 // Default for now
+        }));
+        setAdvanceHistory(mapped);
+      }
+    } catch (err) {
+      toast.error('Error loading advances');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchAdvances();
+  }, []);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -84,7 +106,7 @@ export function AdvanceScreen({ isDarkMode }: AdvanceScreenProps) {
     
     // Auto-fill Staff ID when Staff Name is selected
     if (name === 'staffName') {
-      const selectedStaff = staffDatabase.find(staff => staff.name === value);
+      const selectedStaff = staff.find(s => s.name === value);
       setFormData(prev => ({ 
         ...prev, 
         staffName: value,
@@ -110,71 +132,47 @@ export function AdvanceScreen({ isDarkMode }: AdvanceScreenProps) {
     });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validation
     if (!formData.staffName || !formData.purpose || !formData.amount) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    if (isEditing && editingId) {
-      // Update existing record
-      const updatedRecord: AdvanceRecord = {
-        id: editingId,
-        date: formData.date,
-        staffName: formData.staffName,
-        staffId: formData.staffId,
-        purpose: formData.purpose,
-        amount: parseFloat(formData.amount),
-        paymentMode: formData.paymentMode,
-        referenceNo: formData.referenceNo,
-        repaymentType: formData.repaymentType,
-        installments: parseInt(formData.installments),
-        remarks: formData.remarks,
-        status: advanceHistory.find(a => a.id === editingId)?.status || 'Paid',
-        adjustedAmount: advanceHistory.find(a => a.id === editingId)?.adjustedAmount || 0
-      };
+    const payload = {
+      advance_no: `ADV-${new Date().getFullYear()}-${String(advanceHistory.length + 1).padStart(3, '0')}`,
+      advance_date: formData.date,
+      staff_id: formData.staffId,
+      staff_name: formData.staffName,
+      purpose: formData.purpose,
+      advance_amount: parseFloat(formData.amount),
+      payment_mode: formData.paymentMode,
+      repayment_type: formData.repaymentType,
+      no_of_installments: parseInt(formData.installments),
+      remarks: formData.remarks,
+      status: 'Paid'
+    };
 
-      // Update in the list
-      setAdvanceHistory(prevHistory =>
-        prevHistory.map(item => item.id === editingId ? updatedRecord : item)
-      );
-
-      // Reset editing state
+    try {
+      if (isEditing && editingId) {
+        const response = await api.put(endpoints.accounts.advance.update(editingId), payload);
+        if (response.success) {
+          toast.success('Advance updated successfully!');
+          fetchAdvances();
+        }
+      } else {
+        const response = await api.post(endpoints.accounts.advance.create, payload);
+        if (response.success) {
+          toast.success('Staff advance saved successfully!');
+          fetchAdvances();
+        }
+      }
       setIsEditing(false);
       setEditingId(null);
-
-      // Show success message
-      toast.success('Advance updated successfully!');
-    } else {
-      // Create new record
-      const newId = `ADV-${String(advanceHistory.length + 1).padStart(3, '0')}`;
-
-      const newAdvance: AdvanceRecord = {
-        id: newId,
-        date: formData.date,
-        staffName: formData.staffName,
-        staffId: formData.staffId,
-        purpose: formData.purpose,
-        amount: parseFloat(formData.amount),
-        paymentMode: formData.paymentMode,
-        referenceNo: formData.referenceNo,
-        repaymentType: formData.repaymentType,
-        installments: parseInt(formData.installments),
-        remarks: formData.remarks,
-        status: 'Paid',
-        adjustedAmount: 0
-      };
-
-      // Add to history at the beginning
-      setAdvanceHistory([newAdvance, ...advanceHistory]);
-
-      // Show success message
-      toast.success('Staff advance saved successfully!');
+      handleClear();
+    } catch (err: any) {
+      toast.error(err.message || 'Error saving advance');
     }
-
-    // Clear form
-    handleClear();
   };
 
   // Modal state
@@ -218,14 +216,20 @@ export function AdvanceScreen({ isDarkMode }: AdvanceScreenProps) {
     setDeleteModalOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (recordToDelete) {
-      setAdvanceHistory(prevHistory =>
-        prevHistory.filter(item => item.id !== recordToDelete.id)
-      );
-      toast.success('Advance deleted successfully');
-      setDeleteModalOpen(false);
-      setRecordToDelete(null);
+      try {
+        const response = await api.delete(endpoints.accounts.advance.delete(recordToDelete.id));
+        if (response.success) {
+          toast.success('Advance deleted successfully');
+          fetchAdvances();
+        }
+      } catch (err: any) {
+        toast.error(err.message || 'Delete failed');
+      } finally {
+        setDeleteModalOpen(false);
+        setRecordToDelete(null);
+      }
     }
   };
 
@@ -330,8 +334,8 @@ export function AdvanceScreen({ isDarkMode }: AdvanceScreenProps) {
                   name="staffName"
                 >
                   <option value="">Select Staff Member</option>
-                  {staffDatabase.map(staff => (
-                    <option key={staff.id} value={staff.name}>{staff.name}</option>
+                  {staff.map(s => (
+                    <option key={s.id} value={s.name}>{s.name} - {s.designation}</option>
                   ))}
                 </select>
               </div>
@@ -547,18 +551,18 @@ export function AdvanceScreen({ isDarkMode }: AdvanceScreenProps) {
                       isDarkMode ? 'text-white' : 'text-gray-900'
                     }`}>₹{advance.amount.toLocaleString()}</td>
                     <td className={`py-4 px-4 text-sm font-semibold text-right ${
-                      isDarkMode ? 'text-green-400' : 'text-green-600'
+                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
                     }`}>₹{advance.adjustedAmount.toLocaleString()}</td>
                     <td className={`py-4 px-4 text-sm font-semibold text-right ${
-                      isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                      isDarkMode ? 'text-blue-400' : 'text-blue-800'
                     }`}>₹{(advance.amount - advance.adjustedAmount).toLocaleString()}</td>
                     <td className="py-4 px-4">
                       <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
                         advance.status === 'Adjusted'
-                          ? 'bg-green-500/20 text-green-500'
+                          ? 'bg-blue-600/20 text-blue-600'
                           : advance.status === 'Paid'
                           ? 'bg-blue-500/20 text-blue-500'
-                          : 'bg-orange-500/20 text-orange-500'
+                          : 'bg-blue-800/20 text-blue-800'
                       }`}>
                         {advance.status}
                       </span>
@@ -581,8 +585,8 @@ export function AdvanceScreen({ isDarkMode }: AdvanceScreenProps) {
                         </button>
                         <button className={`p-1.5 rounded-lg transition-all ${
                           isDarkMode 
-                            ? 'hover:bg-red-500/20 text-red-400' 
-                            : 'hover:bg-red-50 text-red-600'
+                            ? 'hover:bg-blue-700/20 text-blue-400' 
+                            : 'hover:bg-blue-50 text-blue-700'
                         }`} onClick={() => handleDelete(advance)}>
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -750,7 +754,7 @@ export function AdvanceScreen({ isDarkMode }: AdvanceScreenProps) {
                     isDarkMode ? 'text-gray-400' : 'text-gray-600'
                   }`}>Adjusted Amount</label>
                   <p className={`text-xl font-bold ${
-                    isDarkMode ? 'text-green-400' : 'text-green-600'
+                    isDarkMode ? 'text-blue-400' : 'text-blue-600'
                   }`}>₹{recordToView.adjustedAmount.toLocaleString('en-IN')}</p>
                 </div>
 
@@ -759,7 +763,7 @@ export function AdvanceScreen({ isDarkMode }: AdvanceScreenProps) {
                     isDarkMode ? 'text-gray-400' : 'text-gray-600'
                   }`}>Balance Amount</label>
                   <p className={`text-xl font-bold ${
-                    isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                    isDarkMode ? 'text-blue-400' : 'text-blue-800'
                   }`}>₹{(recordToView.amount - recordToView.adjustedAmount).toLocaleString('en-IN')}</p>
                 </div>
 
@@ -769,10 +773,10 @@ export function AdvanceScreen({ isDarkMode }: AdvanceScreenProps) {
                   }`}>Status</label>
                   <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
                     recordToView.status === 'Adjusted'
-                      ? 'bg-green-500/20 text-green-500'
+                      ? 'bg-blue-600/20 text-blue-600'
                       : recordToView.status === 'Paid'
                       ? 'bg-blue-500/20 text-blue-500'
-                      : 'bg-orange-500/20 text-orange-500'
+                      : 'bg-blue-800/20 text-blue-800'
                   }`}>
                     {recordToView.status}
                   </span>
@@ -875,8 +879,8 @@ export function AdvanceScreen({ isDarkMode }: AdvanceScreenProps) {
                     name="staffName"
                   >
                     <option value="">Select Staff Member</option>
-                    {staffDatabase.map(staff => (
-                      <option key={staff.id} value={staff.name}>{staff.name}</option>
+                    {staff.map(s => (
+                      <option key={s.id} value={s.name}>{s.name} - {s.designation}</option>
                     ))}
                   </select>
                 </div>
@@ -1126,7 +1130,7 @@ export function AdvanceScreen({ isDarkMode }: AdvanceScreenProps) {
                     isDarkMode ? 'text-gray-400' : 'text-gray-600'
                   }`}>Adjusted Amount</label>
                   <p className={`text-xl font-bold ${
-                    isDarkMode ? 'text-green-400' : 'text-green-600'
+                    isDarkMode ? 'text-blue-400' : 'text-blue-600'
                   }`}>₹{recordToDelete.adjustedAmount.toLocaleString('en-IN')}</p>
                 </div>
 
@@ -1135,7 +1139,7 @@ export function AdvanceScreen({ isDarkMode }: AdvanceScreenProps) {
                     isDarkMode ? 'text-gray-400' : 'text-gray-600'
                   }`}>Balance Amount</label>
                   <p className={`text-xl font-bold ${
-                    isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                    isDarkMode ? 'text-blue-400' : 'text-blue-800'
                   }`}>₹{(recordToDelete.amount - recordToDelete.adjustedAmount).toLocaleString('en-IN')}</p>
                 </div>
 
@@ -1145,10 +1149,10 @@ export function AdvanceScreen({ isDarkMode }: AdvanceScreenProps) {
                   }`}>Status</label>
                   <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
                     recordToDelete.status === 'Adjusted'
-                      ? 'bg-green-500/20 text-green-500'
+                      ? 'bg-blue-600/20 text-blue-600'
                       : recordToDelete.status === 'Paid'
                       ? 'bg-blue-500/20 text-blue-500'
-                      : 'bg-orange-500/20 text-orange-500'
+                      : 'bg-blue-800/20 text-blue-800'
                   }`}>
                     {recordToDelete.status}
                   </span>
@@ -1181,8 +1185,8 @@ export function AdvanceScreen({ isDarkMode }: AdvanceScreenProps) {
                 onClick={confirmDelete}
                 className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium transition-all ${
                   isDarkMode
-                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
-                    : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+                    ? 'bg-blue-700/20 text-blue-400 hover:bg-blue-700/30 border border-red-500/30'
+                    : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-red-200'
                 }`}
               >
                 <Trash2 className="w-4 h-4" />

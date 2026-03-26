@@ -289,8 +289,8 @@ export function ExpenseRegisterScreen({ isDarkMode }: ExpenseRegisterScreenProps
             >
               <div className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-green-500" />
+                  <div className="w-10 h-10 rounded-lg bg-blue-600/20 flex items-center justify-center">
+                    <DollarSign className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
                     <p className={`text-xs ${
@@ -325,8 +325,8 @@ export function ExpenseRegisterScreen({ isDarkMode }: ExpenseRegisterScreenProps
                     onClick={handleExportExcel}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm font-medium ${
                     isDarkMode 
-                      ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' 
-                      : 'bg-green-50 text-green-600 hover:bg-green-100'
+                      ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30' 
+                      : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
                   }`}>
                     <Download className="w-4 h-4" />
                     Export
@@ -424,14 +424,14 @@ export function ExpenseRegisterScreen({ isDarkMode }: ExpenseRegisterScreenProps
                             {expense.description}
                           </td>
                           <td className={`py-3 px-3 text-sm font-bold text-right truncate ${
-                            isDarkMode ? 'text-green-400' : 'text-green-600'
+                            isDarkMode ? 'text-blue-400' : 'text-blue-600'
                           }`} title={`₹${expense.amount.toLocaleString()}`}>
                             ₹{expense.amount.toLocaleString()}
                           </td>
                           <td className={`py-3 px-3 text-center`}>
                             <span className={`inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-medium capitalize ${
                               expense.paymentMode.toLowerCase() === 'cash'
-                                ? 'bg-yellow-500/20 text-yellow-500'
+                                ? 'bg-blue-400/20 text-blue-400'
                                 : expense.paymentMode.toLowerCase() === 'bank'
                                 ? 'bg-blue-500/20 text-blue-500'
                                 : 'bg-blue-500/20 text-blue-500'
@@ -442,8 +442,8 @@ export function ExpenseRegisterScreen({ isDarkMode }: ExpenseRegisterScreenProps
                           <td className={`py-3 px-3 text-center`}>
                             <span className={`inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-medium ${
                               expense.status === 'Paid'
-                                ? 'bg-green-500/20 text-green-500'
-                                : 'bg-orange-500/20 text-orange-500'
+                                ? 'bg-blue-600/20 text-blue-600'
+                                : 'bg-blue-800/20 text-blue-800'
                             }`}>
                               {expense.status}
                             </span>
@@ -472,7 +472,7 @@ export function ExpenseRegisterScreen({ isDarkMode }: ExpenseRegisterScreenProps
                     <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                       Grand Total
                     </p>
-                    <p className={`text-2xl font-bold mt-1 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+                    <p className={`text-2xl font-bold mt-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
                       ₹{totals.totalAmount.toLocaleString()}
                     </p>
                   </div>

@@ -15,6 +15,9 @@ import {
   CheckCircle,
   X
 } from 'lucide-react';
+import { api, endpoints } from '@/services/api';
+import { useMasters } from '@/contexts/MastersContext';
+import { toast } from 'react-toastify';
 
 interface SalaryScreenProps {
   isDarkMode: boolean;
@@ -32,26 +35,161 @@ interface StaffSalary {
   deductions: number;
   netSalary: number;
   status: 'Paid' | 'Pending' | 'Processing';
+  dbId?: string;
 }
 
 export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
-  const [salaryMonth, setSalaryMonth] = useState('2024-02');
+  const { staff } = useMasters();
+  const [salaryMonth, setSalaryMonth] = useState('2024-03');
+  const [staffSalaries, setStaffSalaries] = useState<StaffSalary[]>([]);
+  const [loading, setLoading] = useState(false);
   const [filterModalOpen, setFilterModalOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterDesignation, setFilterDesignation] = useState<string>('all');
   const [viewDetailsModalOpen, setViewDetailsModalOpen] = useState(false);
   const [selectedSalary, setSelectedSalary] = useState<StaffSalary | null>(null);
   
-  const [staffSalaries] = useState<StaffSalary[]>([
-    { id: 'EMP-001', staffName: 'Ramesh Singh', designation: 'Senior Mechanic', basicSalary: 25000, hra: 5000, allowances: 3000, overtime: 2000, advance: 5000, deductions: 1000, netSalary: 29000, status: 'Paid' },
-    { id: 'EMP-002', staffName: 'Priya Sharma', designation: 'Accountant', basicSalary: 30000, hra: 6000, allowances: 4000, overtime: 0, advance: 10000, deductions: 1500, netSalary: 28500, status: 'Paid' },
-    { id: 'EMP-003', staffName: 'Vijay Kumar', designation: 'Helper', basicSalary: 15000, hra: 3000, allowances: 2000, overtime: 1500, advance: 0, deductions: 500, netSalary: 21000, status: 'Processing' },
-    { id: 'EMP-004', staffName: 'Anita Desai', designation: 'Workshop Manager', basicSalary: 40000, hra: 8000, allowances: 5000, overtime: 0, advance: 12000, deductions: 2000, netSalary: 39000, status: 'Paid' },
-    { id: 'EMP-005', staffName: 'Suresh Patel', designation: 'Supervisor', basicSalary: 28000, hra: 5600, allowances: 3500, overtime: 1000, advance: 15000, deductions: 1200, netSalary: 21900, status: 'Pending' },
-    { id: 'EMP-006', staffName: 'Karthik Reddy', designation: 'Mechanic', basicSalary: 22000, hra: 4400, allowances: 2500, overtime: 1800, advance: 0, deductions: 800, netSalary: 29900, status: 'Paid' },
-    { id: 'EMP-007', staffName: 'Neha Gupta', designation: 'Receptionist', basicSalary: 18000, hra: 3600, allowances: 2000, overtime: 500, advance: 0, deductions: 600, netSalary: 23500, status: 'Processing' },
-    { id: 'EMP-008', staffName: 'Arun Kumar', designation: 'Helper', basicSalary: 14000, hra: 2800, allowances: 1500, overtime: 2000, advance: 8000, deductions: 400, netSalary: 11900, status: 'Pending' },
-  ]);
+  // Fetch salaries from backend
+  const fetchSalaries = async () => {
+    setLoading(true);
+    try {
+      // Current year/month from state
+      const [year, monthNum] = salaryMonth.split('-');
+      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      const targetMonthName = monthNames[parseInt(monthNum) - 1];
+      const targetYear = parseInt(year);
+
+      const response = await api.get(endpoints.accounts.salary.list);
+      if (response.success && response.data) {
+        const dbRecords = (response.data.data || response.data).filter((r: any) => 
+          r.salary_month === targetMonthName && r.salary_year === targetYear
+        );
+
+        if (dbRecords.length > 0) {
+          // Use DB records
+          setStaffSalaries(dbRecords.map((r: any) => ({
+            id: r.staff_id,
+            dbId: r.id, // Keep the real ID for updates
+            staffName: r.staff_name,
+            designation: r.designation,
+            basicSalary: r.basic,
+            hra: r.hra,
+            allowances: r.allowances,
+            overtime: r.overtime,
+            advance: r.advance_amount,
+            deductions: r.deductions,
+            netSalary: r.net_salary,
+            status: r.status
+          })));
+        } else {
+          // Initialize from Master Staff
+          const activeStaff = staff.filter(s => s.status?.toLowerCase() === 'active');
+          setStaffSalaries(activeStaff.map(s => ({
+            id: s.id,
+            staffName: s.name,
+            designation: s.designation,
+            basicSalary: s.salary,
+            hra: 0,
+            allowances: 0,
+            overtime: 0,
+            advance: 0,
+            deductions: 0,
+            netSalary: s.salary,
+            status: 'Pending'
+          })));
+        }
+      }
+    } catch (err) {
+      toast.error('Error loading salary data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchSalaries();
+  }, [salaryMonth, staff]);
+
+  const handleProcessSingle = async (salary: StaffSalary) => {
+    try {
+      const [year, monthNum] = salaryMonth.split('-');
+      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      
+      const payload = {
+        salary_no: `SAL-${year}-${monthNum}-${salary.id}`,
+        salary_month: monthNames[parseInt(monthNum) - 1],
+        salary_year: parseInt(year),
+        staff_id: salary.id,
+        staff_name: salary.staffName,
+        designation: salary.designation,
+        basic: salary.basicSalary,
+        hra: salary.hra,
+        allowances: salary.allowances,
+        overtime: salary.overtime,
+        advance_amount: salary.advance,
+        deductions: salary.deductions,
+        net_salary: salary.netSalary,
+        status: 'Paid',
+        remarks: 'Processed via Salary Sheet'
+      };
+
+      const response = salary.dbId 
+        ? await api.put(endpoints.accounts.salary.update(salary.dbId), payload)
+        : await api.post(endpoints.accounts.salary.create, payload);
+
+      if (response.success) {
+        toast.success(`Salary processed for ${salary.staffName}`);
+        fetchSalaries();
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Processing failed');
+    }
+  };
+
+  const handleProcessAll = async () => {
+    const unprocessed = staffSalaries.filter(s => s.status === 'Pending');
+    if (unprocessed.length === 0) {
+      toast.info('No pending salaries to process');
+      return;
+    }
+    
+    setLoading(true);
+    let successCount = 0;
+    for (const s of unprocessed) {
+      try {
+        const [year, monthNum] = salaryMonth.split('-');
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        
+        const payload = {
+          salary_no: `SAL-${year}-${monthNum}-${s.id}`,
+          salary_month: monthNames[parseInt(monthNum) - 1],
+          salary_year: parseInt(year),
+          staff_id: s.id,
+          staff_name: s.staffName,
+          designation: s.designation,
+          basic: s.basicSalary,
+          hra: s.hra,
+          allowances: s.allowances,
+          overtime: s.overtime,
+          advance_amount: s.advance,
+          deductions: s.deductions,
+          net_salary: s.netSalary,
+          status: 'Paid',
+          remarks: 'Bulk Processed'
+        };
+        if (s.dbId) {
+          await api.put(endpoints.accounts.salary.update(s.dbId), payload);
+        } else {
+          await api.post(endpoints.accounts.salary.create, payload);
+        }
+        successCount++;
+      } catch (err) {
+      }
+    }
+    setLoading(false);
+    toast.success(`Processed ${successCount} salaries!`);
+    fetchSalaries();
+  };
 
   const cardClass = `rounded-xl ${
     isDarkMode 
@@ -138,8 +276,8 @@ export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
         >
           <div className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-green-500" />
+              <div className="w-10 h-10 rounded-lg bg-blue-600/20 flex items-center justify-center">
+                <CheckCircle className="w-5 h-5 text-blue-600" />
               </div>
               <div>
                 <p className={`text-xs ${
@@ -161,8 +299,8 @@ export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
         >
           <div className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-orange-500" />
+              <div className="w-10 h-10 rounded-lg bg-blue-800/20 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-blue-800" />
               </div>
               <div>
                 <p className={`text-xs ${
@@ -246,15 +384,18 @@ export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
               </button>
               <button className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                 isDarkMode 
-                  ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' 
-                  : 'bg-green-50 text-green-600 hover:bg-green-100'
+                  ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30' 
+                  : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
               }`}>
                 <Download className="w-4 h-4" />
                 <span className="text-sm font-medium">Export Excel</span>
               </button>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl">
+              <button 
+                onClick={handleProcessAll}
+                disabled={loading}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                 <Plus className="w-4 h-4" />
-                <span className="text-sm">Process All</span>
+                <span className="text-sm">{loading ? 'Processing...' : 'Process All'}</span>
               </button>
             </div>
           </div>
@@ -339,13 +480,13 @@ export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
                           isDarkMode ? 'text-gray-300' : 'text-gray-700'
                         }`}>₹{staff.allowances.toLocaleString()}</td>
                         <td className={`py-3 px-4 text-sm text-right whitespace-nowrap ${
-                          isDarkMode ? 'text-green-400' : 'text-green-600'
+                          isDarkMode ? 'text-blue-400' : 'text-blue-600'
                         }`}>₹{staff.overtime.toLocaleString()}</td>
                         <td className={`py-3 px-4 text-sm text-right whitespace-nowrap ${
-                          isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                          isDarkMode ? 'text-blue-400' : 'text-blue-800'
                         }`}>₹{staff.advance.toLocaleString()}</td>
                         <td className={`py-3 px-4 text-sm text-right whitespace-nowrap ${
-                          isDarkMode ? 'text-red-400' : 'text-red-600'
+                          isDarkMode ? 'text-blue-400' : 'text-blue-700'
                         }`}>₹{staff.deductions.toLocaleString()}</td>
                         <td className={`py-3 px-4 text-sm font-bold text-right whitespace-nowrap ${
                           isDarkMode ? 'text-white' : 'text-gray-900'
@@ -353,10 +494,10 @@ export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
                         <td className="py-3 px-4 whitespace-nowrap">
                           <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
                             staff.status === 'Paid'
-                              ? 'bg-green-500/20 text-green-500'
+                              ? 'bg-blue-600/20 text-blue-600'
                               : staff.status === 'Processing'
                               ? 'bg-blue-500/20 text-blue-500'
-                              : 'bg-orange-500/20 text-orange-500'
+                              : 'bg-blue-800/20 text-blue-800'
                           }`}>
                             {staff.status}
                           </span>
@@ -365,9 +506,12 @@ export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
                           <div className="flex items-center justify-center gap-2">
                             <button className={`p-1.5 rounded-lg transition-all ${
                               isDarkMode 
-                                ? 'hover:bg-green-500/20 text-green-400' 
-                                : 'hover:bg-green-50 text-green-600'
-                            }`} title="Process Salary">
+                                ? 'hover:bg-blue-600/20 text-blue-400' 
+                                : 'hover:bg-blue-50 text-blue-600'
+                            }`} 
+                            disabled={staff.status === 'Paid'}
+                            onClick={() => handleProcessSingle(staff)}
+                            title="Process Salary">
                               <CheckCircle className="w-4 h-4" />
                             </button>
                             <button className={`p-1.5 rounded-lg transition-all ${
@@ -398,13 +542,13 @@ export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
                         isDarkMode ? 'text-white' : 'text-gray-900'
                       }`}>₹{filteredTotals.totalAllowances.toLocaleString()}</td>
                       <td className={`py-3 px-4 text-sm text-right ${
-                        isDarkMode ? 'text-green-400' : 'text-green-600'
+                        isDarkMode ? 'text-blue-400' : 'text-blue-600'
                       }`}>₹{filteredTotals.totalOvertime.toLocaleString()}</td>
                       <td className={`py-3 px-4 text-sm text-right ${
-                        isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                        isDarkMode ? 'text-blue-400' : 'text-blue-800'
                       }`}>₹{filteredTotals.totalAdvance.toLocaleString()}</td>
                       <td className={`py-3 px-4 text-sm text-right ${
-                        isDarkMode ? 'text-red-400' : 'text-red-600'
+                        isDarkMode ? 'text-blue-400' : 'text-blue-700'
                       }`}>₹{filteredTotals.totalDeductions.toLocaleString()}</td>
                       <td className={`py-3 px-4 text-sm text-right ${
                         isDarkMode ? 'text-white' : 'text-gray-900'
@@ -627,10 +771,10 @@ export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
                   }`}>Status</label>
                   <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
                     selectedSalary.status === 'Paid'
-                      ? 'bg-green-500/20 text-green-500'
+                      ? 'bg-blue-600/20 text-blue-600'
                       : selectedSalary.status === 'Processing'
                       ? 'bg-blue-500/20 text-blue-500'
-                      : 'bg-orange-500/20 text-orange-500'
+                      : 'bg-blue-800/20 text-blue-800'
                   }`}>
                     {selectedSalary.status}
                   </span>

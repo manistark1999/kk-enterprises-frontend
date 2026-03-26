@@ -71,7 +71,6 @@ export function SupplierProvider({ children }: { children: ReactNode }) {
         setSuppliers((res.data.data || res.data).map(mapRow));
       }
     } catch (err) {
-      console.error('Error fetching suppliers:', err);
     } finally {
       setIsLoading(false);
     }

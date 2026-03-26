@@ -35,6 +35,7 @@ import { useCustomers } from '@/contexts/CustomerContext';
 import { useLabourBills } from '@/contexts/LabourBillContext';
 import { useBankAccounts } from '@/contexts/BankAccountsContext';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PaymentScreenProps {
   isDarkMode: boolean;
@@ -68,6 +69,7 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
     createdBy: 'Admin'
   });
 
+  const { canCreate, canEdit, canDelete, canPrint, canExport } = useAuth();
   const { payments, addPayment, updatePayment, deletePayment, getTotalPaid, getNextPaymentNo } = useReceiptsPayments();
   const { customers } = useCustomers();
   const { labourBills } = useLabourBills();
@@ -104,7 +106,6 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
       const nextNo = await getNextPaymentNo();
       if (nextNo) autoNo = nextNo;
     } catch (err) {
-      console.error('Failed to get next payment no', err);
     }
 
     setFormData({
@@ -204,7 +205,6 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
       }
       setIsDrawerOpen(false);
     } catch (err) {
-      console.error('Save payment error:', err);
     }
   };
 
@@ -270,13 +270,15 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
             isDarkMode ? 'text-gray-400' : 'text-gray-600'
           }`}>Record and track all outgoing payments</p>
         </div>
-        <button 
-          onClick={handleAddNew}
-          className={`${primaryButtonClass} flex items-center gap-2`}
-        >
-          <Plus className="w-4 h-4" />
-          New Payment
-        </button>
+        {canCreate('Payment') && (
+          <button 
+            onClick={handleAddNew}
+            className={`${primaryButtonClass} flex items-center gap-2`}
+          >
+            <Plus className="w-4 h-4" />
+            New Payment
+          </button>
+        )}
       </div>
 
       {/* Statistics Cards */}
@@ -298,9 +300,9 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
                 }`}>{stats.total}</p>
               </div>
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-red-500/20' : 'bg-red-100'
+                isDarkMode ? 'bg-blue-700/20' : 'bg-blue-100'
               }`}>
-                <DollarSign className={`w-6 h-6 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`} />
+                <DollarSign className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`} />
               </div>
             </div>
           </div>
@@ -319,13 +321,13 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
                   Paid
                 </p>
                 <p className={`text-2xl font-bold mt-1 ${
-                  isDarkMode ? 'text-green-400' : 'text-green-600'
+                  isDarkMode ? 'text-blue-400' : 'text-blue-600'
                 }`}>{stats.paid}</p>
               </div>
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-green-500/20' : 'bg-green-100'
+                isDarkMode ? 'bg-blue-600/20' : 'bg-blue-100'
               }`}>
-                <TrendingDown className={`w-6 h-6 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                <TrendingDown className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
               </div>
             </div>
           </div>
@@ -344,13 +346,13 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
                   Pending
                 </p>
                 <p className={`text-2xl font-bold mt-1 ${
-                  isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                  isDarkMode ? 'text-blue-400' : 'text-blue-800'
                 }`}>{stats.pending}</p>
               </div>
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-orange-500/20' : 'bg-orange-100'
+                isDarkMode ? 'bg-blue-800/20' : 'bg-blue-100'
               }`}>
-                <Wallet className={`w-6 h-6 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
+                <Wallet className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-800'}`} />
               </div>
             </div>
           </div>
@@ -429,14 +431,18 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
                 <option value="Other">Other</option>
               </select>
 
-              <button className={secondaryButtonClass}>
-                <Download className="w-4 h-4" />
-                <span className="hidden md:inline">Export</span>
-              </button>
-              <button className={secondaryButtonClass}>
-                <Printer className="w-4 h-4" />
-                <span className="hidden md:inline">Print</span>
-              </button>
+              {canExport('Payment') && (
+                <button className={secondaryButtonClass}>
+                  <Download className="w-4 h-4" />
+                  <span className="hidden md:inline">Export</span>
+                </button>
+              )}
+              {canPrint('Payment') && (
+                <button className={secondaryButtonClass}>
+                  <Printer className="w-4 h-4" />
+                  <span className="hidden md:inline">Print</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -507,7 +513,7 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
                         isDarkMode ? 'text-gray-300' : 'text-gray-700'
                       }`}>{payment.remarks || '-'}</td>
                       <td className={`py-3 px-4 text-sm font-semibold text-right ${
-                        isDarkMode ? 'text-red-400' : 'text-red-600'
+                        isDarkMode ? 'text-blue-400' : 'text-blue-700'
                       }`}>₹{Number(payment.amount).toLocaleString('en-IN')}</td>
                       <td className={`py-3 px-4 text-xs ${
                         isDarkMode ? 'text-gray-400' : 'text-gray-600'
@@ -516,9 +522,9 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
                           payment.payment_type === 'Supplier Payment'
                             ? 'bg-blue-500/20 text-blue-500'
                             : payment.payment_type === 'Expense'
-                            ? 'bg-orange-500/20 text-orange-500'
+                            ? 'bg-blue-800/20 text-blue-800'
                             : payment.payment_type === 'Salary'
-                            ? 'bg-purple-500/20 text-purple-500'
+                            ? 'bg-blue-600/20 text-purple-500'
                             : 'bg-gray-500/20 text-gray-500'
                         }`}>
                           {payment.payment_type || 'Other'}
@@ -530,36 +536,40 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
                       <td className="py-3 px-4">
                         <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
                           payment.status === 'Completed'
-                            ? 'bg-green-500/20 text-green-500'
-                            : 'bg-orange-500/20 text-orange-500'
+                            ? 'bg-blue-600/20 text-blue-600'
+                            : 'bg-blue-800/20 text-blue-800'
                         }`}>
                           {payment.status}
                         </span>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center justify-center gap-2">
-                          <button 
-                            onClick={() => handleEdit(payment)}
-                            className={`p-1.5 rounded-lg transition-all ${
-                              isDarkMode 
-                                ? 'hover:bg-blue-500/20 text-blue-400' 
-                                : 'hover:bg-blue-50 text-blue-600'
-                            }`}
-                            title="Edit"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(payment.id, payment.payment_no)}
-                            className={`p-1.5 rounded-lg transition-all ${
-                              isDarkMode 
-                                ? 'hover:bg-red-500/20 text-red-400' 
-                                : 'hover:bg-red-50 text-red-600'
-                            }`}
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {canEdit('Payment') && (
+                            <button 
+                              onClick={() => handleEdit(payment)}
+                              className={`p-1.5 rounded-lg transition-all ${
+                                isDarkMode 
+                                  ? 'hover:bg-blue-500/20 text-blue-400' 
+                                  : 'hover:bg-blue-50 text-blue-600'
+                              }`}
+                              title="Edit"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          {canDelete('Payment') && (
+                            <button 
+                              onClick={() => handleDelete(payment.id, payment.payment_no)}
+                              className={`p-1.5 rounded-lg transition-all ${
+                                isDarkMode 
+                                  ? 'hover:bg-blue-700/20 text-blue-400' 
+                                  : 'hover:bg-blue-50 text-blue-700'
+                              }`}
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </motion.tr>
@@ -614,10 +624,10 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`p-2.5 rounded-lg ${
-                        isDarkMode ? 'bg-red-500/20' : 'bg-red-100'
+                        isDarkMode ? 'bg-blue-700/20' : 'bg-blue-100'
                       }`}>
                         <DollarSign className={`w-5 h-5 ${
-                          isDarkMode ? 'text-red-400' : 'text-red-600'
+                          isDarkMode ? 'text-blue-400' : 'text-blue-700'
                         }`} />
                       </div>
                       <div>
@@ -657,7 +667,7 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
                     <div className={`${FORM_CONSTANTS.TWO_COLUMN_GRID} ${FORM_CONSTANTS.FIELD_GAP}`}>
                       <div>
                         <label className={labelClass}>
-                          Date <span className="text-red-500">*</span>
+                          Date <span className="text-blue-700">*</span>
                         </label>
                         <input
                           type="date"
@@ -714,7 +724,7 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
 
                       <div>
                         <label className={labelClass}>
-                          Recipient Name <span className="text-red-500">*</span>
+                          Recipient Name <span className="text-blue-700">*</span>
                         </label>
                         <input
                           type="text"
@@ -753,7 +763,7 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
 
                       <div>
                         <label className={labelClass}>
-                          Amount <span className="text-red-500">*</span>
+                          Amount <span className="text-blue-700">*</span>
                         </label>
                         <input
                           type="number"
@@ -848,13 +858,15 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
                       <X className="w-4 h-4" />
                       Cancel
                     </button>
-                    <button
-                      onClick={handleSave}
-                      className={primaryButtonClass}
-                    >
-                      <Save className="w-4 h-4" />
-                      {editingPayment ? 'Update Payment' : 'Save Payment'}
-                    </button>
+                    {(editingPayment ? canEdit('Payment') : canCreate('Payment')) && (
+                      <button
+                        onClick={handleSave}
+                        className={primaryButtonClass}
+                      >
+                        <Save className="w-4 h-4" />
+                        {editingPayment ? 'Update Payment' : 'Save Payment'}
+                      </button>
+                    )}
                   </div>
                 </div>
               </motion.div>

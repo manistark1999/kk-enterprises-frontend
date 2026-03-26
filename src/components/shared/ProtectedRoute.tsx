@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, isDarkMode = false }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -17,9 +17,13 @@ export function ProtectedRoute({ children, isDarkMode = false }: ProtectedRouteP
   }
 
   if (!isAuthenticated) {
-    // Redirect to signin if not authenticated, storing the target location
-    console.log('[ProtectedRoute] Access denied. Redirecting to /signin');
-    return <Navigate to="/signin" state={{ from: location }} replace />;
+    // Redirect to home (login) if not authenticated, storing the target location
+    return <Navigate to="/" state={{ from: location }} replace />;
+  }
+
+  // Handle mandatory password change requirement
+  if (user?.must_change_password && location.pathname !== '/change-password') {
+    return <Navigate to="/change-password" replace />;
   }
 
   return <>{children}</>;

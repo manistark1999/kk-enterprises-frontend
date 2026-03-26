@@ -161,103 +161,97 @@ export function SearchableDropdown({
       {portalRoot && createPortal(
         <AnimatePresence>
           {isOpen && (
-            <div 
+            <motion.div
               ref={panelRef}
-              className="fixed z-[9999]"
-              style={{
+              initial={{ opacity: 0, y: -10, scaleY: 0.95 }}
+              animate={{ opacity: 1, y: 0, scaleY: 1 }}
+              exit={{ opacity: 0, y: -10, scaleY: 0.95 }}
+              transition={{ 
+                duration: 0.15,
+                ease: [0.4, 0, 0.2, 1]
+              }}
+              className={`fixed z-[9999] rounded-lg border shadow-2xl overflow-hidden flex flex-col ${
+                isDarkMode
+                  ? 'bg-gray-800 border-gray-700'
+                  : 'bg-white border-gray-300'
+              }`}
+              style={{ 
                 top: coords.top + 4,
                 left: coords.left,
                 width: coords.width,
+                transformOrigin: 'top',
+                maxHeight: '400px'
               }}
             >
-              <motion.div
-                initial={{ opacity: 0, y: -10, scaleY: 0.95 }}
-                animate={{ opacity: 1, y: 0, scaleY: 1 }}
-                exit={{ opacity: 0, y: -10, scaleY: 0.95 }}
-                transition={{ 
-                  duration: 0.15,
-                  ease: [0.4, 0, 0.2, 1]
-                }}
-                className={`rounded-lg border shadow-2xl overflow-hidden flex flex-col ${
-                  isDarkMode
-                    ? 'bg-gray-800 border-gray-700'
-                    : 'bg-white border-gray-300'
-                }`}
-                style={{ 
-                  transformOrigin: 'top',
-                  maxHeight: '400px'
-                }}
-              >
-            {/* Search Input Section */}
-            <div className={`p-3 border-b sticky top-0 ${
-              isDarkMode 
-                ? 'border-gray-700 bg-gray-800' 
-                : 'border-gray-200 bg-white'
-            }`}>
-              <div className="relative">
-                <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${
-                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                }`} />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder={`Search ${totalCount} options...`}
-                  className={`w-full pl-10 pr-4 py-2 rounded-md border outline-none transition-all ${
-                    isDarkMode
-                      ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
-                      : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20'
-                  }`}
-                  autoFocus
-                  onClick={(e) => e.stopPropagation()}
-                />
+              {/* Search Input Section */}
+              <div className={`p-3 border-b sticky top-0 ${
+                isDarkMode 
+                  ? 'border-gray-700 bg-gray-800' 
+                  : 'border-gray-200 bg-white'
+              }`}>
+                <div className="relative">
+                  <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                  }`} />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder={`Search ${totalCount} options...`}
+                    className={`w-full pl-10 pr-4 py-2 rounded-md border outline-none transition-all ${
+                      isDarkMode
+                        ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20'
+                        : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20'
+                    }`}
+                    autoFocus
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+                {searchTerm && (
+                  <div className={`text-xs mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Showing {filteredCount} of {totalCount} results
+                  </div>
+                )}
               </div>
-              {searchTerm && (
-                <div className={`text-xs mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Showing {filteredCount} of {totalCount} results
-                </div>
-              )}
-            </div>
 
-            {/* Options List with Scroll */}
-            <div className="max-h-[300px] overflow-y-auto overflow-x-hidden !overflow-visible">
-              {filteredOptions.length > 0 ? (
-                <div className="py-1">
-                  {filteredOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => handleSelect(option.value)}
-                      className={`w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors ${
-                        isDarkMode
-                          ? 'hover:bg-gray-700 text-white'
-                          : 'hover:bg-blue-50 text-gray-900'
-                      } ${
-                        option.value === value 
-                          ? (isDarkMode ? 'bg-gray-700/70 border-l-3 border-blue-500' : 'bg-blue-50 border-l-3 border-blue-500') 
-                          : ''
-                      }`}
-                    >
-                      <span className="text-sm">{option.label}</span>
-                      {option.value === value && (
-                        <Check className={`w-4 h-4 ml-2 flex-shrink-0 ${
-                          isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                        }`} />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className={`px-4 py-8 text-center text-sm ${
-                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                }`}>
-                  <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  No results found
-                </div>
-              )}
-            </div>
-          </motion.div>
-            </div>
+              {/* Options List with Scroll */}
+              <div className="max-h-[300px] overflow-y-auto overflow-x-hidden">
+                {filteredOptions.length > 0 ? (
+                  <div className="py-1">
+                    {filteredOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => handleSelect(option.value)}
+                        className={`w-full px-4 py-2.5 text-left flex items-center justify-between transition-colors ${
+                          isDarkMode
+                            ? 'hover:bg-gray-700 text-white'
+                            : 'hover:bg-blue-50 text-gray-900'
+                        } ${
+                          option.value === value 
+                            ? (isDarkMode ? 'bg-gray-700/70 border-l-3 border-blue-500' : 'bg-blue-50 border-l-3 border-blue-500') 
+                            : ''
+                        }`}
+                      >
+                        <span className="text-sm">{option.label}</span>
+                        {option.value === value && (
+                          <Check className={`w-4 h-4 ml-2 flex-shrink-0 ${
+                            isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                          }`} />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className={`px-4 py-8 text-center text-sm ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                  }`}>
+                    <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    No results found
+                  </div>
+                )}
+              </div>
+            </motion.div>
           )}
         </AnimatePresence>,
         portalRoot

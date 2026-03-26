@@ -11,6 +11,7 @@ interface StockListModalProps {
   onSave: () => void;
   isViewMode?: boolean;
   isEditMode?: boolean;
+  errors?: Record<string, string>;
 }
 
 export function StockListModal({
@@ -21,7 +22,8 @@ export function StockListModal({
   onFormChange,
   onSave,
   isViewMode = false,
-  isEditMode = false
+  isEditMode = false,
+  errors = {}
 }: StockListModalProps) {
   if (!isOpen) return null;
 
@@ -283,8 +285,9 @@ export function StockListModal({
                         placeholder="e.g., ENG-OIL-001"
                         value={formData.itemCode}
                         onChange={(e) => onFormChange({ ...formData, itemCode: e.target.value })}
-                        className={inputClass}
+                        className={`${inputClass} ${errors.itemCode ? 'border-red-500 ring-1 ring-red-500/20' : ''}`}
                       />
+                      {errors.itemCode && <p className="mt-1.5 text-xs font-medium text-red-500">{errors.itemCode}</p>}
                     </div>
 
                     <div>
@@ -296,8 +299,9 @@ export function StockListModal({
                         placeholder="e.g., Engine Oil 5W-30"
                         value={formData.itemName}
                         onChange={(e) => onFormChange({ ...formData, itemName: e.target.value })}
-                        className={inputClass}
+                        className={`${inputClass} ${errors.itemName ? 'border-red-500 ring-1 ring-red-500/20' : ''}`}
                       />
+                      {errors.itemName && <p className="mt-1.5 text-xs font-medium text-red-500">{errors.itemName}</p>}
                     </div>
 
                     <div>
@@ -307,7 +311,7 @@ export function StockListModal({
                       <select
                         value={formData.category}
                         onChange={(e) => onFormChange({ ...formData, category: e.target.value })}
-                        className={inputClass}
+                        className={`${inputClass} ${errors.category ? 'border-red-500 ring-1 ring-red-500/20' : ''}`}
                       >
                         <option value="">Select Category...</option>
                         <option value="Lubricants">Lubricants</option>
@@ -318,6 +322,7 @@ export function StockListModal({
                         <option value="Fluids">Fluids</option>
                         <option value="Accessories">Accessories</option>
                       </select>
+                      {errors.category && <p className="mt-1.5 text-xs font-medium text-red-500">{errors.category}</p>}
                     </div>
 
                     <div>
@@ -348,7 +353,7 @@ export function StockListModal({
                       <select
                         value={formData.unit}
                         onChange={(e) => onFormChange({ ...formData, unit: e.target.value })}
-                        className={inputClass}
+                        className={`${inputClass} ${errors.unit ? 'border-red-500 ring-1 ring-red-500/20' : ''}`}
                       >
                         <option value="Pieces">Pieces</option>
                         <option value="Sets">Sets</option>
@@ -357,6 +362,7 @@ export function StockListModal({
                         <option value="Meters">Meters</option>
                         <option value="Boxes">Boxes</option>
                       </select>
+                      {errors.unit && <p className="mt-1.5 text-xs font-medium text-red-500">{errors.unit}</p>}
                     </div>
 
                     <div>
@@ -368,9 +374,10 @@ export function StockListModal({
                         placeholder="0"
                         value={formData.currentStock}
                         onChange={(e) => onFormChange({ ...formData, currentStock: e.target.value })}
-                        className={inputClass}
+                        className={`${inputClass} ${errors.currentStock ? 'border-red-500 ring-1 ring-red-500/20' : ''}`}
                         min="0"
                       />
+                      {errors.currentStock && <p className="mt-1.5 text-xs font-medium text-red-500">{errors.currentStock}</p>}
                     </div>
 
                     <div>
@@ -382,9 +389,10 @@ export function StockListModal({
                         placeholder="0"
                         value={formData.minStock}
                         onChange={(e) => onFormChange({ ...formData, minStock: e.target.value })}
-                        className={inputClass}
+                        className={`${inputClass} ${errors.minStock ? 'border-red-500 ring-1 ring-red-500/20' : ''}`}
                         min="0"
                       />
+                      {errors.minStock && <p className="mt-1.5 text-xs font-medium text-red-500">{errors.minStock}</p>}
                     </div>
 
                     <div>
@@ -396,9 +404,10 @@ export function StockListModal({
                         placeholder="0"
                         value={formData.maxStock}
                         onChange={(e) => onFormChange({ ...formData, maxStock: e.target.value })}
-                        className={inputClass}
+                        className={`${inputClass} ${errors.maxStock ? 'border-red-500 ring-1 ring-red-500/20' : ''}`}
                         min="0"
                       />
+                      {errors.maxStock && <p className="mt-1.5 text-xs font-medium text-red-500">{errors.maxStock}</p>}
                     </div>
 
                     <div>
@@ -410,9 +419,10 @@ export function StockListModal({
                         placeholder="0"
                         value={formData.reorderLevel}
                         onChange={(e) => onFormChange({ ...formData, reorderLevel: e.target.value })}
-                        className={inputClass}
+                        className={`${inputClass} ${errors.reorderLevel ? 'border-red-500 ring-1 ring-red-500/20' : ''}`}
                         min="0"
                       />
+                      {errors.reorderLevel && <p className="mt-1.5 text-xs font-medium text-red-500">{errors.reorderLevel}</p>}
                     </div>
 
                     <div>
@@ -424,10 +434,11 @@ export function StockListModal({
                         placeholder="0.00"
                         value={formData.unitPrice}
                         onChange={(e) => onFormChange({ ...formData, unitPrice: e.target.value })}
-                        className={inputClass}
+                        className={`${inputClass} ${errors.unitPrice ? 'border-red-500 ring-1 ring-red-500/20' : ''}`}
                         min="0"
                         step="0.01"
                       />
+                      {errors.unitPrice && <p className="mt-1.5 text-xs font-medium text-red-500">{errors.unitPrice}</p>}
                     </div>
                   </div>
                 </div>

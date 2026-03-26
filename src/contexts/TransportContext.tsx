@@ -45,7 +45,6 @@ export function TransportProvider({ children }: { children: ReactNode }) {
         setTransports(response.data.data);
       }
     } catch (error: any) {
-      console.error('Error fetching transports:', error);
       toast.error(error.message || 'Failed to fetch transports');
     } finally {
       setIsLoading(false);
@@ -57,50 +56,36 @@ export function TransportProvider({ children }: { children: ReactNode }) {
   }, [isAuthenticated]);
 
   const addTransport = async (newTransport: Omit<Transport, 'id' | 'created_at'>) => {
-    console.log('[TransportContext] Attempting to add transport...');
-    console.log('[TransportContext] Payload to be sent:', newTransport);
     try {
       const response = await api.post('/transports', newTransport);
-      console.log('[TransportContext] API response received:', response);
 
       if (response.success && response.data) {
-        console.log('[TransportContext] API call successful. Refetching transports...');
         await fetchTransports();
         toast.success('Transport added successfully');
       } else {
-        console.error('[TransportContext] API call returned success:false.', response);
         throw new Error(response.message || response.error || 'Failed to add transport');
       }
     } catch (error: any) {
-      console.error('[TransportContext] Error in addTransport catch block:', error);
       toast.error(error.message || 'Failed to add transport');
       throw error;
     } finally {
-      console.log('[TransportContext] addTransport operation finished.');
     }
   };
 
   const updateTransport = async (id: string, updatedFields: Partial<Transport>) => {
-    console.log(`[TransportContext] Attempting to update transport ${id}...`);
-    console.log('[TransportContext] Payload to be sent:', updatedFields);
     try {
       const response = await api.put(`/transports/${id}`, updatedFields);
-      console.log('[TransportContext] API response received:', response);
 
       if (response.success && response.data) {
-        console.log('[TransportContext] API call successful. Refetching transports...');
         await fetchTransports();
         toast.success('Transport updated successfully');
       } else {
-        console.error('[TransportContext] API call returned success:false.', response);
         throw new Error(response.message || response.error || 'Failed to update transport');
       }
     } catch (error: any) {
-      console.error(`[TransportContext] Error in updateTransport catch block (ID: ${id}):`, error);
       toast.error(error.message || 'Failed to update transport');
       throw error;
     } finally {
-      console.log(`[TransportContext] updateTransport operation for ID ${id} finished.`);
     }
   };
 
@@ -112,7 +97,6 @@ export function TransportProvider({ children }: { children: ReactNode }) {
         toast.success('Transport deleted successfully');
       }
     } catch (error: any) {
-      console.error('Error deleting transport:', error);
       toast.error(error.message || 'Failed to delete transport');
       throw error;
     }

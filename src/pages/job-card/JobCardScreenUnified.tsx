@@ -15,16 +15,20 @@ import {
   FileText,
   Car,
   User,
-  Calendar,
+  Truck,
   CheckCircle,
   Clock,
-  XCircle,
-  Wrench,
+  AlertCircle,
+  File,
+  List,
   ChevronDown,
   ChevronUp,
-  AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Wrench,
+  Settings
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { VehicleAutocomplete } from '@/components/ui/VehicleAutocomplete';
 import { toast } from 'sonner';
 import { SearchableDropdown } from '@/components/ui/SearchableDropdown';
 import { ServiceItemsTable } from './JobCardScreenUnified_ServiceItems';
@@ -44,12 +48,8 @@ import { useLabourBills } from '@/contexts/LabourBillContext';
 import { useItemsServices } from '@/contexts/ItemsServicesContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useJobCards } from '@/contexts/JobCardContext';
-import JobCardPrintPreview from './JobCardPrintPreview'; // Corrected path
-import { JobCardPrintProps } from '@/components/print/JobCardPrint'; // Corrected path
-const kkLogo = "https://via.placeholder.com/150x50?text=KK+Enterprises"; // Placeholder logo
-import { generateJobCardPrintHTML } from './JobCardPrintTemplate';
-import { PrintActionModal } from '@/components/print/PrintActionModal';
-import JobCardPrintView from './JobCardPrintView';
+import { useCompany } from '@/contexts/CompanyContext';
+import { UnifiedPrintPreview } from '@/components/print/UnifiedPrintPreview';
 
 interface JobCardScreenUnifiedProps {
   isDarkMode: boolean;
@@ -85,6 +85,7 @@ interface JobCard {
   vehicleType: string;
   transportName: string;
   kmReading: string;
+  fuelLevel: string;
 
   // Job Details
   serviceType: string;
@@ -122,7 +123,7 @@ interface JobCard {
   serviceItems: ServiceItem[];
 
   // Status
-  status: 'Draft' | 'In Progress' | 'Completed' | 'Billed';
+  status: 'Draft' | 'In Progress' | 'Completed' | 'Billed' | 'Active' | 'Inactive' | 'Under Maintenance';
   labourBillNo?: string;
   vehicleId: string;
 }
@@ -131,56 +132,30 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
   const { customers } = useCustomers();
   const {
     vehicleMakes,
+    vehicleModels,
     getModelsByMake,
     workTypes,
     transports,
     staff,
     getActiveVehicleMakes
   } = useMasters();
-  const { vehicles: registeredVehicles } = useVehicleRegistry();
+  const { vehicles: registeredVehicles, lookupVehicle } = useVehicleRegistry();
   const { labourBills } = useLabourBills();
   const { getActiveServices, itemsServices } = useItemsServices();
-  const { 
-    jobCards, 
-    addJobCard, 
-    updateJobCard, 
-    deleteJobCard, 
-    refreshJobCards, 
-    getJobCardById,
-    isLoading 
-  } = useJobCards();
-  // const { showNotification } = useNotifications(); // Removed because it's not in the context
+  const { canCreate, canEdit, canDelete, canPrint, user } = useAuth();
+  
+  // Find current user's name from staff, with fallbacks to username or email
+  const currentStaffEntry = staff.find(s => (s.email && s.email === user?.email) || (s.name && s.name === user?.username));
+  const currentUserName = currentStaffEntry?.name || user?.username || user?.email?.split('@')[0] || 'Admin';
+  const currentStaffId = currentStaffEntry?.id?.toString() || '';
+
+  const { jobCards, isLoading, addJobCard, updateJobCard, deleteJobCard, refreshJobCards, getJobCardById, fetchNextJobCardNumber } = useJobCards();
+  const { companyData } = useCompany();
+  const { notifications, addNotification } = useNotifications();
+
 
   // Get services for the table
   const services = getActiveServices();
-
-  // Debug: Log customer data
-  useEffect(() => {
-    console.log('📊 Job Card - Customers loaded:', customers.length);
-    console.log('📋 Sample customer:', customers[0]);
-    console.log('🔍 Active customers:', customers.filter(c => c.isActive).length);
-  }, [customers]);
-
-  // Debug: Log transport data
-  useEffect(() => {
-    console.log('🚚 Job Card - Transports loaded:', transports.length);
-    console.log('📦 Sample transport:', transports[0]);
-    console.log('✅ Active transports:', transports.filter(t => t.status === 'Active').length);
-  }, [transports]);
-
-  // Debug: Log staff data
-  useEffect(() => {
-    console.log('👨‍💼 Job Card - Staff loaded:', staff.length);
-    console.log('👤 Sample staff:', staff[0]);
-    console.log('✅ Active staff:', staff.filter(s => s.status === 'Active').length);
-  }, [staff]);
-
-  // Debug: Log services data
-  useEffect(() => {
-    const services = getActiveServices();
-    console.log('🔧 Job Card - Active Services loaded:', services.length);
-    console.log('📝 Sample service:', services[0]);
-  }, []);
 
   // Form state
   const [isFormExpanded, setIsFormExpanded] = useState(true);
@@ -199,24 +174,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
   const [cardToDelete, setCardToDelete] = useState<JobCard | null>(null);
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [printData, setPrintData] = useState<JobCard | null>(null);
-  const [companyData, setCompanyData] = useState<any>({
-    companyName: 'KK Enterprises',
-    address: 'Main Road, City',
-    phone: '+91 9876543210',
-    email: 'info@kkenterprises.com',
-    website: 'www.kkenterprises.com',
-    bankName: 'State Bank of India',
-    accountNo: '1234567890',
-    ifscCode: 'SBIN0001234'
-  });
-
-  // Load company data from localStorage
-  useEffect(() => {
-    const savedCompanyData = localStorage.getItem('companyData');
-    if (savedCompanyData) {
-      setCompanyData(JSON.parse(savedCompanyData));
-    }
-  }, []);
+  // Company data is now managed via context
 
   const [formData, setFormData] = useState({
     // Customer Details
@@ -232,6 +190,8 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
     vehicleType: 'Car',
     transportName: '',
     kmReading: '',
+    fuelLevel: 'Half',
+    status: 'Active',
 
     // Job Details
     date: getCurrentDate(),
@@ -254,8 +214,8 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
     afterRearToe: '',
 
     // Staff Details
-    technicianId: '',
-    technicianName: '',
+    technicianId: currentStaffId,
+    technicianName: currentUserName,
 
     // Work Description
     problemReported: '',
@@ -283,12 +243,6 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
     }
   ]);
 
-  // Debug: Log service items whenever they change
-  useEffect(() => {
-    console.log('🔧 Service Items Updated:', serviceItems.length, 'items');
-    console.log('📝 Service Items:', serviceItems);
-  }, [serviceItems]);
-
   // Auto-calculate Total Amount based on Service Items and Billing Details
   useEffect(() => {
     // Calculate Service Items Total (use already calculated amounts that include GST)
@@ -309,21 +263,6 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
       ...prev,
       totalAmount: grandTotal.toFixed(2)
     }));
-
-    console.log('💰 Total Calculation:', {
-      serviceItemsTotal: serviceItemsTotal.toFixed(2),
-      labourCharge: labourCharge.toFixed(2),
-      partsCharge: partsCharge.toFixed(2),
-      billingTotal: billingTotal.toFixed(2),
-      grandTotal: grandTotal.toFixed(2),
-      serviceItemsDetails: serviceItems.map(item => ({
-        name: item.serviceName,
-        qty: item.quantity,
-        rate: item.rate,
-        gst: item.gst,
-        amount: item.amount.toFixed(2)
-      }))
-    });
   }, [serviceItems, formData.labourCharge, formData.partsCharge]);
 
   const [isSavingJobCard, setIsSavingJobCard] = useState(false);
@@ -341,7 +280,6 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
         setViewModalOpen(true);
       }
     } catch (err) {
-      console.error('Error fetching job card for view:', err);
       setCardToView(card);
       setViewModalOpen(true);
     }
@@ -353,7 +291,6 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
       setPrintData(latestData || card);
       setIsPrintModalOpen(true);
     } catch (err) {
-      console.error('Error fetching job card for print:', err);
       setPrintData(card);
       setIsPrintModalOpen(true);
     }
@@ -365,7 +302,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
         table_name: 'jobcards',
         action: 'PRINT',
         record_id: card.id,
-        performed_by: 'Admin', // In a real app, use user?.username
+        performed_by: user?.username || 'Admin',
         title: `Printed Job Card: ${card.jobCardNo}`,
         description: `Printed report for vehicle ${card.vehicleNumber}.`,
         changed_data: {
@@ -374,59 +311,12 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
         }
       });
     } catch (err) {
-      console.error('Failed to log print action:', err);
     }
   };
 
-  const handlePrintAction = (action: 'print' | 'download', format: 'pdf' | 'html') => {
-    if (!printData) return;
-
-    if (action === 'print') {
-      // Trigger browser print
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        const htmlContent = generateJobCardPrintHTML(printData, companyData);
-        printWindow.document.write(htmlContent);
-        printWindow.document.close();
-        printWindow.print();
-      }
-    } else if (action === 'download') {
-      if (format === 'pdf') {
-        // Generate PDF using html2pdf
-        import('html2pdf.js').then((html2pdfModule) => {
-          const html2pdf = html2pdfModule.default;
-          const element = document.createElement('div');
-          element.innerHTML = generateJobCardPrintHTML(printData, companyData);
-          document.body.appendChild(element);
-
-          const opt = {
-            margin: 1,
-            filename: `jobcard-${printData.jobCardNo}.pdf`,
-            image: { type: 'jpeg' as const, quality: 0.98 },
-            html2canvas: { scale: 2 },
-            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-          };
-
-          html2pdf().set(opt).from(element).save().then(() => {
-            document.body.removeChild(element);
-          });
-        });
-      } else {
-        // Download as HTML
-        const htmlContent = generateJobCardPrintHTML(printData, companyData);
-        const blob = new Blob([htmlContent], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `jobcard-${printData.jobCardNo}.html`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-    }
-
-    setIsPrintModalOpen(false);
+  const handlePrintAction = () => {
+    // This logic is now handled within PrintActionModal components
+    setIsPrintModalOpen(true);
   };
 
 
@@ -445,7 +335,6 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
         }));
       }
     } catch (err) {
-      console.error('Failed to fetch next job card number:', err);
     }
   };
 
@@ -491,7 +380,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
         setFormData(prev => ({ ...prev, vehicleModel: '' }));
       }
     }
-  }, [formData.vehicleMake, getModelsByMake]);
+  }, [formData.vehicleMake, vehicleModels]);
 
   // Auto-fill staff ID when technician is selected
   useEffect(() => {
@@ -502,9 +391,15 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
           ...prev,
           technicianId: selectedStaff.id
         }));
+      } else if (formData.technicianName === currentUserName) {
+        // Fallback to current authenticated user's ID if they aren't in staff master
+        setFormData((prev: any) => ({
+          ...prev,
+          technicianId: user?.id || 'AUTH-USER'
+        }));
       }
     }
-  }, [formData.technicianName, staff]);
+  }, [formData.technicianName, staff, currentUserName, user]);
 
   // Auto-calculate total amount
   // Check if form is valid (required fields)
@@ -552,96 +447,32 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
     }
   };
 
-  // Build vehicle registry from all sources (Vehicle Registry + labour bills + job cards)
-  const vehicleRegistry = React.useMemo(() => {
-    const vehicles = new Map();
+  // REMOVED: disconnected local dummy vehicle registry
+  // We now use the lookupVehicle from context for better data integrity.
 
-    // FIRST: Add vehicles from Vehicle Registry Context (highest priority)
-    registeredVehicles.forEach(vehicle => {
-      if (vehicle.vehicle_number && vehicle.status === 'Active') {
-        vehicles.set(vehicle.vehicle_number.toUpperCase(), {
-          id: vehicle.id,
-          vehicleNumber: vehicle.vehicle_number,
-          vehicleMake: vehicle.vehicle_make,
-          vehicleModel: vehicle.model,
-          customerId: '',
-          customerName: vehicle.owner_name || '',
-          customerPhone: vehicle.mobile || '',
-          customerAddress: '',
-          transportName: '',
-          vehicleType: vehicle.fuel_type || 'Diesel'
-        });
-      }
-    });
+  // Handle vehicle selection from autocomplete master lookup
+  const handleVehicleSelect = (vehicle: any) => {
 
-    // Add vehicles from labour bills (if not already in registry)
-    labourBills.forEach(bill => {
-      if (bill.vehicleNumber && !vehicles.has(bill.vehicleNumber.toUpperCase())) {
-        const customer = customers.find(c =>
-          c.name === bill.customerName.split(' - ')[0] ||
-          c.phone === bill.customerPhone
-        );
+    // Auto-fill all vehicle and customer data
+    setFormData(prev => ({
+      ...prev,
+      vehicleNumber: vehicle.vehicleNumber,
+      vehicleMake: vehicle.vehicleMake || '',
+      vehicleModel: vehicle.vehicleModel || '',
+      vehicleType: vehicle.vehicleType || 'Car',
+      vehicleId: String(vehicle.id),
+      customerId: String(vehicle.customerId || ''),
+      customerName: vehicle.customerName || '',
+      customerPhone: vehicle.mobileNumber || '',
+      customerAddress: vehicle.address || '',
+      transportName: vehicle.transportName || prev.transportName
+    }));
 
-        vehicles.set(bill.vehicleNumber.toUpperCase(), {
-          vehicleNumber: bill.vehicleNumber,
-          vehicleMake: bill.vehicleMake || '',
-          vehicleModel: bill.vehicleModel || '',
-          customerId: customer?.id || '',
-          customerName: bill.customerName.split(' - ')[0] || '',
-          customerPhone: bill.customerPhone || '',
-          customerAddress: bill.customerAddress || '',
-          transportName: '',
-          vehicleType: 'Car'
-        });
-      }
-    });
+    toast.success(`✓ Linked to Master: ${vehicle.vehicleNumber} (${vehicle.customerName || 'Customer'})`);
+  };
 
-    // Add vehicles from existing job cards (lowest priority)
-    jobCards.forEach(card => {
-      if (card.vehicleNumber && !vehicles.has(card.vehicleNumber.toUpperCase())) {
-        vehicles.set(card.vehicleNumber.toUpperCase(), {
-          vehicleNumber: card.vehicleNumber,
-          vehicleMake: card.vehicleMake || '',
-          vehicleModel: card.vehicleModel || '',
-          customerId: card.customerId || '',
-          customerName: card.customerName || '',
-          customerPhone: card.customerPhone || '',
-          customerAddress: card.customerAddress || '',
-          transportName: card.transportName || '',
-          vehicleType: card.vehicleType || 'Car'
-        });
-      }
-    });
-
-    return Array.from(vehicles.values());
-  }, [registeredVehicles, labourBills, jobCards, customers]);
-
-  // Handle vehicle selection with auto-fill (customer, make, model, transport)
-  const handleVehicleSelect = (vehicleNumber: string) => {
-    const vehicleData = (vehicleRegistry as any[]).find(v => v.vehicleNumber === vehicleNumber);
-
-    if (vehicleData) {
-      // Auto-fill all vehicle and customer data
-      setFormData(prev => ({
-        ...prev,
-        vehicleNumber: vehicleData.vehicleNumber,
-        vehicleMake: vehicleData.vehicleMake,
-        vehicleModel: vehicleData.vehicleModel,
-        vehicleType: vehicleData.vehicleType,
-        transportName: vehicleData.transportName,
-        customerId: vehicleData.customerId,
-        customerName: vehicleData.customerName,
-        customerPhone: vehicleData.customerPhone,
-        customerAddress: vehicleData.customerAddress
-      }));
-      toast.success('✓ Vehicle details auto-filled from registry!');
-    } else {
-      // New vehicle - just set the number
-      setFormData(prev => ({
-        ...prev,
-        vehicleNumber: vehicleNumber
-      }));
-    }
+  const handleVehicleNumberChange = (value: string) => {
+    setFormData(prev => ({ ...prev, vehicleNumber: value.toUpperCase() }));
   };
 
   // Service Items Handlers
@@ -672,8 +503,6 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
     const activeServices = getActiveServices();
     const selectedService = activeServices.find(s => s.name === serviceName);
 
-    console.log('🔍 Service selected:', serviceName);
-    console.log('📦 Found service:', selectedService);
 
     if (selectedService) {
       setServiceItems(serviceItems.map(item => {
@@ -687,7 +516,6 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
           const gstAmount = (baseAmount * gst) / 100;
           const amount = baseAmount + gstAmount;
 
-          console.log('✅ Auto-filling service item:', { quantity, rate, gst, baseAmount, gstAmount, amount });
 
           return {
             ...item,
@@ -705,7 +533,6 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
   };
 
   const handleServiceItemChange = (itemId: string, field: string, value: any) => {
-    console.log('🔄 handleServiceItemChange called:', { itemId, field, value });
 
     setServiceItems(serviceItems.map(item => {
       if (item.id === itemId) {
@@ -723,15 +550,6 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
           const finalAmount = baseAmount + gstAmount;
 
           updatedItem.amount = finalAmount;
-
-          console.log('💰 Amount Calculation:', {
-            quantity,
-            rate,
-            gst,
-            baseAmount: baseAmount.toFixed(2),
-            gstAmount: gstAmount.toFixed(2),
-            finalAmount: finalAmount.toFixed(2)
-          });
         }
 
         return updatedItem;
@@ -742,7 +560,6 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
 
   // Reset form to default values
   const resetForm = () => {
-    console.log('🔄 Resetting form to new job card...');
     setFormData({
       customerId: '',
       customerName: '',
@@ -754,6 +571,8 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
       vehicleType: 'Car',
       transportName: '',
       kmReading: '',
+      fuelLevel: 'Half',
+      status: 'Active',
       date: getCurrentDate(),
       time: getCurrentTime(),
       serviceType: 'Wheel Alignment',
@@ -768,8 +587,8 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
       afterFrontToe: '',
       afterRearCamber: '',
       afterRearToe: '',
-      technicianId: '',
-      technicianName: '',
+      technicianId: currentStaffId,
+      technicianName: currentUserName,
       problemReported: '',
       workDone: '',
       remarks: '',
@@ -792,16 +611,13 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
     ]);
     setIsEditing(false);
     setEditingCardId(null);
-    console.log('✅ Form reset complete - Should show 1 empty service item');
   };
 
   // Handle save job card
   const handleSaveJobCard = async () => {
-    console.log('[JobCardSave] Starting save process...');
 
     if (!isFormValid()) {
       toast.error('Please fill all required fields before saving.');
-      console.error('[JobCardSave] Validation failed. Required fields are missing.');
       return;
     }
 
@@ -818,6 +634,8 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
       model: formData.vehicleModel,
       transport_name: formData.transportName,
       km_reading: formData.kmReading,
+      fuel_level: formData.fuelLevel,
+      vehicle_status: formData.status,
       service_type: formData.serviceType,
       work_type: formData.workType,
       technician_id: formData.technicianId,
@@ -843,35 +661,31 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
       labour_charge: parseFloat(formData.labourCharge) || 0,
       parts_charge: parseFloat(formData.partsCharge) || 0,
       estimated_amount: parseFloat(formData.totalAmount) || 0,
-      date: formData.date
+      date: formData.date,
+      processedBy: currentUserName,
+      processedById: user?.id
     };
 
-    console.log('[JobCardSave] Payload constructed:', payload);
     setIsSavingJobCard(true);
 
     try {
-      console.log(`[JobCardSave] Sending API request. Editing: ${isEditing}, ID: ${editingCardId}`);
       // Cast payload to any to bypass interface mismatches during save operations
       const savedCard = isEditing && editingCardId
         ? await updateJobCard(editingCardId, payload as any)
         : await addJobCard(payload as any);
-      
+
       if (savedCard) {
-        console.log('[JobCardSave] Save success:', savedCard);
         await refreshJobCards();
-        console.log('[JobCardSave] Job cards list refetched.');
 
         // Reset form for next entry
         resetForm();
         await fetchNextJobCardNo();
-        
+
         setIsFormExpanded(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        console.error('[JobCardSave] Save returned null. Check Context/API for errors.');
       }
     } catch (error: any) {
-      console.error('[JobCardSave] An exception occurred during the save call:', error);
       toast.error(`Error: ${error.message || 'Something went wrong while saving'}`);
     } finally {
       setIsSavingJobCard(false);
@@ -880,8 +694,6 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
 
   // Handle edit
   const handleEdit = (card: JobCard) => {
-    console.log('✏️ Editing job card:', card.jobCardNo);
-    console.log('📦 Service items in card:', card.serviceItems?.length || 0);
 
     setFormData({
       customerId: card.customerId,
@@ -917,7 +729,9 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
       partsCharge: card.partsCharge,
       totalAmount: card.totalAmount,
       vehicleId: card.vehicleId,
-      jobCardNo: card.jobCardNo
+      jobCardNo: card.jobCardNo,
+      fuelLevel: card.fuelLevel || 'Half',
+      status: card.status || 'Active'
     });
     setServiceItems(card.serviceItems || [
       {
@@ -937,6 +751,20 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
   };
 
   // Handle delete
+  const handleStatusUpdate = async (card: JobCard, newStatus: string) => {
+    try {
+      if (window.confirm(`Are you sure you want to mark this job card as ${newStatus}?`)) {
+        const result = await updateJobCard(card.id, { status: newStatus as any });
+        if (result) {
+          toast.success(`Job Card marked as ${newStatus}!`);
+          await refreshJobCards();
+        }
+      }
+    } catch (error: any) {
+      toast.error(error?.message || `Failed to update status to ${newStatus}`);
+    }
+  };
+
   const handleDeleteConfirm = async () => {
     if (cardToDelete) {
       try {
@@ -944,8 +772,8 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
         setDeleteModalOpen(false);
         setCardToDelete(null);
         await refreshJobCards();
+        await fetchNextJobCardNo();
       } catch (error: any) {
-        console.error('Error deleting job card:', error);
         toast.error(error?.message || 'Failed to delete job card');
       } finally {
         setDeleteModalOpen(false);
@@ -953,7 +781,6 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
       }
     }
   };
-
 
   // Filter and search job cards
   const filteredJobCards = jobCards.filter(card => {
@@ -968,19 +795,10 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
   });
 
 
-  // Debug: Log vehicle registry
-  useEffect(() => {
-    console.log('🚗 Job Card - Vehicle Registry loaded:', vehicleRegistry.length);
-    console.log('📋 Registered Vehicles from Context:', registeredVehicles.length);
-    if (vehicleRegistry.length > 0) {
-      console.log('🔍 Sample vehicle:', vehicleRegistry[0]);
-    }
-  }, [vehicleRegistry, registeredVehicles]);
-
-  // Get vehicle options for dropdown
-  const vehicleOptions = vehicleRegistry.map(v => ({
-    value: v.vehicleNumber,
-    label: v.vehicleNumber
+  // Get vehicle options for dropdown from registeredVehicles
+  const vehicleOptions = registeredVehicles.map(v => ({
+    value: v.vehicle_number,
+    label: `${v.vehicle_number} (${v.owner_name})`
   }));
 
   // Get customer options
@@ -991,7 +809,6 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
         value: c.id,
         label: c.name
       }));
-    console.log('🎯 Customer Options Generated:', options.length, options);
     return options;
   }, [customers]);
 
@@ -999,19 +816,20 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
   const vehicleMakeOptions = React.useMemo(() => {
     return getActiveVehicleMakes()
       .map(vm => vm.name);
-  }, [getActiveVehicleMakes]);
+  }, [vehicleMakes]);
 
   // Get vehicle model options
-  const vehicleModelOptions = formData.vehicleMake
-    ? getModelsByMake(formData.vehicleMake)
-    : [];
+  const vehicleModelOptions = React.useMemo(() => {
+    return formData.vehicleMake
+      ? getModelsByMake(formData.vehicleMake)
+      : [];
+  }, [formData.vehicleMake, vehicleModels]);
 
   // Get transport options
   const transportOptions = React.useMemo(() => {
     const options = transports
       .filter(t => t.status === 'Active')
       .map(t => t.name);
-    console.log('🚛 Transport Options Generated:', options.length, options);
     return options;
   }, [transports]);
 
@@ -1025,9 +843,14 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
     const options = staff
       .filter(s => s.status === 'Active')
       .map(s => s.name);
-    console.log('👨‍🔧 Technician Options Generated:', options.length, options);
+    
+    // Ensure the currently logged-in user is always an option for 'Designer in Charge'
+    if (currentUserName && !options.includes(currentUserName)) {
+      options.unshift(currentUserName);
+    }
+    
     return options;
-  }, [staff]);
+  }, [staff, currentUserName]);
 
   const cardClass = getCardClass(isDarkMode);
   const inputClass = getInputClass(isDarkMode);
@@ -1049,7 +872,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
         </div>
 
         {/* New Job Card Button */}
-        {isEditing && (
+        {isEditing && canCreate('Job Card') && (
           <button
             onClick={() => {
               resetForm();
@@ -1061,11 +884,23 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
             New Job Card
           </button>
         )}
+        {canCreate('Job Card') && (
+          <button
+            onClick={() => {
+              resetForm();
+              setIsFormExpanded(true);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className={`${primaryButtonClass} flex items-center gap-2`}
+          >
+            <Plus className="w-4 h-4" />
+            Add Job Card
+          </button>
+        )}
       </div>
 
       {/* Job Card Form Section */}
       <motion.div
-        className={cardClass}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
@@ -1085,7 +920,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                   {isEditing ? 'Edit Job Card' : 'New Job Card'}
                 </h2>
                 {isEditing && (
-                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-500/20 text-yellow-600 dark:text-yellow-400">
+                  <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-400/20 text-blue-500 dark:text-blue-400">
                     Editing Mode
                   </span>
                 )}
@@ -1135,31 +970,34 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                     </div>
                     <div>
                       <label className={labelClass}>
-                        Date <span className="text-red-500">*</span>
+                        Date <span className="text-blue-700">*</span>
                       </label>
-                      <input
-                        type="date"
-                        value={formData.date}
-                        onChange={(e) => handleInputChange('date', e.target.value)}
-                        className={inputClass}
-                        style={{ colorScheme: isDarkMode ? 'dark' : 'light' }}
-                      />
+                      <div className="relative">
+                        <input
+                          type="date"
+                          value={formData.date}
+                          onChange={(e) => handleInputChange('date', e.target.value)}
+                          className={inputClass}
+                          style={{ colorScheme: isDarkMode ? 'dark' : 'light' }}
+                        />
+                      </div>
                     </div>
                     <div>
                       <label className={labelClass}>
-                        Time <span className="text-red-500">*</span>
+                        Time <span className="text-blue-700">*</span>
                       </label>
-                      <input
-                        type="time"
-                        value={formData.time}
-                        onChange={(e) => handleInputChange('time', e.target.value)}
-                        className={inputClass}
-                        style={{ colorScheme: isDarkMode ? 'dark' : 'light' }}
-                      />
+                      <div className="relative">
+                        <input
+                          type="time"
+                          value={formData.time}
+                          onChange={(e) => handleInputChange('time', e.target.value)}
+                          className={inputClass}
+                          style={{ colorScheme: isDarkMode ? 'dark' : 'light' }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
-
                 {/* Smart Auto-Fill Info Banner */}
                 <div className={`p-4 rounded-lg border-l-4 ${isDarkMode
                   ? 'bg-blue-500/10 border-blue-500 text-blue-300'
@@ -1186,10 +1024,8 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className={labelClass}>
-                        Customer Name <span className="text-red-500">*</span>
-                        {vehicleRegistry.find(v => v.vehicleNumber === formData.vehicleNumber) &&
-                          <span className="text-green-500 text-xs ml-2">(Auto-filled from vehicle)</span>
-                        }
+                        Customer Name <span className="text-blue-700">*</span>
+                        {formData.vehicleId && <span className="text-blue-600 text-xs ml-2">(Linked from Master)</span>}
                       </label>
                       <SearchableDropdown
                         options={customerOptions}
@@ -1201,7 +1037,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                     </div>
                     <div>
                       <label className={labelClass}>
-                        Mobile Number <span className="text-green-500 text-xs">(Auto-filled)</span>
+                        Mobile Number <span className="text-blue-600 text-xs">(Auto-filled)</span>
                       </label>
                       <input
                         type="text"
@@ -1232,54 +1068,26 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="relative">
                       <label className={labelClass}>
-                        Vehicle Number <span className="text-red-500">*</span>
+                        Vehicle Number <span className="text-blue-700">*</span>
                       </label>
                       <div className="relative">
-                        <input
-                          type="text"
+                        <VehicleAutocomplete
                           value={formData.vehicleNumber}
-                          onChange={(e) => {
-                            const value = e.target.value.toUpperCase();
-                            handleInputChange('vehicleNumber', value);
-                            // Check if this vehicle exists in registry and auto-fill
-                            const vehicleData = vehicleRegistry.find(v => v.vehicleNumber === value);
-                            if (vehicleData) {
-                              handleVehicleSelect(value);
-                            }
-                          }}
-                          onBlur={(e) => {
-                            // Auto-fill on blur if exact match found
-                            const value = e.target.value.toUpperCase();
-                            const vehicleData = vehicleRegistry.find(v => v.vehicleNumber === value);
-                            if (vehicleData) {
-                              handleVehicleSelect(value);
-                            }
-                          }}
-                          className={getRequiredFieldClass(formData.vehicleNumber, isDarkMode)}
-                          placeholder="Type or select: KA-01-AB-1234"
-                          list="vehicle-history"
+                          onChange={handleVehicleNumberChange}
+                          onSelect={handleVehicleSelect}
+                          isDarkMode={isDarkMode}
                         />
-                        <datalist id="vehicle-history">
-                          {vehicleRegistry.map((vehicle, idx) => (
-                            <option
-                              key={idx}
-                              value={vehicle.vehicleNumber}
-                            />
-                          ))}
-                        </datalist>
-                        {vehicleRegistry.length > 0 && (
+                        {registeredVehicles.length > 0 && (
                           <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-500' : 'text-gray-600'}`}>
-                            💡 {vehicleRegistry.length} vehicles in registry - Start typing to see suggestions
+                            💡 {registeredVehicles.length} vehicles in registry - Using master lookup
                           </p>
                         )}
                       </div>
                     </div>
                     <div className="!overflow-visible">
                       <label className={labelClass}>
-                        Vehicle Make <span className="text-red-500">*</span>
-                        {vehicleRegistry.find(v => v.vehicleNumber === formData.vehicleNumber) &&
-                          <span className="text-green-500 text-xs ml-2">✓ Auto-filled from registry</span>
-                        }
+                        Vehicle Make <span className="text-blue-700">*</span>
+                        {formData.vehicleId && <span className="text-blue-600 text-xs ml-2">✓ Master record selected</span>}
                       </label>
                       <SearchableDropdown
                         options={vehicleMakeOptions}
@@ -1292,9 +1100,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                     <div>
                       <label className={labelClass}>
                         Vehicle Model
-                        {vehicleRegistry.find(v => v.vehicleNumber === formData.vehicleNumber) &&
-                          <span className="text-green-500 text-xs ml-2">✓ Auto-filled from registry</span>
-                        }
+                        {formData.vehicleId && <span className="text-blue-600 text-xs ml-2">✓ Linked from Master</span>}
                       </label>
                       <div className="relative">
                         <input
@@ -1302,7 +1108,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                           value={formData.vehicleModel}
                           onChange={(e) => handleInputChange('vehicleModel', e.target.value)}
                           className={inputClass}
-                          placeholder="Select or type model"
+                          placeholder={formData.vehicleMake ? "Select or type model" : "Select vehicle make first"}
                           disabled={!formData.vehicleMake}
                           autoComplete="off"
                         />
@@ -1316,8 +1122,8 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                     <div>
                       <label className={labelClass}>
                         Vehicle Type
-                        {vehicleRegistry.find(v => v.vehicleNumber === formData.vehicleNumber) && formData.vehicleType &&
-                          <span className="text-green-500 text-xs ml-2">(Auto-filled from registry)</span>
+                        {formData.vehicleId && formData.vehicleType &&
+                          <span className="text-blue-600 text-xs ml-2">(Linked from Master)</span>
                         }
                       </label>
                       <select
@@ -1336,8 +1142,8 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                     <div>
                       <label className={labelClass}>
                         Transport Name
-                        {vehicleRegistry.find(v => v.vehicleNumber === formData.vehicleNumber) && formData.transportName &&
-                          <span className="text-green-500 text-xs ml-2">(Auto-filled from history)</span>
+                        {formData.vehicleId && formData.transportName &&
+                          <span className="text-blue-600 text-xs ml-2">(Linked from Master)</span>
                         }
                       </label>
                       <SearchableDropdown
@@ -1351,12 +1157,39 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                     <div>
                       <label className={labelClass}>KM Reading</label>
                       <input
-                        type="text"
+                        type="number"
                         value={formData.kmReading}
                         onChange={(e) => handleInputChange('kmReading', e.target.value)}
                         className={inputClass}
                         placeholder="Enter KM reading"
+                        min="0"
                       />
+                    </div>
+                    <div>
+                      <label className={labelClass}>Fuel Level</label>
+                      <select
+                        value={formData.fuelLevel}
+                        onChange={(e) => handleInputChange('fuelLevel', e.target.value)}
+                        className={inputClass}
+                      >
+                        <option value="Empty">Empty</option>
+                        <option value="Quarter">Quarter</option>
+                        <option value="Half">Half</option>
+                        <option value="Three Quarter">Three Quarter</option>
+                        <option value="Full">Full</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelClass}>Status</label>
+                      <select
+                        value={formData.status}
+                        onChange={(e) => handleInputChange('status', e.target.value)}
+                        className={inputClass}
+                      >
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                        <option value="Under Maintenance">Under Maintenance</option>
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -1370,7 +1203,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className={labelClass}>
-                        Service Type <span className="text-red-500">*</span>
+                        Service Type <span className="text-blue-700">*</span>
                       </label>
                       <select
                         value={formData.serviceType}
@@ -1491,8 +1324,8 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                             </div>
 
                             {/* After Alignment */}
-                            <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-green-500/10 border border-green-500/30' : 'bg-green-50 border border-green-200'}`}>
-                              <h4 className={`text-sm font-medium mb-3 ${isDarkMode ? 'text-green-400' : 'text-green-700'}`}>
+                            <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-blue-600/10 border border-green-500/30' : 'bg-blue-50 border border-green-200'}`}>
+                              <h4 className={`text-sm font-medium mb-3 ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>
                                 After Alignment
                               </h4>
                               <div className="space-y-3">
@@ -1559,24 +1392,24 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                 <div>
                   <h3 className={`text-sm font-semibold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     <User className="w-4 h-4" />
-                    Staff Details
+                    Administration & Designer Details
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className={labelClass}>
-                        Technician Name <span className="text-red-500">*</span>
+                        Designer in Charge <span className="text-blue-700">*</span>
                       </label>
                       <SearchableDropdown
                         options={technicianOptions}
                         value={formData.technicianName}
                         onChange={(value) => handleInputChange('technicianName', value)}
-                        placeholder="Select Technician"
+                        placeholder="Select Designer"
                         isDarkMode={isDarkMode}
                       />
                     </div>
                     <div>
                       <label className={labelClass}>
-                        Staff ID <span className="text-gray-400 text-xs">(Auto-filled)</span>
+                        Officer ID <span className="text-gray-400 text-xs">(Auto-filled)</span>
                       </label>
                       <input
                         type="text"
@@ -1673,7 +1506,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                       <input
                         type="text"
                         value={formData.totalAmount ? `₹${parseFloat(formData.totalAmount).toFixed(2)}` : '₹0.00'}
-                        className={`${inputClass} font-bold text-lg ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}
+                        className={`${inputClass} font-bold text-lg ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}
                         disabled
                         readOnly
                       />
@@ -1690,22 +1523,24 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                     <X className="w-4 h-4" />
                     {isEditing ? 'Cancel Edit' : 'Clear Form'}
                   </button>
-                  <button
-                    onClick={handleSaveJobCard}
-                    disabled={!isFormValid() || isSavingJobCard}
-                    className={`${primaryButtonClass} ${(!isFormValid() || isSavingJobCard) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    {isSavingJobCard ? (
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Save className="w-4 h-4" />
-                    )}
-                    {isSavingJobCard
-                      ? 'Saving...'
-                      : isEditing
-                        ? 'Update Job Card'
-                        : 'Save Job Card'}
-                  </button>
+                  {(isEditing ? canEdit('Job Card') : canCreate('Job Card')) && (
+                    <button
+                      onClick={handleSaveJobCard}
+                      disabled={!isFormValid() || isSavingJobCard}
+                      className={`${primaryButtonClass} ${(!isFormValid() || isSavingJobCard) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      {isSavingJobCard ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4" />
+                      )}
+                      {isSavingJobCard
+                        ? 'Saving...'
+                        : isEditing
+                          ? 'Update Job Card'
+                          : 'Save Job Card'}
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -1801,7 +1636,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                     Service Type
                   </th>
                   <th className={`px-4 py-3 text-left text-xs font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Technician
+                    Designer in Charge
                   </th>
                   <th className={`px-4 py-3 text-left text-xs font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                     Status
@@ -1855,16 +1690,51 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                         {card.technicianName}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${card.status === 'Completed'
-                          ? isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'
-                          : card.status === 'In Progress'
-                            ? isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-700'
-                            : card.status === 'Billed'
-                              ? isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-700'
-                              : isDarkMode ? 'bg-gray-600/20 text-gray-400' : 'bg-gray-100 text-gray-700'
-                          }`}>
-                          {card.status}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${card.status === 'Completed'
+                            ? isDarkMode ? 'bg-blue-600/30 text-blue-300' : 'bg-blue-600 text-white shadow-sm'
+                            : card.status === 'In Progress'
+                              ? isDarkMode ? 'bg-blue-600/30 text-blue-300' : 'bg-blue-50 text-blue-600 border border-blue-100'
+                              : card.status === 'Billed'
+                                ? isDarkMode ? 'bg-blue-500/40 text-white' : 'bg-blue-600 text-white shadow-sm'
+                                : isDarkMode ? 'bg-gray-700/50 text-gray-400' : 'bg-gray-100 text-gray-700'
+                            }`}>
+                            {card.status}
+                          </span>
+                          {card.status === 'Draft' && canEdit('Job Card') && (
+                            <button
+                              onClick={() => handleStatusUpdate(card, 'In Progress')}
+                              className={`p-1 rounded-full transition-all duration-200 hover:scale-110 ${
+                                isDarkMode ? 'hover:bg-blue-500/20 text-blue-400' : 'hover:bg-blue-50 text-blue-600'
+                              }`}
+                              title="Start Work (In Progress)"
+                            >
+                              <RefreshCw className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {card.status === 'In Progress' && canEdit('Job Card') && (
+                            <button
+                              onClick={() => handleStatusUpdate(card, 'Completed')}
+                              className={`p-1 rounded-full transition-all duration-200 hover:scale-110 ${
+                                isDarkMode ? 'hover:bg-blue-500/20 text-blue-400' : 'hover:bg-blue-50 text-blue-600'
+                              }`}
+                              title="Mark as Completed"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {card.status === 'Completed' && canEdit('Job Card') && (
+                            <button
+                              onClick={() => handleStatusUpdate(card, 'Billed')}
+                              className={`p-1 rounded-full transition-all duration-200 hover:scale-110 ${
+                                isDarkMode ? 'hover:bg-blue-500/20 text-blue-400' : 'hover:bg-blue-50 text-blue-600'
+                              }`}
+                              title="Mark as Billed"
+                            >
+                              <FileText className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1.5">
@@ -1879,41 +1749,47 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                             <Eye className={`w-4 h-4 transition-colors ${isDarkMode ? 'group-hover:text-blue-400' : 'group-hover:text-blue-600'}`} />
                           </button>
 
-                          <button
-                            onClick={() => handleEdit(card)}
-                            className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 group ${isDarkMode
-                              ? 'hover:bg-yellow-500/20 text-gray-400'
-                              : 'hover:bg-yellow-50 text-gray-500'
-                              }`}
-                            title="Edit Job Card"
-                          >
-                            <Edit2 className={`w-4 h-4 transition-colors ${isDarkMode ? 'group-hover:text-yellow-400' : 'group-hover:text-yellow-600'}`} />
-                          </button>
+                          {canEdit('Job Card') && (
+                            <button
+                              onClick={() => handleEdit(card)}
+                              className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 group ${isDarkMode
+                                ? 'hover:bg-blue-500/30 text-gray-400'
+                                : 'hover:bg-blue-100 text-gray-500'
+                                }`}
+                              title="Edit Job Card"
+                            >
+                              <Edit2 className={`w-4 h-4 transition-colors ${isDarkMode ? 'group-hover:text-blue-300' : 'group-hover:text-blue-700'}`} />
+                            </button>
+                          )}
 
-                          <button
-                            onClick={() => handlePrint(card)}
-                            className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 group ${isDarkMode
-                              ? 'hover:bg-green-500/20 text-gray-400'
-                              : 'hover:bg-green-50 text-gray-500'
-                              }`}
-                            title="Print Job Card"
-                          >
-                            <Printer className={`w-4 h-4 transition-colors ${isDarkMode ? 'group-hover:text-green-400' : 'group-hover:text-green-600'}`} />
-                          </button>
+                          {canPrint('Job Card') && (
+                            <button
+                              onClick={() => handlePrint(card)}
+                              className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 group ${isDarkMode
+                                ? 'hover:bg-blue-600/20 text-gray-400'
+                                : 'hover:bg-blue-50 text-gray-500'
+                                }`}
+                              title="Print Job Card"
+                            >
+                              <Printer className={`w-4 h-4 transition-colors ${isDarkMode ? 'group-hover:text-blue-400' : 'group-hover:text-blue-600'}`} />
+                            </button>
+                          )}
 
-                          <button
-                            onClick={() => {
-                              setCardToDelete(card);
-                              setDeleteModalOpen(true);
-                            }}
-                            className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 group ${isDarkMode
-                              ? 'hover:bg-red-500/20 text-gray-400'
-                              : 'hover:bg-red-50 text-gray-500'
-                              }`}
-                            title="Delete Record"
-                          >
-                            <Trash2 className={`w-4 h-4 transition-colors ${isDarkMode ? 'group-hover:text-red-400' : 'group-hover:text-red-600'}`} />
-                          </button>
+                          {canDelete('Job Card') && (
+                            <button
+                              onClick={() => {
+                                setCardToDelete(card);
+                                setDeleteModalOpen(true);
+                              }}
+                              className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 group ${isDarkMode
+                                ? 'hover:bg-blue-700/20 text-gray-400'
+                                : 'hover:bg-blue-50 text-gray-500'
+                                }`}
+                              title="Delete Record"
+                            >
+                              <Trash2 className={`w-4 h-4 transition-colors ${isDarkMode ? 'group-hover:text-blue-400' : 'group-hover:text-blue-700'}`} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1958,12 +1834,12 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                     <button
                       onClick={() => handlePrint(cardToView)}
                       className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 group ${isDarkMode
-                        ? 'hover:bg-green-500/20 text-gray-400'
-                        : 'hover:bg-green-50 text-gray-500'
+                        ? 'hover:bg-blue-600/20 text-gray-400'
+                        : 'hover:bg-blue-50 text-gray-500'
                         }`}
                       title="Print Job Card"
                     >
-                      <Printer className={`w-5 h-5 transition-colors ${isDarkMode ? 'group-hover:text-green-400' : 'group-hover:text-green-600'}`} />
+                      <Printer className={`w-5 h-5 transition-colors ${isDarkMode ? 'group-hover:text-blue-400' : 'group-hover:text-blue-600'}`} />
                     </button>
                     <button
                       onClick={() => setViewModalOpen(false)}
@@ -2002,7 +1878,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                     <p className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{cardToView.serviceType}</p>
                   </div>
                   <div>
-                    <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Technician</p>
+                    <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Designer in Charge</p>
                     <p className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{cardToView.technicianName}</p>
                   </div>
                   <div>
@@ -2063,8 +1939,8 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
               className={`w-full max-w-md rounded-2xl shadow-2xl p-6 text-center ${isDarkMode ? 'bg-gray-800' : 'bg-white'
                 }`}
             >
-              <div className="w-16 h-16 mx-auto mb-4 bg-red-500/20 rounded-full flex items-center justify-center">
-                <Trash2 className="w-8 h-8 text-red-500" />
+              <div className="w-16 h-16 mx-auto mb-4 bg-blue-700/20 rounded-full flex items-center justify-center">
+                <Trash2 className="w-8 h-8 text-blue-700" />
               </div>
               <h2 className={`text-xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 Confirm Deletion
@@ -2092,23 +1968,13 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
         )}
       </AnimatePresence>
 
-      {/* Print Modal */}
-      <AnimatePresence>
-        {isPrintModalOpen && printData && (
-          <motion.div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsPrintModalOpen(false)}
-          >
-            <JobCardPrintView
-              data={printData}
-              company={companyData}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <UnifiedPrintPreview
+        type="jobcard"
+        data={printData}
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 }

@@ -33,12 +33,14 @@ import {
   getSecondaryButtonClass
 } from '@/utils/formStyles';
 import { useMasters, Brand } from '@/contexts/MastersContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface BrandScreenProps {
   isDarkMode: boolean;
 }
 
 export function BrandScreen({ isDarkMode }: BrandScreenProps) {
+  const { canCreate, canEdit, canDelete, canPrint, canExport } = useAuth();
   const { brands, addBrand, updateBrand, deleteBrand } = useMasters();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -196,13 +198,13 @@ export function BrandScreen({ isDarkMode }: BrandScreenProps) {
   const getCategoryColor = (category: string) => {
     const colors: { [key: string]: string } = {
       'Parts & Spares': isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-600',
-      'Oils & Lubricants': isDarkMode ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-50 text-yellow-600',
-      'Tyres & Wheels': isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-50 text-green-600',
+      'Oils & Lubricants': isDarkMode ? 'bg-blue-400/20 text-blue-400' : 'bg-blue-50 text-blue-500',
+      'Tyres & Wheels': isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-50 text-blue-600',
       'Electrical': isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-600',
       'Body Parts': isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-600',
-      'Tools & Equipment': isDarkMode ? 'bg-slate-500/20 text-slate-400' : 'bg-slate-50 text-slate-600',
+      'Tools & Equipment': isDarkMode ? 'bg-gray-500/20 text-gray-400' : 'bg-slate-50 text-gray-600',
       'Chemicals': isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-600',
-      'Batteries': isDarkMode ? 'bg-red-500/20 text-red-400' : 'bg-red-50 text-red-600',
+      'Batteries': isDarkMode ? 'bg-blue-700/20 text-blue-400' : 'bg-blue-50 text-blue-700',
       'Filters': isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-600',
       'General': isDarkMode ? 'bg-gray-500/20 text-gray-400' : 'bg-gray-50 text-gray-600'
     };
@@ -210,10 +212,10 @@ export function BrandScreen({ isDarkMode }: BrandScreenProps) {
   };
 
   const getPopularityColor = (score: number) => {
-    if (score >= 90) return isDarkMode ? 'text-green-400' : 'text-green-600';
+    if (score >= 90) return isDarkMode ? 'text-blue-400' : 'text-blue-600';
     if (score >= 85) return isDarkMode ? 'text-blue-400' : 'text-blue-600';
-    if (score >= 80) return isDarkMode ? 'text-yellow-400' : 'text-yellow-600';
-    return isDarkMode ? 'text-red-400' : 'text-red-600';
+    if (score >= 80) return isDarkMode ? 'text-blue-400' : 'text-blue-500';
+    return isDarkMode ? 'text-blue-400' : 'text-blue-700';
   };
 
   const handleRefresh = () => {
@@ -289,35 +291,41 @@ export function BrandScreen({ isDarkMode }: BrandScreenProps) {
             <RefreshCw className="w-4 h-4" />
             Refresh
           </button>
-          <button
-            onClick={handlePrint}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
-              isDarkMode 
-                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <Printer className="w-4 h-4" />
-            Print
-          </button>
-          <button
-            onClick={handleExport}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
-              isDarkMode 
-                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <Download className="w-4 h-4" />
-            Export
-          </button>
-          <button
-            onClick={() => handleOpenModal()}
-            className={getPrimaryButtonClass()}
-          >
-            <Plus className="w-4 h-4" />
-            Add Brand
-          </button>
+          {canPrint('Brands') && (
+            <button
+              onClick={handlePrint}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
+                isDarkMode 
+                  ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Printer className="w-4 h-4" />
+              Print
+            </button>
+          )}
+          {canExport('Brands') && (
+            <button
+              onClick={handleExport}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
+                isDarkMode 
+                  ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Download className="w-4 h-4" />
+              Export
+            </button>
+          )}
+          {canCreate('Brands') && (
+            <button
+              onClick={() => handleOpenModal()}
+              className={getPrimaryButtonClass()}
+            >
+              <Plus className="w-4 h-4" />
+              Add Brand
+            </button>
+          )}
         </div>
       </div>
 
@@ -362,7 +370,7 @@ export function BrandScreen({ isDarkMode }: BrandScreenProps) {
               }`}>
                 <Package className="w-6 h-6 text-blue-500" />
               </div>
-              <div className="flex items-center gap-1 text-green-500 text-sm font-medium">
+              <div className="flex items-center gap-1 text-blue-600 text-sm font-medium">
                 <TrendingUp className="w-4 h-4" />
                 +22%
               </div>
@@ -414,9 +422,9 @@ export function BrandScreen({ isDarkMode }: BrandScreenProps) {
           <div className="p-5">
             <div className="flex items-center justify-between mb-3">
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-green-500/20' : 'bg-green-50'
+                isDarkMode ? 'bg-blue-600/20' : 'bg-blue-50'
               }`}>
-                <ShoppingBag className="w-6 h-6 text-green-500" />
+                <ShoppingBag className="w-6 h-6 text-blue-600" />
               </div>
             </div>
             <h3 className={`text-sm font-medium mb-1 ${
@@ -621,7 +629,7 @@ export function BrandScreen({ isDarkMode }: BrandScreenProps) {
                         </td>
                         <td className="py-3 px-4 text-center">
                           <div className="flex items-center justify-center gap-1">
-                            <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                            <Star className="w-4 h-4 fill-yellow-500 text-blue-400" />
                             <span className="font-bold text-sm">0%</span>
                           </div>
                         </td>
@@ -632,8 +640,8 @@ export function BrandScreen({ isDarkMode }: BrandScreenProps) {
                           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
                             brand.status === 'Active'
                               ? isDarkMode
-                                ? 'bg-green-500/20 text-green-400'
-                                : 'bg-green-50 text-green-600'
+                                ? 'bg-blue-600/20 text-blue-400'
+                                : 'bg-blue-50 text-blue-600'
                               : isDarkMode
                               ? 'bg-gray-500/20 text-gray-400'
                               : 'bg-gray-100 text-gray-600'
@@ -643,28 +651,32 @@ export function BrandScreen({ isDarkMode }: BrandScreenProps) {
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => handleOpenModal(brand)}
-                              className={`p-2 rounded-lg transition-colors ${
-                                isDarkMode
-                                  ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                                  : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                              }`}
-                              title="Edit"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(brand.id)}
-                              className={`p-2 rounded-lg transition-colors ${
-                                isDarkMode
-                                  ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                                  : 'bg-red-50 text-red-600 hover:bg-red-100'
-                              }`}
-                              title="Delete"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {canEdit('Brands') && (
+                              <button
+                                onClick={() => handleOpenModal(brand)}
+                                className={`p-2 rounded-lg transition-colors ${
+                                  isDarkMode
+                                    ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                                    : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                                }`}
+                                title="Edit"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                            )}
+                            {canDelete('Brands') && (
+                              <button
+                                onClick={() => handleDelete(brand.id)}
+                                className={`p-2 rounded-lg transition-colors ${
+                                  isDarkMode
+                                    ? 'bg-blue-700/20 text-blue-400 hover:bg-blue-700/30'
+                                    : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                                }`}
+                                title="Delete"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -695,8 +707,8 @@ export function BrandScreen({ isDarkMode }: BrandScreenProps) {
                     <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                       brand.status === 'Active'
                         ? isDarkMode
-                          ? 'bg-green-500/20 text-green-400'
-                          : 'bg-green-50 text-green-600'
+                          ? 'bg-blue-600/20 text-blue-400'
+                          : 'bg-blue-50 text-blue-600'
                         : isDarkMode
                         ? 'bg-gray-500/20 text-gray-400'
                         : 'bg-gray-100 text-gray-600'
@@ -734,32 +746,36 @@ export function BrandScreen({ isDarkMode }: BrandScreenProps) {
                         isDarkMode ? 'text-gray-500' : 'text-gray-500'
                       }`}>Popularity</p>
                       <div className="flex items-center justify-end gap-1">
-                        <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                        <Star className="w-4 h-4 fill-yellow-500 text-blue-400" />
                         <p className="font-bold">0%</p>
                       </div>
                     </div>
                   </div>
                   <div className="flex gap-2 mt-4">
-                    <button
-                      onClick={() => handleOpenModal(brand)}
-                      className={`flex-1 p-2 rounded-lg transition-colors ${
-                        isDarkMode
-                          ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                          : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                      }`}
-                    >
-                      <Edit2 className="w-4 h-4 mx-auto" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(brand.id)}
-                      className={`flex-1 p-2 rounded-lg transition-colors ${
-                        isDarkMode
-                          ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                          : 'bg-red-50 text-red-600 hover:bg-red-100'
-                      }`}
-                    >
-                      <Trash2 className="w-4 h-4 mx-auto" />
-                    </button>
+                    {canEdit('Brands') && (
+                      <button
+                        onClick={() => handleOpenModal(brand)}
+                        className={`flex-1 p-2 rounded-lg transition-colors ${
+                          isDarkMode
+                            ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                            : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+                        }`}
+                      >
+                        <Edit2 className="w-4 h-4 mx-auto" />
+                      </button>
+                    )}
+                    {canDelete('Brands') && (
+                      <button
+                        onClick={() => handleDelete(brand.id)}
+                        className={`flex-1 p-2 rounded-lg transition-colors ${
+                          isDarkMode
+                            ? 'bg-blue-700/20 text-blue-400 hover:bg-blue-700/30'
+                            : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                        }`}
+                      >
+                        <Trash2 className="w-4 h-4 mx-auto" />
+                      </button>
+                    )}
                   </div>
                 </motion.div>
               ))}
@@ -837,7 +853,7 @@ export function BrandScreen({ isDarkMode }: BrandScreenProps) {
                   <div className="space-y-5">
                     <div>
                       <label className={getLabelClass(isDarkMode)}>
-                        Brand Name <span className="text-red-500">*</span>
+                        Brand Name <span className="text-blue-700">*</span>
                       </label>
                       <input
                         type="text"
@@ -850,13 +866,13 @@ export function BrandScreen({ isDarkMode }: BrandScreenProps) {
                         placeholder="e.g., Bosch, Castrol, MRF"
                       />
                       {errors.name && (
-                        <p className="text-red-500 text-sm mt-1">Brand Name is required</p>
+                        <p className="text-blue-700 text-sm mt-1">Brand Name is required</p>
                       )}
                     </div>
 
                     <div>
                       <label className={getLabelClass(isDarkMode)}>
-                        Manufacturer <span className="text-red-500">*</span>
+                        Manufacturer <span className="text-blue-700">*</span>
                       </label>
                       <input
                         type="text"
@@ -869,7 +885,7 @@ export function BrandScreen({ isDarkMode }: BrandScreenProps) {
                         placeholder="e.g., Robert Bosch GmbH"
                       />
                       {errors.manufacturer && (
-                        <p className="text-red-500 text-sm mt-1">Manufacturer is required</p>
+                        <p className="text-blue-700 text-sm mt-1">Manufacturer is required</p>
                       )}
                     </div>
 
@@ -928,13 +944,15 @@ export function BrandScreen({ isDarkMode }: BrandScreenProps) {
                     >
                       <span>Cancel</span>
                     </button>
-                    <button
-                      onClick={handleSave}
-                      className={getPrimaryButtonClass()}
-                    >
-                      <Check className="w-4 h-4" />
-                      <span>{editingBrand ? 'Update Brand' : 'Add Brand'}</span>
-                    </button>
+                    {(editingBrand ? canEdit('Brands') : canCreate('Brands')) && (
+                      <button
+                        onClick={handleSave}
+                        className={getPrimaryButtonClass()}
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>{editingBrand ? 'Update Brand' : 'Add Brand'}</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </motion.div>

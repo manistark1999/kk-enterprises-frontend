@@ -124,13 +124,13 @@ export function LabourBillHistoryScreen({ isDarkMode, onNavigate }: LabourBillHi
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Completed':
-        return 'bg-green-500/20 text-green-500';
+        return 'bg-blue-600 text-white shadow-sm';
       case 'Pending':
-        return 'bg-orange-500/20 text-orange-500';
+        return 'bg-blue-100 text-blue-700 border border-blue-200';
       case 'Cancelled':
-        return 'bg-red-500/20 text-red-500';
+        return 'bg-gray-100 text-gray-700 border border-gray-200';
       default:
-        return 'bg-gray-500/20 text-gray-500';
+        return 'bg-gray-500/10 text-gray-500';
     }
   };
 
@@ -210,7 +210,7 @@ export function LabourBillHistoryScreen({ isDarkMode, onNavigate }: LabourBillHi
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 Completed
               </p>
-              <CheckCircle className="w-5 h-5 text-green-500" />
+              <CheckCircle className="w-5 h-5 text-blue-500" />
             </div>
             <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               {stats.completed}
@@ -229,7 +229,7 @@ export function LabourBillHistoryScreen({ isDarkMode, onNavigate }: LabourBillHi
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 Pending
               </p>
-              <Clock className="w-5 h-5 text-orange-500" />
+              <Clock className="w-5 h-5 text-blue-400" />
             </div>
             <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
               {stats.pending}
@@ -394,8 +394,8 @@ export function LabourBillHistoryScreen({ isDarkMode, onNavigate }: LabourBillHi
                             onClick={() => handleView(bill)}
                             className={`p-2 rounded-lg transition-all hover:scale-110 ${
                               isDarkMode
-                                ? 'hover:bg-blue-500/20 text-blue-400 hover:text-blue-300'
-                                : 'hover:bg-blue-50 text-blue-600 hover:text-blue-700'
+                                ? 'hover:bg-blue-500/20 text-blue-400 shadow-lg shadow-blue-500/10'
+                                : 'hover:bg-blue-50 text-blue-600 shadow-sm'
                             }`}
                             title="View Details"
                           >
@@ -405,8 +405,8 @@ export function LabourBillHistoryScreen({ isDarkMode, onNavigate }: LabourBillHi
                             onClick={() => handlePrint(bill)}
                             className={`p-2 rounded-lg transition-all hover:scale-110 ${
                               isDarkMode
-                                ? 'hover:bg-gray-500/20 text-gray-400 hover:text-gray-300'
-                                : 'hover:bg-gray-50 text-gray-600 hover:text-gray-700'
+                                ? 'hover:bg-blue-500/10 text-blue-400'
+                                : 'hover:bg-blue-50 text-blue-600'
                             }`}
                             title="Print Bill"
                           >
@@ -416,8 +416,8 @@ export function LabourBillHistoryScreen({ isDarkMode, onNavigate }: LabourBillHi
                             onClick={() => handleEdit(bill)}
                             className={`p-2 rounded-lg transition-all hover:scale-110 ${
                               isDarkMode
-                                ? 'hover:bg-green-500/20 text-green-400 hover:text-green-300'
-                                : 'hover:bg-green-50 text-green-600 hover:text-green-700'
+                                ? 'hover:bg-blue-600/20 text-blue-400'
+                                : 'hover:bg-blue-600 hover:text-white text-blue-600'
                             }`}
                             title="Edit Bill"
                           >
@@ -427,8 +427,8 @@ export function LabourBillHistoryScreen({ isDarkMode, onNavigate }: LabourBillHi
                             onClick={() => handleDelete(bill.id)}
                             className={`p-2 rounded-lg transition-all hover:scale-110 ${
                               isDarkMode
-                                ? 'hover:bg-red-500/20 text-red-400 hover:text-red-300'
-                                : 'hover:bg-red-50 text-red-600 hover:text-red-700'
+                                ? 'hover:bg-blue-900/40 text-blue-300'
+                                : 'hover:bg-blue-100 text-blue-700'
                             }`}
                             title="Delete Bill"
                           >
@@ -650,7 +650,7 @@ export function LabourBillHistoryScreen({ isDarkMode, onNavigate }: LabourBillHi
                     {billToView.discount > 0 && (
                       <div className="flex justify-between">
                         <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Discount:</span>
-                        <span className="font-semibold text-red-500">
+                        <span className="font-semibold text-blue-700">
                           -₹{billToView.discount.toLocaleString()}
                         </span>
                       </div>
@@ -678,7 +678,7 @@ export function LabourBillHistoryScreen({ isDarkMode, onNavigate }: LabourBillHi
                     handleDelete(billToView.id);
                     setViewModalOpen(false);
                   }}
-                  className="px-4 py-2 rounded-lg border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-all font-medium"
+                  className="px-4 py-2 rounded-lg border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white transition-all font-medium"
                 >
                   Delete Bill
                 </button>
@@ -725,7 +725,7 @@ export function LabourBillHistoryScreen({ isDarkMode, onNavigate }: LabourBillHi
       </AnimatePresence>
 
       <UnifiedPrintPreview
-        type="bill"
+        type="labour"
         data={printData}
         isOpen={isPrintModalOpen}
         onClose={() => setIsPrintModalOpen(false)}

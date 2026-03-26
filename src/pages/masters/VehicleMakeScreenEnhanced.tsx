@@ -1,1011 +1,482 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Car,
-  Plus,
-  Search,
-  Edit2,
-  Trash2,
-  X,
-  Check,
-  TrendingUp,
-  BarChart3,
-  Package,
-  AlertCircle,
-  Download,
-  Printer,
-  RefreshCw,
-  Grid3x3,
-  List,
-  Filter,
-  Save
+import {
+  Plus, Search, Edit2, Trash2, Eye, RefreshCw,
+  Filter, Car, ChevronRight, X, History,
+  Clock, AlertCircle, Pencil, Tag, Globe, XCircle, Settings, Shield, User, Activity, ListFilter
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { 
-  FORM_CONSTANTS,
+import {
   getCardClass,
   getInputClass,
-  getInputClassWithValidation,
   getLabelClass,
-  renderLabel,
-  getPrimaryButtonClass,
-  getSecondaryButtonClass,
-  isFieldEmpty
+  getPrimaryButtonClass
 } from '@/utils/formStyles';
-import { useMasters, VehicleMake as VehicleMakeType } from '@/contexts/MastersContext';
+import { useMasters, VehicleMake } from '@/contexts/MastersContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface VehicleMakeScreenProps {
   isDarkMode: boolean;
 }
 
-// Local interface for screen display (extends context type)
-interface VehicleMake extends VehicleMakeType {
-  vehicleCount?: number;
-  addedDate?: string;
-}
-
 export function VehicleMakeScreenEnhanced({ isDarkMode }: VehicleMakeScreenProps) {
+  // --- STATE ---
+  const { canCreate, canEdit, canDelete } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<'All' | 'active' | 'inactive'>('All');
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewingMake, setViewingMake] = useState<VehicleMake | null>(null);
   const [editingMake, setEditingMake] = useState<VehicleMake | null>(null);
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  const [filterStatus, setFilterStatus] = useState<'All' | 'Active' | 'Inactive'>('All');
-  
-  // Model management state
-  const [models, setModels] = useState<string[]>([]);
-  const [newModelName, setNewModelName] = useState('');
-  const [editingModelIndex, setEditingModelIndex] = useState<number | null>(null);
-  const [editingModelValue, setEditingModelValue] = useState('');
 
   const [formData, setFormData] = useState({
-    name: '',
+    make_name: '',
     country: '',
-    status: 'Active' as 'Active' | 'Inactive'
+    status: 'active' as 'active' | 'inactive'
   });
 
+  const [formErrors, setFormErrors] = useState<Record<string, boolean>>({
+    make_name: false,
+    country: false
+  });
+
+  const {
+    vehicleMakes,
+    addVehicleMake,
+    updateVehicleMake,
+    deleteVehicleMake,
+    vehicleMakeHistory,
+    refreshVehicleMakeHistory,
+    refreshAllMasters,
+    isLoading
+  } = useMasters();
+
   const cardClass = getCardClass(isDarkMode);
-  const inputClass = getInputClass(isDarkMode);
-  const labelClass = getLabelClass(isDarkMode);
-  const primaryButtonClass = getPrimaryButtonClass();
-  const secondaryButtonClass = getSecondaryButtonClass(isDarkMode);
 
-  const { vehicleMakes, addVehicleMake, updateVehicleMake, deleteVehicleMake, refreshAllMasters, isLoading } = useMasters();
+  // --- UTILS ---
+  const formatVMId = (id: string | number) => {
+    const numericId = id.toString().replace(/\D/g, '');
+    return `VM-${numericId.padStart(4, '0')}`;
+  };
 
-  const handleOpenDrawer = (make?: VehicleMake) => {
+  const getCustomInputClass = (hasError: boolean) => {
+    const baseClass = `w-full px-4 py-2.5 rounded-xl border transition-all outline-none text-sm font-medium ${isDarkMode
+      ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-600 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10'
+      : 'bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:border-blue-600 focus:ring-4 focus:ring-blue-500/10'
+      }`;
+    if (hasError) {
+      return `${baseClass} border-red-500 focus:border-red-500 focus:ring-red-500/10 shadow-sm shadow-red-500/5`;
+    }
+    return baseClass;
+  };
+
+  // --- DATA FILTERING ---
+  const applySearch = (items: any[], filterValue: string, statusValue: string) => {
+    return items.filter(item => {
+      const data = item.changed_data || item;
+      const name = (data.make_name || data.name || '').toLowerCase();
+      const country = (data.country || '').toLowerCase();
+      const vmId = formatVMId(data.id || '').toLowerCase();
+      const status = (data.status || '').toLowerCase();
+
+      const matchesSearch = !filterValue ||
+        name.includes(filterValue.toLowerCase()) ||
+        country.includes(filterValue.toLowerCase()) ||
+        vmId.includes(filterValue.toLowerCase());
+
+      const matchesStatus = statusValue === 'All' || status === statusValue.toLowerCase();
+
+      return matchesSearch && matchesStatus;
+    });
+  };
+
+  const filteredMakes = useMemo(() =>
+    applySearch(vehicleMakes, searchTerm, filterStatus),
+    [vehicleMakes, searchTerm, filterStatus]
+  );
+
+  const filteredHistory = useMemo(() =>
+    applySearch(vehicleMakeHistory, searchTerm, filterStatus),
+    [vehicleMakeHistory, searchTerm, filterStatus]
+  );
+
+  const findMakeByHistoryId = (historyDataId: string | number) => {
+    return vehicleMakes.find(m => m.id.toString() === historyDataId.toString());
+  };
+
+  // --- HANDLERS ---
+  const handleOpenModal = (make?: VehicleMake) => {
+    setFormErrors({ make_name: false, country: false });
     if (make) {
       setEditingMake(make);
       setFormData({
-        name: make.name, // make.name comes from context/API
+        make_name: make.make_name || '',
         country: make.country || '',
-        status: (make.status === 'Active' ? 'Active' : 'Inactive') as 'Active' | 'Inactive'
+        status: (make.status?.toLowerCase() === 'active' ? 'active' : 'inactive') as 'active' | 'inactive'
       });
-      setModels([...make.models]); // Copy models array
     } else {
       setEditingMake(null);
-      setFormData({
-        name: '',
-        country: '',
-        status: 'Active'
-      });
-      setModels([]);
+      setFormData({ make_name: '', country: '', status: 'active' });
     }
-    setNewModelName('');
-    setEditingModelIndex(null);
-    setIsDrawerOpen(true);
+    setIsModalOpen(true);
   };
 
-  const handleCloseDrawer = () => {
-    setIsDrawerOpen(false);
-    setEditingMake(null);
-    setFormData({
-      name: '',
-      country: '',
-      status: 'Active'
-    });
-    setModels([]);
-    setNewModelName('');
-    setEditingModelIndex(null);
+  const handleOpenViewModal = (make: VehicleMake) => {
+    setViewingMake(make);
+    setIsViewModalOpen(true);
   };
 
-  // Add new model to the list
-  const handleAddModel = () => {
-    if (!newModelName.trim()) {
-      toast.error('Please enter a model name');
+  const handleSave = async () => {
+    const errors = {
+      make_name: !formData.make_name.trim(),
+      country: !formData.country.trim()
+    };
+    setFormErrors(errors);
+
+    if (errors.make_name || errors.country) {
+      toast.error('Required metadata missing. Please verify all mandatory fields.');
       return;
     }
 
-    // Check for duplicate model names
-    if (models.some(model => model.toLowerCase() === newModelName.trim().toLowerCase())) {
-      toast.error('This model already exists');
-      return;
-    }
-
-    setModels([...models, newModelName.trim()]);
-    setNewModelName('');
-    toast.success('Model added successfully');
-  };
-
-  // Start editing a model
-  const handleStartEditModel = (index: number) => {
-    setEditingModelIndex(index);
-    setEditingModelValue(models[index]);
-  };
-
-  // Save edited model
-  const handleSaveEditedModel = (index: number) => {
-    if (!editingModelValue.trim()) {
-      toast.error('Model name cannot be empty');
-      return;
-    }
-
-    // Check for duplicate (excluding current)
-    if (models.some((model, i) => 
-      i !== index && model.toLowerCase() === editingModelValue.trim().toLowerCase()
-    )) {
-      toast.error('This model already exists');
-      return;
-    }
-
-    const updatedModels = [...models];
-    updatedModels[index] = editingModelValue.trim();
-    setModels(updatedModels);
-    setEditingModelIndex(null);
-    setEditingModelValue('');
-    toast.success('Model updated successfully');
-  };
-
-  // Cancel editing model
-  const handleCancelEditModel = () => {
-    setEditingModelIndex(null);
-    setEditingModelValue('');
-  };
-
-  // Remove model from the list
-  const handleRemoveModel = (index: number) => {
-    setModels(models.filter((_, i) => i !== index));
-    toast.success('Model removed successfully');
-  };
-
-  const handleSave = () => {
-    console.log("FORM DATA BEFORE SAVE:", formData);
-    console.log("MODELS BEFORE SAVE:", models);
-
-    if (!formData.name.trim()) {
-      toast.error('Make name is required');
-      return;
-    }
-    
-    if (!formData.country.trim()) {
-      toast.error('Country is required');
-      return;
-    }
-
-    if (models.length === 0) {
-      toast.error('Please add at least one vehicle model');
-      return;
-    }
-
-    const savePromise = editingMake 
-      ? updateVehicleMake(editingMake.id, {
-          ...editingMake,
-          name: formData.name.trim(),
-          country: formData.country.trim(),
-          status: formData.status,
-          models: models
-        })
-      : addVehicleMake({
-          id: '',
-          name: formData.name.trim(),
-          country: formData.country.trim(),
-          models: models,
-          status: formData.status,
-          createdAt: ''
-        });
-
-    toast.promise(savePromise, {
-      loading: editingMake ? 'Updating vehicle make...' : 'Adding vehicle make...',
-      success: () => {
-        handleCloseDrawer();
-        return editingMake 
-          ? 'Vehicle make and models updated successfully!' 
-          : 'Vehicle make and models added successfully!';
-      },
-      error: (err) => err.message || 'Failed to save vehicle make'
-    });
-  };
-
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this vehicle make?')) {
-      toast.promise(deleteVehicleMake(id), {
-        loading: 'Deleting vehicle make...',
-        success: 'Vehicle make deleted successfully!',
-        error: 'Failed to delete vehicle make'
-      });
+    try {
+      if (editingMake) {
+        await updateVehicleMake(editingMake.id, { ...editingMake, name: formData.make_name.trim(), make_name: formData.make_name.trim(), country: formData.country.trim(), status: formData.status });
+        toast.success(`Registry entry synchronized successfully`);
+      } else {
+        await addVehicleMake({ id: '', name: formData.make_name.trim(), make_name: formData.make_name.trim(), country: formData.country.trim(), status: formData.status, createdAt: '' });
+        toast.success(`Identity registered in system database`);
+      }
+      setIsModalOpen(false);
+      await refreshAllMasters();
+      await refreshVehicleMakeHistory();
+    } catch (error: any) {
+      const errMsg = error.response?.data?.message || error.message || 'Identity synchronization failed';
+      toast.error(`Commit failed: ${errMsg}`);
     }
   };
 
-  const handleRefresh = () => {
-    window.location.reload();
+  const handleDelete = async (id: string) => {
+    if (confirm('Purge this record from system? This action cannot be undone.')) {
+      try {
+        await deleteVehicleMake(id);
+        toast.success('Record purged from primary datastore');
+        await refreshAllMasters();
+        await refreshVehicleMakeHistory();
+      } catch (error) {
+        toast.error('Purge operation failed');
+      }
+    }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const manualRefresh = async () => {
+    await Promise.all([refreshAllMasters(), refreshVehicleMakeHistory()]);
+    toast.info('Datastreams synced');
   };
 
-  const handleExport = () => {
-    const headers = ['Make Name', 'Country', 'Models', 'Status', 'Created At'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredMakes.map(make => [
-        `"${make.name}"`,
-        `"${make.country}"`,
-        `"${make.models.join(', ')}"`,
-        make.status,
-        make.createdAt
-      ].join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `vehicle-makes-export-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast.success('Vehicle makes data exported successfully!');
-  };
-
-  const filteredMakes = vehicleMakes.filter(make => {
-    const matchesSearch = (make.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (make.country || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const makeStatus = make.status;
-    const matchesStatus = filterStatus === 'All' || makeStatus === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
-
-  const totalVehicles = 0;
-  const activeMakes = vehicleMakes.filter(m => m.status === 'Active').length;
-  const totalModels = vehicleMakes.reduce((sum, make) => sum + make.models.length, 0);
+  // --- TYPOGRAPHY CONSTANTS ---
+  const THEME_FONT = "'Inter', sans-serif";
+  const HEADER_STYLE = "px-6 py-4 text-[10px] font-bold uppercase tracking-[0.15em] text-gray-500/80";
+  const ROW_TEXT_STYLE = "px-6 py-3 text-[13px] font-semibold text-gray-900 dark:text-gray-100";
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-            isDarkMode ? 'bg-blue-600' : 'bg-blue-600'
-          }`}>
-            <Car className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className={`text-3xl font-bold mb-1 ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
-            }`}>Vehicle Make & Model Management</h1>
-            <p className={`text-sm ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-600'
-            }`}>Manage vehicle manufacturers and their models</p>
+    <div className="p-6 space-y-6 pb-20 h-full overflow-auto luxury-scroll" style={{ fontFamily: THEME_FONT }}>
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* HEADER SECTION - NO LONGER DARK/HEAVY */}
+        <div className={`p-6 rounded-2xl border transition-all duration-500 ${isDarkMode ? 'bg-gray-900/60 border-gray-800' : 'bg-white shadow-lg shadow-blue-500/5 border-gray-100'}`}>
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="flex items-center gap-5">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600/10 to-blue-500/20 flex items-center justify-center text-blue-600 group hover:rotate-6 transition-transform">
+                <Car className="w-7 h-7 drop-shadow-sm" />
+              </div>
+              <div>
+                <h1 className={`text-2xl font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Vehicle Authority Registry</h1>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-blue-600/80">Manufacturer Master Interface Control</p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={manualRefresh}
+                className={`w-12 h-12 flex items-center justify-center rounded-xl border transition-all hover:scale-105 active:scale-95 ${
+                  isDarkMode
+                    ? "bg-gray-800/50 border-gray-700 text-gray-400 hover:text-white"
+                    : "bg-gray-50 border-gray-200 text-gray-400 hover:text-gray-900"
+                }`}
+                title="Refresh Data"
+              >
+                <RefreshCw className={`w-5 h-5 ${isLoading ? "animate-spin" : ""}`} />
+              </button>
+              {canCreate('Vehicle Make') && (
+                <button
+                  onClick={() => handleOpenModal()}
+                  className="px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold uppercase tracking-[0.1em] shadow-xl shadow-blue-600/20 active:scale-95 transition-all text-[11px] flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Manufacturer
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleRefresh}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
-              isDarkMode 
-                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <RefreshCw className="w-4 h-4" />
-            Refresh
-          </button>
-          <button
-            onClick={handlePrint}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
-              isDarkMode 
-                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <Printer className="w-4 h-4" />
-            Print
-          </button>
-          <button
-            onClick={handleExport}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
-              isDarkMode 
-                ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            <Download className="w-4 h-4" />
-            Export
-          </button>
-          <button
-            onClick={() => handleOpenDrawer()}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all text-sm font-medium shadow-lg"
-          >
-            <Plus className="w-4 h-4" />
-            Add Vehicle Make
-          </button>
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <motion.div
-          className={cardClass}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <div className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-blue-500/20' : 'bg-blue-50'
-              }`}>
-                <Car className="w-6 h-6 text-blue-500" />
-              </div>
+        {/* SEARCH SYSTEM */}
+        <div className={`rounded-2xl p-6 border transition-all ${isDarkMode ? 'bg-gray-900/40 border-gray-800' : 'bg-white shadow-lg shadow-black/5 border-gray-100'}`}>
+          <div className="flex flex-wrap items-center gap-6">
+            <div className="flex-1 min-w-[300px] relative group">
+              <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within:text-blue-500 transition-colors" />
+              <input
+                type="text"
+                placeholder="Scan by Name, Country, or Master ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={`w-full pl-14 pr-6 py-3.5 rounded-xl border outline-none text-sm font-medium transition-all ${isDarkMode
+                  ? 'bg-gray-950/50 border-gray-800 text-white placeholder:text-gray-600 focus:border-blue-500/50'
+                  : 'bg-gray-50/50 border-gray-100 placeholder:text-gray-400 focus:bg-white focus:border-blue-600/30'
+                  }`}
+              />
             </div>
-            <h3 className={`text-sm font-medium mb-1 ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-600'
-            }`}>Total Makes</h3>
-            <p className={`text-2xl font-bold ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
-            }`}>{vehicleMakes.length}</p>
-            <p className={`text-xs mt-1 ${
-              isDarkMode ? 'text-gray-500' : 'text-gray-500'
-            }`}>{activeMakes} active brands</p>
-          </div>
-        </motion.div>
-
-        <motion.div
-          className={cardClass}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-        >
-          <div className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-blue-500/20' : 'bg-blue-50'
-              }`}>
-                <Package className="w-6 h-6 text-blue-500" />
-              </div>
-            </div>
-            <h3 className={`text-sm font-medium mb-1 ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-600'
-            }`}>Total Models</h3>
-            <p className={`text-2xl font-bold ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
-            }`}>{totalModels}</p>
-            <p className={`text-xs mt-1 ${
-              isDarkMode ? 'text-gray-500' : 'text-gray-500'
-            }`}>Across all makes</p>
-          </div>
-        </motion.div>
-
-        <motion.div
-          className={cardClass}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-green-500/20' : 'bg-green-50'
-              }`}>
-                <TrendingUp className="w-6 h-6 text-green-500" />
-              </div>
-            </div>
-            <h3 className={`text-sm font-medium mb-1 ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-600'
-            }`}>Avg. Models per Make</h3>
-            <p className={`text-2xl font-bold ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
-            }`}>{vehicleMakes.length > 0 ? Math.round(totalModels / vehicleMakes.length) : 0}</p>
-            <p className={`text-xs mt-1 ${
-              isDarkMode ? 'text-gray-500' : 'text-gray-500'
-            }`}>Models per brand</p>
-          </div>
-        </motion.div>
-
-        <motion.div
-          className={cardClass}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-        >
-          <div className="p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-orange-500/20' : 'bg-orange-50'
-              }`}>
-                <BarChart3 className="w-6 h-6 text-orange-500" />
-              </div>
-            </div>
-            <h3 className={`text-sm font-medium mb-1 ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-600'
-            }`}>Top Make</h3>
-            <p className={`text-2xl font-bold ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
-            }`}>{vehicleMakes.length > 0 ? vehicleMakes.reduce((max, make) => 
-              make.models.length > max.models.length ? make : max
-            ).name.substring(0, 10) : 'N/A'}</p>
-            <p className={`text-xs mt-1 ${
-              isDarkMode ? 'text-gray-500' : 'text-gray-500'
-            }`}>Most models</p>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Search & Filter Bar */}
-      <motion.div
-        className={cardClass}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
-        <div className="p-4">
-          <div className="flex flex-wrap items-center gap-4">
-            {/* Search */}
-            <div className="flex-1 min-w-[250px]">
-              <div className="relative">
-                <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${
-                  isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                }`} />
-                <input
-                  type="text"
-                  placeholder="Search by make name or country..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className={`${inputClass} pl-10 w-full`}
-                />
-              </div>
-            </div>
-
-            {/* Status Filter */}
-            <div className="flex items-center gap-2">
-              <Filter className={`w-5 h-5 ${
-                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-              }`} />
+            <div className={`flex items-center gap-3 p-1.5 rounded-xl ${isDarkMode ? 'bg-gray-800/40' : 'bg-gray-50 border border-gray-100'}`}>
+              <ListFilter className="w-4 h-4 ml-3 text-gray-400" />
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as any)}
-                className={inputClass}
+                className="bg-transparent border-0 px-3 py-2 font-bold text-[9px] uppercase tracking-widest outline-none cursor-pointer text-gray-600"
               >
-                <option value="All">All Status</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
+                <option value="All">All Operations</option>
+                <option value="active">Active Only</option>
+                <option value="inactive">Inactive Only</option>
               </select>
             </div>
+          </div>
+        </div>
 
-            {/* View Toggle */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setViewMode('table')}
-                className={`p-2 rounded-lg transition-all ${
-                  viewMode === 'table'
-                    ? isDarkMode
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-blue-600 text-white'
-                    : isDarkMode
-                    ? 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                <List className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg transition-all ${
-                  viewMode === 'grid'
-                    ? isDarkMode
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-blue-600 text-white'
-                    : isDarkMode
-                    ? 'bg-gray-700 text-gray-400 hover:bg-gray-600'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                <Grid3x3 className="w-5 h-5" />
-              </button>
+        {/* OPERATIONAL AUDIT TRAIL */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-4 px-4">
+            <div className="w-8 h-8 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+              <History className="w-4 h-4" />
+            </div>
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.25em] text-gray-500/80">Operational Audit Trail</h2>
+            <div className="h-px flex-1 bg-gradient-to-r from-gray-200/50 to-transparent dark:from-gray-800/50" />
+          </div>
+
+          <div className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-gray-900/40 border-gray-800' : 'bg-white shadow-lg shadow-black/5 border-gray-100'}`}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className={isDarkMode ? 'bg-gray-950/50' : 'bg-gray-50/30'}>
+                    <th className={HEADER_STYLE}>Sequence</th>
+                    <th className={HEADER_STYLE}>Authority ID</th>
+                    <th className={HEADER_STYLE}>Manufacturer</th>
+                    <th className={HEADER_STYLE}>Region</th>
+                    <th className={HEADER_STYLE}>Status</th>
+                    <th className={HEADER_STYLE}>Time Vector</th>
+                    <th className={HEADER_STYLE + " text-center"}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100/5 dark:divide-gray-800/5">
+                  {filteredHistory.length > 0 ? (
+                    filteredHistory.map((entry, idx) => {
+                      const data = entry.changed_data || {};
+                      const source = findMakeByHistoryId(data.id);
+                      return (
+                        <tr key={idx} className="hover:bg-blue-500/5 transition-all group">
+                          <td className={ROW_TEXT_STYLE + " !text-gray-400 font-mono"}>{filteredHistory.length - idx}</td>
+                          <td className={ROW_TEXT_STYLE}>
+                            <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100 dark:bg-blue-500/5 dark:border-blue-500/20 text-xs">
+                              {data.id ? formatVMId(data.id) : 'N/A'}
+                            </span>
+                          </td>
+                          <td className={ROW_TEXT_STYLE}>{data.make_name || data.name || 'N/A'}</td>
+                          <td className={ROW_TEXT_STYLE + " !text-gray-500 font-medium"}>{data.country || 'Global'}</td>
+                          <td className={ROW_TEXT_STYLE}>
+                            <span className={`${data.status?.toLowerCase() === 'active' ? 'bg-blue-600/10 text-blue-600' : 'bg-blue-700/10 text-blue-700'} px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest`}>
+                              {data.status || 'Active'}
+                            </span>
+                          </td>
+                          <td className={ROW_TEXT_STYLE + " !text-gray-400 text-xs"}>
+                            <div className="flex items-center gap-2">
+                              <Clock size={12} className="text-blue-500/50" />
+                              {new Date(entry.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                            </div>
+                          </td>
+                          <td className="px-6 py-3">
+                            <div className="flex items-center justify-center gap-2">
+                              {source ? (
+                                <>
+                                  <button onClick={() => handleOpenViewModal(source)} className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all dark:bg-blue-500/5"><Eye size={14} /></button>
+                                  {canEdit('Vehicle Make') && (
+                                    <button onClick={() => handleOpenModal(source)} className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all dark:bg-blue-500/5"><Edit2 size={14} /></button>
+                                  )}
+                                  {canDelete('Vehicle Make') && (
+                                    <button onClick={() => handleDelete(source.id)} className="p-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-700 hover:text-white transition-all dark:bg-blue-700/5"><Trash2 size={14} /></button>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="text-[9px] font-bold uppercase tracking-widest text-gray-400 bg-gray-100 px-3 py-1 rounded-lg dark:bg-gray-800">Archive Only</span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr><td colSpan={7} className="p-16 text-center text-[10px] font-bold uppercase tracking-[0.25em] text-gray-400">Registry Sequence Manifest Void</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
-      </motion.div>
 
-      {/* Vehicle Makes Table */}
-      <motion.div
-        className={cardClass}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
-      >
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className={`text-lg font-bold ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
-            }`}>Vehicle Makes & Models</h2>
-            <span className={`text-sm ${
-              isDarkMode ? 'text-gray-400' : 'text-gray-600'
-            }`}>{filteredMakes.length} results</span>
-          </div>
-
-          {viewMode === 'table' ? (
-            <div className={`border rounded-lg overflow-hidden ${
-              isDarkMode ? 'border-gray-700' : 'border-gray-200'
-            }`}>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className={`${
-                    isDarkMode ? 'bg-gray-800' : 'bg-gray-50'
-                  }`}>
-                    <tr className={`border-b ${
-                      isDarkMode ? 'border-gray-700' : 'border-gray-200'
-                    }`}>
-                      <th className={`text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>Make Name</th>
-                      <th className={`text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>Country</th>
-                      <th className={`text-left py-3 px-4 text-xs font-semibold uppercase tracking-wider ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>Vehicle Models</th>
-                      <th className={`text-center py-3 px-4 text-xs font-semibold uppercase tracking-wider ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>Status</th>
-                      <th className={`text-center py-3 px-4 text-xs font-semibold uppercase tracking-wider ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className={`divide-y ${
-                    isDarkMode ? 'divide-gray-700' : 'divide-gray-200'
-                  }`}>
-                    {filteredMakes.map((make) => (
-                      <tr
-                        key={make.id}
-                        className={`transition-colors ${
-                          isDarkMode ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50'
-                        }`}
-                      >
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                              isDarkMode ? 'bg-blue-500/20' : 'bg-blue-50'
-                            }`}>
-                              <Car className="w-5 h-5 text-blue-500" />
-                            </div>
-                            <div>
-                              <p className={`text-sm font-semibold ${
-                                isDarkMode ? 'text-white' : 'text-gray-900'
-                              }`}>{make.name}</p>
-                              <p className={`text-xs ${
-                                isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                              }`}>{make.models.length} models</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className={`py-3 px-4 text-sm ${
-                          isDarkMode ? 'text-gray-300' : 'text-gray-700'
-                        }`}>{make.country || 'N/A'}</td>
-                        <td className="py-3 px-4">
-                          <div className="flex flex-wrap gap-1">
-                            {make.models.slice(0, 4).map((model, index) => (
-                              <span
-                                key={index}
-                                className={`px-2 py-1 rounded-full text-xs ${
-                                  isDarkMode
-                                    ? 'bg-gray-700 text-gray-300'
-                                    : 'bg-gray-100 text-gray-700'
-                                }`}
-                              >
-                                {model}
-                              </span>
-                            ))}
-                            {make.models.length > 4 && (
-                              <span className={`px-2 py-1 rounded-full text-xs ${
-                                isDarkMode
-                                  ? 'bg-gray-700 text-gray-400'
-                                  : 'bg-gray-100 text-gray-600'
-                              }`}>
-                                +{make.models.length - 4}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                            make.status === 'Active'
-                              ? isDarkMode
-                                ? 'bg-green-500/20 text-green-400'
-                                : 'bg-green-50 text-green-600'
-                              : isDarkMode
-                              ? 'bg-gray-500/20 text-gray-400'
-                              : 'bg-gray-100 text-gray-600'
-                          }`}>
-                            {make.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => handleOpenDrawer(make)}
-                              className={`p-2 rounded-lg transition-colors ${
-                                isDarkMode
-                                  ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                                  : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                              }`}
-                              title="Edit Make & Models"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(make.id)}
-                              className={`p-2 rounded-lg transition-colors ${
-                                isDarkMode
-                                  ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                                  : 'bg-red-50 text-red-600 hover:bg-red-100'
-                              }`}
-                              title="Delete"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredMakes.map((make) => (
-                <motion.div
-                  key={make.id}
-                  className={`p-5 rounded-xl border transition-all ${
-                    isDarkMode
-                      ? 'bg-gray-700/30 border-gray-600 hover:border-blue-500'
-                      : 'bg-white border-gray-200 hover:border-blue-500'
-                  }`}
-                  whileHover={{ scale: 1.02 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                      isDarkMode ? 'bg-blue-500/20' : 'bg-blue-50'
-                    }`}>
-                      <Car className="w-6 h-6 text-blue-500" />
+        {/* INSPECTION VIEW MODAL */}
+        <AnimatePresence>
+          {isViewModalOpen && viewingMake && (
+            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsViewModalOpen(false)} className="absolute inset-0 bg-gray-950/80 backdrop-blur-md" />
+              <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className={`relative w-full max-w-xl rounded-2xl shadow-2xl border overflow-hidden ${isDarkMode ? 'bg-gray-950 border-white/5' : 'bg-white border-gray-100'}`}>
+                <div className="h-32 bg-gradient-to-br from-blue-600 to-blue-400 p-8 flex items-end relative overflow-hidden">
+                  <div className="absolute top-[-20%] right-[-10%] w-48 h-48 bg-white/10 rounded-full blur-3xl" />
+                  <div className="w-20 h-20 rounded-2xl bg-white shadow-2xl flex items-center justify-center translate-y-8 ring-[10px] ring-blue-600/10"><Car className="w-10 h-10 text-blue-600" /></div>
+                </div>
+                <div className="p-8 pt-12 space-y-8">
+                  <div>
+                    <h2 className={`text-3xl font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-gray-950'}`}>{viewingMake.make_name}</h2>
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="w-4 h-1 bg-blue-600 rounded-full" />
+                      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-600">Identity Spec Alpha</p>
                     </div>
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                      make.status === 'Active'
-                        ? isDarkMode
-                          ? 'bg-green-500/20 text-green-400'
-                          : 'bg-green-50 text-green-600'
-                        : isDarkMode
-                        ? 'bg-gray-500/20 text-gray-400'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {make.status}
-                    </span>
                   </div>
-                  <h3 className={`text-lg font-bold mb-1 ${
-                    isDarkMode ? 'text-white' : 'text-gray-900'
-                  }`}>{make.name}</h3>
-                  <p className={`text-sm mb-3 ${
-                    isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                  }`}>{make.country || 'N/A'} • {make.models.length} models</p>
-                  <div className="flex flex-wrap gap-1 mb-4">
-                    {make.models.slice(0, 4).map((model, index) => (
-                      <span
-                        key={index}
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          isDarkMode
-                            ? 'bg-gray-700 text-gray-300'
-                            : 'bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        {model}
-                      </span>
-                    ))}
-                    {make.models.length > 4 && (
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        isDarkMode
-                          ? 'bg-gray-700 text-gray-400'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        +{make.models.length - 4} more
-                      </span>
-                    )}
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className={`p-6 rounded-2xl border ${isDarkMode ? 'bg-gray-900/50 border-gray-800' : 'bg-gray-50 border-gray-100'} text-left`}>
+                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Country Matrix</label>
+                      <span className="text-lg font-bold text-blue-600">{viewingMake.country || 'Global Origin'}</span>
+                    </div>
+                    <div className={`p-6 rounded-2xl border ${isDarkMode ? 'bg-gray-900/50 border-gray-800' : 'bg-gray-50 border-gray-100'} text-left`}>
+                      <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Operating Status</label>
+                      <span className={`text-lg font-bold ${viewingMake.status?.toLowerCase() === 'active' ? 'text-blue-600' : 'text-blue-700'}`}>{viewingMake.status}</span>
+                    </div>
                   </div>
-                  <div className={`flex items-center justify-end gap-2 pt-4 border-t ${
-                    isDarkMode ? 'border-gray-600' : 'border-gray-200'
-                  }`}>
-                    <button
-                      onClick={() => handleOpenDrawer(make)}
-                      className={`p-2 rounded-lg transition-colors ${
-                        isDarkMode
-                          ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                          : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                      }`}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(make.id)}
-                      className={`p-2 rounded-lg transition-colors ${
-                        isDarkMode
-                          ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                          : 'bg-red-50 text-red-600 hover:bg-red-100'
-                      }`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                  <div className="flex items-center justify-between p-6 rounded-2xl bg-gray-500/5 font-mono text-[10px] border border-dashed border-gray-200 dark:border-gray-800">
+                    <span className="text-gray-400">UNIQUE_PROTOCOL_HASH</span>
+                    <span className="font-bold text-blue-600">{formatVMId(viewingMake.id)}</span>
                   </div>
-                </motion.div>
-              ))}
+                  <button onClick={() => setIsViewModalOpen(false)} className="w-full py-4 rounded-xl bg-gray-950 text-white font-bold uppercase tracking-widest text-[10px] hover:bg-black transition-all shadow-xl active:scale-95">Acknowledge Specification</button>
+                </div>
+              </motion.div>
             </div>
           )}
-        </div>
-      </motion.div>
+        </AnimatePresence>
 
-      {/* Add/Edit Drawer */}
-      <AnimatePresence>
-        {isDrawerOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={handleCloseDrawer}
-            />
-
-            {/* Drawer */}
-            <motion.div
-              className={`fixed right-0 top-0 h-full w-full md:w-[600px] z-50 shadow-2xl overflow-y-auto ${
-                isDarkMode ? 'bg-gray-800' : 'bg-white'
-              }`}
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            >
-              {/* Drawer Header */}
-              <div className={`sticky top-0 z-10 px-6 py-4 border-b flex items-center justify-between ${
-                isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-              }`}>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
-                    <Car className="w-5 h-5 text-white" />
+        {/* MUTATION MODAL (CREATE/UPDATE) - CLEANER & CENTERED */}
+        <AnimatePresence>
+          {isModalOpen && (
+            <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-gray-950/70 backdrop-blur-sm" />
+              <motion.div
+                initial={{ scale: 0.98, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.98, opacity: 0, y: 20 }}
+                className={`relative w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border ${isDarkMode ? 'bg-gray-950 border-gray-800' : 'bg-white border-gray-100'}`}
+                style={{ fontFamily: THEME_FONT }}
+              >
+                {/* Modal Header */}
+                <div className="p-8 pb-0 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-11 h-11 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-600/20">
+                      <Shield size={20} />
+                    </div>
+                    <div>
+                      <h3 className={`text-xl font-bold tracking-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {editingMake ? 'Mutate Manufacturer' : 'New Manufacturer Entry'}
+                      </h3>
+                      <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-gray-500">Master Registry Interface</p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className={`text-xl font-bold ${
-                      isDarkMode ? 'text-white' : 'text-gray-900'
-                    }`}>
-                      {editingMake ? 'Edit Vehicle Make' : 'Add Vehicle Make'}
-                    </h2>
-                    <p className={`text-sm ${
-                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      {editingMake ? 'Update make and model information' : 'Create new vehicle make and add models'}
-                    </p>
-                  </div>
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="p-2.5 hover:bg-blue-50 hover:text-blue-700 transition-all rounded-lg text-gray-400"
+                  >
+                    <X size={20} />
+                  </button>
                 </div>
-                <button
-                  onClick={handleCloseDrawer}
-                  className={`p-2 rounded-lg transition-colors ${
-                    isDarkMode
-                      ? 'hover:bg-gray-700 text-gray-400'
-                      : 'hover:bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
 
-              {/* Drawer Content */}
-              <div className="p-6 space-y-6">
-                {/* Make Information Section */}
-                <div>
-                  <h3 className={`text-lg font-bold mb-4 ${
-                    isDarkMode ? 'text-white' : 'text-gray-900'
-                  }`}>Make Information</h3>
-
-                  <div className="space-y-4">
-                    {/* Make Name */}
-                    <div>
-                      {renderLabel('Make Name', true, isDarkMode, isFieldEmpty(formData.name))}
+                {/* Form Content */}
+                <div className="p-8 space-y-6">
+                  <div className="space-y-2">
+                    <label className="flex items-center justify-between px-1">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">Manufacturer Nomenclature {formErrors.make_name && <span className="text-blue-700">*</span>}</span>
+                      {formErrors.make_name && <span className="text-[9px] text-blue-700 font-bold uppercase tracking-widest">Compulsory</span>}
+                    </label>
+                    <div className="relative">
+                      <Tag className={`absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 ${formErrors.make_name ? 'text-blue-400' : 'text-gray-400'}`} />
                       <input
                         type="text"
-                        value={formData.name}
-                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        className={getInputClassWithValidation(isDarkMode, isFieldEmpty(formData.name))}
-                        placeholder="e.g., Tata Motors"
+                        value={formData.make_name}
+                        onChange={(e) => setFormData({ ...formData, make_name: e.target.value })}
+                        className={`${getCustomInputClass(formErrors.make_name)} !pl-12`}
+                        placeholder="e.g. Scania"
                       />
                     </div>
+                  </div>
 
-                    {/* Country */}
-                    <div>
-                      {renderLabel('Country of Origin', true, isDarkMode, isFieldEmpty(formData.country))}
-                      <input
-                        type="text"
-                        value={formData.country}
-                        onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                        className={getInputClassWithValidation(isDarkMode, isFieldEmpty(formData.country))}
-                        placeholder="e.g., India"
-                      />
-                    </div>
-
-                    {/* Status */}
-                    <div>
-                      <label className={labelClass}>
-                        Status <span className="text-red-500">*</span>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="flex items-center justify-between px-1">
+                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">Origin Region {formErrors.country && <span className="text-blue-700">*</span>}</span>
                       </label>
-                      <select
-                        value={formData.status}
-                        onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                        className={inputClass}
-                      >
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
-                      </select>
+                      <div className="relative">
+                        <Globe className={`absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 ${formErrors.country ? 'text-blue-400' : 'text-gray-400'}`} />
+                        <input
+                          type="text"
+                          value={formData.country}
+                          onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                          className={`${getCustomInputClass(formErrors.country)} !pl-12`}
+                          placeholder="e.g. Sweden"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 px-1">Operational Protocol</label>
+                      <div className="relative text-xs">
+                        <Activity className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400" />
+                        <select
+                          value={formData.status}
+                          onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                          className={`${getCustomInputClass(false)} !pl-12 appearance-none cursor-pointer`}
+                        >
+                          <option value="active">Active Authority</option>
+                          <option value="inactive">Inactive Status</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Divider */}
-                <div className={`border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`} />
-
-                {/* Vehicle Models Section */}
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className={`text-lg font-bold ${
-                      isDarkMode ? 'text-white' : 'text-gray-900'
-                    }`}>Vehicle Models <span className="text-red-500">*</span></h3>
-                    <span className={`text-sm ${
-                      isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>{models.length} models</span>
-                  </div>
-
-                  {/* Add New Model */}
-                  <div className="flex gap-2 mb-4">
-                    <input
-                      type="text"
-                      value={newModelName}
-                      onChange={(e) => setNewModelName(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleAddModel()}
-                      className={`${inputClass} flex-1`}
-                      placeholder="Enter model name (e.g., 407, 1613, Signa 2823)"
-                    />
+                <div className={`p-6 bg-gray-500/5 flex items-center justify-between gap-4 border-t ${isDarkMode ? "border-gray-800" : "border-gray-100"}`}>
+                  <button
+                    onClick={() => setIsModalOpen(false)}
+                    className="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900 transition-colors px-4 py-2"
+                  >
+                    Cancel Registry
+                  </button>
+                  {(editingMake ? canEdit('Vehicle Make') : canCreate('Vehicle Make')) && (
                     <button
-                      onClick={handleAddModel}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all flex items-center gap-2"
+                      onClick={handleSave}
+                      className="px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold uppercase tracking-widest text-[10px] shadow-xl shadow-blue-600/20 active:scale-95 transition-all"
                     >
-                      <Plus className="w-4 h-4" />
-                      Add
+                      {editingMake ? "Confirm Mutation" : "Commit Registry"}
                     </button>
-                  </div>
-
-                  {/* Models List */}
-                  {models.length > 0 ? (
-                    <div className={`border rounded-lg p-4 space-y-2 max-h-[400px] overflow-y-auto ${
-                      isDarkMode ? 'border-gray-700 bg-gray-900/30' : 'border-gray-200 bg-gray-50'
-                    }`}>
-                      {models.map((model, index) => (
-                        <div
-                          key={index}
-                          className={`flex items-center gap-2 p-3 rounded-lg ${
-                            isDarkMode ? 'bg-gray-800' : 'bg-white'
-                          }`}
-                        >
-                          {editingModelIndex === index ? (
-                            <>
-                              <input
-                                type="text"
-                                value={editingModelValue}
-                                onChange={(e) => setEditingModelValue(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleSaveEditedModel(index)}
-                                className={`${inputClass} flex-1`}
-                                autoFocus
-                              />
-                              <button
-                                onClick={() => handleSaveEditedModel(index)}
-                                className="p-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                                title="Save"
-                              >
-                                <Check className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={handleCancelEditModel}
-                                className={`p-2 rounded-lg ${
-                                  isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
-                                }`}
-                                title="Cancel"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <span className={`flex-1 text-sm font-medium ${
-                                isDarkMode ? 'text-white' : 'text-gray-900'
-                              }`}>
-                                {model}
-                              </span>
-                              <button
-                                onClick={() => handleStartEditModel(index)}
-                                className={`p-2 rounded-lg transition-colors ${
-                                  isDarkMode
-                                    ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                                    : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-                                }`}
-                                title="Edit"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleRemoveModel(index)}
-                                className={`p-2 rounded-lg transition-colors ${
-                                  isDarkMode
-                                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
-                                    : 'bg-red-50 text-red-600 hover:bg-red-100'
-                                }`}
-                                title="Remove"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className={`border-2 border-dashed rounded-lg p-8 text-center ${
-                      isDarkMode ? 'border-gray-700' : 'border-gray-300'
-                    }`}>
-                      <Package className={`w-12 h-12 mx-auto mb-3 ${
-                        isDarkMode ? 'text-gray-600' : 'text-gray-400'
-                      }`} />
-                      <p className={`text-sm ${
-                        isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                      }`}>
-                        No models added yet. Add at least one model to continue.
-                      </p>
-                    </div>
                   )}
                 </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={handleCloseDrawer}
-                    className={secondaryButtonClass}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    className={primaryButtonClass}
-                  >
-                    <Save className="w-4 h-4" />
-                    {editingMake ? 'Update Make & Models' : 'Create Make & Models'}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

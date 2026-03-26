@@ -21,8 +21,10 @@ import {
 import { useVehicleRegistry } from '@/contexts/VehicleRegistryContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 export function VehicleRegisterScreen({ isDarkMode }: { isDarkMode: boolean }) {
+  const { canCreate, canEdit, canDelete } = useAuth();
   const { vehicles, isLoading, addVehicle, updateVehicle, deleteVehicle } = useVehicleRegistry();
   const { addNotification } = useNotifications();
   
@@ -145,13 +147,15 @@ export function VehicleRegisterScreen({ isDarkMode }: { isDarkMode: boolean }) {
           </p>
         </div>
         
-        <button
-          onClick={() => handleOpenDrawer()}
-          className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-95"
-        >
-          <Plus className="w-5 h-5" />
-          Add New Vehicle
-        </button>
+        {canCreate('Vehicle Register') && (
+          <button
+            onClick={() => handleOpenDrawer()}
+            className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-95"
+          >
+            <Plus className="w-5 h-5" />
+            Add New Vehicle
+          </button>
+        )}
       </div>
 
       {/* Control Bar */}
@@ -184,13 +188,13 @@ export function VehicleRegisterScreen({ isDarkMode }: { isDarkMode: boolean }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {[
           { label: 'Total Vehicles', value: vehicles.length, icon: Car, color: 'blue' },
-          { label: 'Active Status', value: vehicles.filter(v => v.status === 'Active').length, icon: Check, color: 'emerald' },
+          { label: 'Active Status', value: vehicles.filter(v => v.status === 'Active').length, icon: Check, color: 'blue' },
           { label: 'Recent Registrations', value: vehicles.filter(v => {
             const date = new Date(v.created_at);
             const now = new Date();
             const diff = now.getTime() - date.getTime();
             return diff < 7 * 24 * 60 * 60 * 1000;
-          }).length, icon: Calendar, color: 'indigo' },
+          }).length, icon: Calendar, color: 'blue' },
         ].map((stat, i) => (
           <div key={i} className={`p-5 rounded-2xl border ${isDarkMode ? 'bg-gray-800/20 border-gray-700' : 'bg-white border-gray-100 shadow-sm'}`}>
             <div className="flex items-center gap-4">
@@ -300,37 +304,36 @@ export function VehicleRegisterScreen({ isDarkMode }: { isDarkMode: boolean }) {
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-bold ring-1 ${
                         vehicle.status === 'Active' 
-                          ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400 ring-emerald-500/30' : 'bg-emerald-50 text-emerald-600 ring-emerald-100')
-                          : (isDarkMode ? 'bg-red-500/10 text-red-400 ring-red-500/30' : 'bg-red-50 text-red-600 ring-red-100')
+                          ? (isDarkMode ? 'bg-blue-500/10 text-blue-400 ring-blue-500/30' : 'bg-blue-50 text-blue-600 ring-blue-100')
+                          : (isDarkMode ? 'bg-blue-700/10 text-blue-400 ring-red-500/30' : 'bg-blue-50 text-blue-700 ring-red-100')
                       }`}>
                         {vehicle.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button 
-                          onClick={() => handleOpenDrawer(vehicle)}
-                          className={`p-2 rounded-lg transition-colors ${
-                            isDarkMode ? 'hover:bg-gray-700 text-gray-400 hover:text-primary' : 'hover:bg-gray-100 text-gray-500 hover:text-primary'
-                          }`}
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(vehicle.id)}
-                          className={`p-2 rounded-lg transition-colors ${
-                            isDarkMode ? 'hover:bg-gray-700 text-gray-400 hover:text-red-400' : 'hover:bg-gray-100 text-gray-500 hover:text-red-600'
-                          }`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                        <button className={`p-2 rounded-lg transition-colors ${
-                            isDarkMode ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'
-                          }`}>
-                            <ChevronRight className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </td>
+                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {canEdit('Vehicle Register') && (
+                            <button 
+                              onClick={() => handleOpenDrawer(vehicle)}
+                              className={`p-2 rounded-lg transition-colors ${
+                                isDarkMode ? 'hover:bg-gray-700 text-gray-400 hover:text-primary' : 'hover:bg-gray-100 text-gray-500 hover:text-primary'
+                              }`}
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          {canDelete('Vehicle Register') && (
+                            <button 
+                              onClick={() => handleDelete(vehicle.id)}
+                              className={`p-2 rounded-lg transition-colors ${
+                                isDarkMode ? 'hover:bg-gray-700 text-gray-400 hover:text-blue-400' : 'hover:bg-gray-100 text-gray-500 hover:text-blue-700'
+                              }`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
                   </tr>
                 ))
               )}
@@ -381,7 +384,17 @@ export function VehicleRegisterScreen({ isDarkMode }: { isDarkMode: boolean }) {
                 <section>
                   <label className="text-xs font-bold uppercase tracking-widest text-primary mb-4 block">Vehicle Basic Details</label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2">
+                    <div>
+                       <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Vehicle Entry ID</label>
+                       <input
+                         type="text"
+                         value={editingVehicle ? `#${editingVehicle.id}` : '#Auto'}
+                         disabled
+                         readOnly
+                         className={inputClass + (isDarkMode ? " bg-gray-700/50" : " bg-gray-100/50")}
+                       />
+                    </div>
+                    <div className="md:col-span-1">
                        <label className={`block text-xs font-bold mb-1.5 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Vehicle Number *</label>
                        <input
                          type="text"
@@ -535,13 +548,15 @@ export function VehicleRegisterScreen({ isDarkMode }: { isDarkMode: boolean }) {
                   >
                     Cancel
                   </button>
-                  <button
-                    onClick={handleSave}
-                    className="flex-[2] px-4 py-3 bg-primary text-white rounded-xl font-black shadow-primary/20 shadow-xl hover:bg-primary/90 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
-                  >
-                    <Check className="w-5 h-5" />
-                    {editingVehicle ? 'Update Vehicle' : 'Register Vehicle'}
-                  </button>
+                  {(editingVehicle ? canEdit('Vehicle Register') : canCreate('Vehicle Register')) && (
+                    <button
+                      onClick={handleSave}
+                      className="flex-[2] px-4 py-3 bg-primary text-white rounded-xl font-black shadow-primary/20 shadow-xl hover:bg-primary/90 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Check className="w-5 h-5" />
+                      {editingVehicle ? 'Update Vehicle' : 'Register Vehicle'}
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>

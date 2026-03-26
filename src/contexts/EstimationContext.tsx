@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { api, endpoints } from '@/services/api';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
+import { useNotifications } from './NotificationContext';
 
 export interface EstimationItem {
   id: number;
@@ -25,6 +26,8 @@ export interface EstimationRecord {
   vehicleModel: string;
   kmReading: string;
   fuelLevel: string;
+  customerId?: string;
+  vehicleId?: string;
   items: EstimationItem[];
   subtotal: number;
   totalGST: number;
@@ -32,6 +35,8 @@ export interface EstimationRecord {
   grandTotal: number;
   status: 'Completed' | 'Pending' | 'Cancelled';
   createdAt: string;
+  processedBy?: string;
+  processedById?: number;
 }
 
 interface EstimationContextType {
@@ -60,44 +65,42 @@ const mapRow = (row: any): EstimationRecord => ({
   vehicleModel: row.vehicle_model || '',
   kmReading: row.km_reading || '',
   fuelLevel: row.fuel_level || '',
+  customerId: row.customer_id?.toString() || '',
+  vehicleId: row.vehicle_id?.toString() || '',
   items: Array.isArray(row.items) ? row.items : JSON.parse(row.items || '[]'),
-  subtotal: row.total_amount ? parseFloat(row.total_amount) : 0, // Simplified if subtotal not separate
-  totalGST: 0, // Backend might not return breakdown if not stored
+  subtotal: row.total_amount ? parseFloat(row.total_amount) : 0, 
+  totalGST: 0, 
   discount: 0,
   grandTotal: row.total_amount ? parseFloat(row.total_amount) : 0,
   status: (row.status as 'Completed' | 'Pending' | 'Cancelled') || 'Pending',
-  createdAt: row.created_at
+  createdAt: row.created_at,
+  processedBy: row.processed_by || '',
+  processedById: row.processed_by_id
 });
 
 export function EstimationProvider({ children }: { children: ReactNode }) {
   const [estimations, setEstimations] = useState<EstimationRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { addNotification } = useNotifications();
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, hasPermission } = useAuth();
 
   const fetchEstimations = async () => {
-    if (!isAuthenticated) {
-      setEstimations([]);
+    if (!isAuthenticated || !hasPermission('Estimation', 'view')) {
+      if (!isAuthenticated) setEstimations([]);
       return;
     }
     setIsLoading(true);
     try {
       const res = await api.get(endpoints.billing.estimation.list);
-      console.log('[EstimationContext] fetchEstimations response:', res);
-      
-      if (res.success && res.data) {
-        // Handle both: res.data.data (array) AND res.data (array)
-        const rawData = res.data.data || res.data;
-        if (Array.isArray(rawData)) {
-          setEstimations(rawData.map(mapRow));
-        } else {
-          console.warn('[EstimationContext] Unexpected estimations format:', rawData);
-          setEstimations([]);
-        }
-      }
-    } catch (err) {
-      console.error('[EstimationContext] Error fetching estimations:', err);
-      toast.error('Failed to load estimations');
+      const rawData = Array.isArray(res?.data?.data)
+        ? res.data.data
+        : Array.isArray(res?.data)
+        ? res.data
+        : [];
+      setEstimations(rawData.map(mapRow));
+    } catch (err: any) {
+      setEstimations([]);
     } finally {
       setIsLoading(false);
     }
@@ -105,82 +108,117 @@ export function EstimationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { fetchEstimations(); }, [isAuthenticated]);
 
-  const addEstimation = async (estimation: EstimationRecord) => {
+  const addEstimation = async (estimation: any) => {
     try {
       const payload = {
-        bill_no: estimation.billNo,
-        estimation_date: estimation.date,
-        estimation_time: estimation.time,
-        customer_name: estimation.customerName,
-        customer_phone: estimation.customerPhone,
-        customer_address: estimation.customerAddress,
-        vehicle_number: estimation.vehicleNumber,
-        vehicle_make: estimation.vehicleMake,
-        vehicle_model: estimation.vehicleModel,
-        km_reading: estimation.kmReading,
-        fuel_level: estimation.fuelLevel,
-        total_amount: estimation.grandTotal,
-        status: estimation.status,
-        items: estimation.items
+        bill_no: estimation.billNo || estimation.bill_no,
+        estimation_date: estimation.date || estimation.estimation_date,
+        estimation_time: estimation.time || estimation.estimation_time,
+        customer_id: estimation.customerId || estimation.customer_id,
+        customer_name: estimation.customerName || estimation.customer_name,
+        customer_phone: estimation.customerPhone || estimation.customer_phone,
+        customer_address: estimation.customerAddress || estimation.customer_address,
+        vehicle_id: estimation.vehicleId || estimation.vehicle_id,
+        vehicle_number: estimation.vehicleNumber || estimation.vehicle_number,
+        vehicle_make: estimation.vehicleMake || estimation.vehicle_make,
+        vehicle_model: estimation.vehicleModel || estimation.vehicle_model,
+        km_reading: estimation.kmReading || estimation.km_reading,
+        fuel_level: estimation.fuelLevel || estimation.fuel_level,
+        total_amount: estimation.grandTotal || estimation.total_amount,
+        status: (estimation.status)?.toLowerCase() || 'pending',
+        items: estimation.items,
+        processed_by: user?.username || estimation.processedBy || 'admin',
+        processed_by_id: user?.id || estimation.processedById
       };
 
       const res = await api.post(endpoints.billing.estimation.create, payload);
       if (res.success) {
         await fetchEstimations();
         toast.success('Estimation saved successfully');
+
+        // ADD NOTIFICATION
+        addNotification(
+          'Saved', 
+          payload.bill_no, 
+          'Estimation', 
+          `New estimation ${payload.bill_no} created for ${payload.customer_name}`,
+          { totalAmount: payload.total_amount }
+        );
       } else {
         toast.error(res.message || 'Failed to save estimation');
         throw new Error(res.error || 'Failed to save estimation');
       }
     } catch (error: any) {
-      console.error('[EstimationContext] addEstimation catch:', error);
       toast.error(error.message || 'Failed to add estimation');
       throw error;
     }
   };
 
-  const updateEstimation = async (id: string, updated: Partial<EstimationRecord>) => {
+  const updateEstimation = async (id: string, updated: any) => {
     try {
       const existing = estimations.find(e => e.id === id);
-      const merged = { ...existing, ...updated } as EstimationRecord;
+      const merged = { ...existing, ...updated } as any;
       
       const payload = {
-        bill_no: merged.billNo,
-        estimation_date: merged.date,
-        estimation_time: merged.time,
-        customer_name: merged.customerName,
-        customer_phone: merged.customerPhone,
-        customer_address: merged.customerAddress,
-        vehicle_number: merged.vehicleNumber,
-        vehicle_make: merged.vehicleMake,
-        vehicle_model: merged.vehicleModel,
-        km_reading: merged.kmReading,
-        fuel_level: merged.fuelLevel,
-        total_amount: merged.grandTotal,
-        status: merged.status,
-        items: merged.items
+        bill_no: merged.billNo || merged.bill_no,
+        estimation_date: merged.date || merged.estimation_date,
+        estimation_time: merged.time || merged.estimation_time,
+        customer_id: merged.customerId || merged.customer_id,
+        customer_name: merged.customerName || merged.customer_name,
+        customer_phone: merged.customerPhone || merged.customer_phone,
+        customer_address: merged.customerAddress || merged.customer_address,
+        vehicle_id: merged.vehicleId || merged.vehicle_id,
+        vehicle_number: merged.vehicleNumber || merged.vehicle_number,
+        vehicle_make: merged.vehicleMake || merged.vehicle_make,
+        vehicle_model: merged.vehicleModel || merged.vehicle_model,
+        km_reading: merged.kmReading || merged.km_reading,
+        fuel_level: merged.fuelLevel || merged.fuel_level,
+        total_amount: merged.grandTotal || merged.total_amount,
+        status: (merged.status)?.toLowerCase(),
+        items: merged.items,
+        processed_by: user?.username || merged.processedBy || 'admin',
+        processed_by_id: user?.id || merged.processedById
       };
 
       const res = await api.put(endpoints.billing.estimation.update(id), payload);
       if (res.success) {
         await fetchEstimations();
         toast.success('Estimation updated successfully');
+
+        // ADD NOTIFICATION
+        addNotification(
+          'Updated', 
+          payload.bill_no, 
+          'Estimation', 
+          `Estimation ${payload.bill_no} updated for ${payload.customer_name}`,
+          { totalAmount: payload.total_amount }
+        );
       } else {
         toast.error(res.message || 'Failed to update estimation');
         throw new Error(res.error || 'Failed to update estimation');
       }
     } catch (error: any) {
-      console.error('[EstimationContext] updateEstimation catch:', error);
       toast.error(error.message || 'Failed to update estimation');
       throw error;
     }
   };
 
   const deleteEstimation = async (id: string) => {
+    const existing = estimations.find(e => e.id === id);
     const res = await api.delete(endpoints.billing.estimation.delete(id));
     if (res.success) {
       setEstimations(prev => prev.filter(e => e.id !== id));
       toast.success('Estimation deleted successfully');
+
+      // ADD NOTIFICATION
+      if (existing) {
+        addNotification(
+          'Deleted', 
+          existing.billNo, 
+          'Estimation', 
+          `Removed estimation record ${existing.billNo}`
+        );
+      }
     }
   };
 
@@ -190,12 +228,10 @@ export function EstimationProvider({ children }: { children: ReactNode }) {
     try {
       const res = await api.get('/estimations/next-number');
       if (res.success && res.data) {
-        // Correct unwrapping for the next number string
         return res.data.data || res.data;
       }
       return null;
     } catch (err) {
-      console.error('[EstimationContext] Error fetching next estimation number:', err);
       return null;
     }
   };

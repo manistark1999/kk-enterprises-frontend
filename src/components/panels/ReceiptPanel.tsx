@@ -74,7 +74,6 @@ export function ReceiptPanel({ isOpen, onClose, isDarkMode }: ReceiptPanelProps)
         status: 'received'
       };
 
-      console.log('📤 Submitting receipt payload:', payload);
       const response = await api.post(endpoints.billing.receipt.create, payload);
       
       if (response.success) {
@@ -88,7 +87,6 @@ export function ReceiptPanel({ isOpen, onClose, isDarkMode }: ReceiptPanelProps)
         throw new Error(response.error || 'Failed to save receipt');
       }
     } catch (error: any) {
-      console.error('❌ Error saving receipt:', error);
       toast.error(error.message || 'Error saving receipt to database');
     } finally {
       setIsSubmitting(false);

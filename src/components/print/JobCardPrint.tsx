@@ -1,286 +1,183 @@
-import React, { forwardRef } from "react";
+import React, { forwardRef } from 'react';
+import {
+  PrintLayout,
+  DocumentHeader,
+  SectionHeader,
+  PrintTable,
+  PrintSummary,
+  SignatureBlock,
+  PrintFooter
+} from './PrintSystem';
+import logo from '../../assets/images/kk-groups-logo-header-print.png';
 
-export type JobCardItem = {
-  item: string;
-  description: string;
-  location?: string;
-  quantity: number | string;
-};
+export interface ServiceItem {
+  id: string;
+  serviceId: string;
+  serviceName: string;
+  quantity: number;
+  rate: number;
+  gst: number;
+  amount: number;
+}
 
-export type JobCardPrintProps = {
-  company?: {
-    name: string;
-    address1?: string;
-    address2?: string;
-    phone?: string;
-    mobile?: string;
-    email?: string;
-  };
-  customer?: {
-    name: string;
-    address1?: string;
-    address2?: string;
-    phone?: string;
-    mobile?: string;
-    email?: string;
-  };
-  jobCard?: {
-    title?: string;
-    postDate?: string;
-    jobCardNo?: string;
-    newOdometer?: string;
-    barcodeValue?: string;
-  };
-  vehicle?: {
-    registration?: string;
-    make?: string;
-    model?: string;
-    modelSeries?: string;
-    modelCode?: string;
-    colour?: string;
-    prodDate?: string;
-    nextService?: string;
-    regoDue?: string;
-    engineNo?: string;
-    engineCode?: string;
-    vin?: string;
-    buildDate?: string;
-    chassisNo?: string;
-    litres?: string;
-    trans?: string;
-    air?: string;
-    cyl?: string;
-    body?: string;
-    odo?: string;
-    hours?: string;
-    summary?: string;
-    vehicleType?: string;
-    transportName?: string;
-  };
-  alignment?: {
-    beforeFrontCamber?: string;
-    beforeFrontCaster?: string;
-    beforeFrontToe?: string;
-    beforeRearCamber?: string;
-    beforeRearToe?: string;
-    afterFrontCamber?: string;
-    afterFrontCaster?: string;
-    afterFrontToe?: string;
-    afterRearCamber?: string;
-    afterRearToe?: string;
-  };
-  staff?: {
-    technicianName?: string;
-    technicianId?: string;
-  };
-  jobDetails?: {
-    serviceType?: string;
-    workType?: string;
-    problemReported?: string;
-    workDone?: string;
-    remarks?: string;
-  };
-  items?: JobCardItem[];
-  notes?: string;
-};
+export interface JobCardData {
+  jobCardNo: string;
+  date: string;
+  time: string;
+  customerName: string;
+  customerPhone: string;
+  customerAddress: string;
+  vehicleNumber: string;
+  vehicleMake: string;
+  vehicleModel: string;
+  kmReading: string;
+  serviceType: string;
+  workType: string;
+  technicianName: string;
+  problemReported: string;
+  workDone: string;
+  remarks: string;
+  labourCharge: string | number;
+  partsCharge: string | number;
+  totalAmount: string | number;
+  serviceItems: ServiceItem[];
+  // Alignment details
+  beforeFrontCamber?: string;
+  beforeFrontCaster?: string;
+  beforeFrontToe?: string;
+  beforeRearCamber?: string;
+  beforeRearToe?: string;
+  afterFrontCamber?: string;
+  afterFrontCaster?: string;
+  afterFrontToe?: string;
+  afterRearCamber?: string;
+  afterRearToe?: string;
+  processedBy?: string;
+  processedById?: number | string;
+}
 
-const FieldRow = ({
-  label,
-  value,
-}: {
-  label: string;
-  value?: string | number;
-}) => (
-  <div className="jc-field-row">
-    <span className="jc-label">{label}</span>
-    <span className="jc-value">{value || "-"}</span>
-  </div>
-);
+interface JobCardPrintProps {
+  data: JobCardData;
+  company?: any;
+}
 
-const JobCardPrint = forwardRef<HTMLDivElement, JobCardPrintProps>(
-  (
-    {
-      company,
-      customer,
-      jobCard,
-      vehicle,
-      alignment,
-      staff,
-      jobDetails,
-      items = [],
-      notes,
-    },
-    ref
-  ) => {
-    return (
-      <div ref={ref} className="jobcard-print-root">
-        <div className="jobcard-print-page">
-          <div className="jobcard-header">
-            <div className="jobcard-header-left">
-              <div className="jc-section-title">Customer:</div>
-              <div className="jc-customer-name">{customer?.name || "-"}</div>
-              <div>{customer?.address1 || ""}</div>
-              <div>{customer?.address2 || ""}</div>
-              <div>{customer?.phone || ""}</div>
-              <div>{customer?.mobile || ""}</div>
-              <div>{customer?.email || ""}</div>
-            </div>
+export const JobCardPrint = forwardRef<HTMLDivElement, JobCardPrintProps>(({ data, company }, ref) => {
+  const metaDetails = [
+    { label: 'Job Card No', value: data.jobCardNo },
+    { label: 'Time', value: data.time },
+    { label: 'Service Type', value: data.serviceType }
+  ];
 
-            <div className="jobcard-header-right">
-              <div className="jc-main-title">
-                {jobCard?.title || "Repair Order / Job Card"}
-              </div>
+  const headers = ['No', 'Item Description', 'Pieces', 'Price', 'Amount'];
+  const rows = (data.serviceItems || []).map((item, index) => [
+    index + 1,
+    item.serviceName,
+    item.quantity,
+    `₹${Number(item.rate).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`,
+    `₹${Number(item.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+  ]);
 
-              <div className="jc-top-meta">
-                <div className="jc-meta-row">
-                  <span>Post Date</span>
-                  <span>{jobCard?.postDate || "-"}</span>
-                </div>
-                <div className="jc-meta-row">
-                  <span>Job Card</span>
-                  <span>{jobCard?.jobCardNo || "-"}</span>
-                </div>
-                <div className="jc-meta-row">
-                  <span>New Odometer</span>
-                  <span className="jc-line-value">
-                    {jobCard?.newOdometer || ""}
-                  </span>
-                </div>
-              </div>
+  const subtotal = (data.serviceItems || []).reduce((acc, item) => acc + item.amount, 0);
+  const labourCharge = Number(data.labourCharge) || 0;
+  const partsCharge = Number(data.partsCharge) || 0;
 
-              <div className="jc-barcode-box">
-                <div className="jc-barcode-text">
-                  {jobCard?.barcodeValue || jobCard?.jobCardNo || ""}
-                </div>
-              </div>
-            </div>
-          </div>
+  const totals = [
+    { label: 'Service/Parts Subtotal', value: `₹${subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` },
+    { label: 'Labour Charges', value: `₹${labourCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` },
+    { label: 'Additional Parts', value: `₹${partsCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` },
+    { label: 'Total Payable Amount', value: `₹${Number(data.totalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, isTotal: true }
+  ];
 
-          <div className="jc-vehicle-box">
-            <div className="jc-vehicle-grid">
-              <div className="jc-col">
-                <FieldRow label="Registration" value={vehicle?.registration} />
-                <FieldRow label="Make" value={vehicle?.make} />
-                <FieldRow label="Model" value={vehicle?.model} />
-                <FieldRow label="Model Series" value={vehicle?.modelSeries} />
-                <FieldRow label="Model Code" value={vehicle?.modelCode} />
-                <FieldRow label="Colour" value={vehicle?.colour} />
-                <FieldRow label="Prod Date" value={vehicle?.prodDate} />
-              </div>
-
-              <div className="jc-col">
-                <FieldRow label="Next Service" value={vehicle?.nextService} />
-                <FieldRow label="Rego Due" value={vehicle?.regoDue} />
-                <FieldRow label="Engine #" value={vehicle?.engineNo} />
-                <FieldRow label="Engine Code" value={vehicle?.engineCode} />
-                <FieldRow label="VIN" value={vehicle?.vin} />
-                <FieldRow label="Build Date" value={vehicle?.buildDate} />
-                <FieldRow label="Chassis #" value={vehicle?.chassisNo} />
-              </div>
-
-              <div className="jc-col">
-                <FieldRow label="Litres" value={vehicle?.litres} />
-                <FieldRow label="Trans" value={vehicle?.trans} />
-                <FieldRow label="Air" value={vehicle?.air} />
-                <FieldRow label="Cyl" value={vehicle?.cyl} />
-                <FieldRow label="Body" value={vehicle?.body} />
-                <FieldRow label="Odo" value={vehicle?.odo} />
-                <FieldRow label="Hours" value={vehicle?.hours} />
-              </div>
-            </div>
-
-            <div className="jc-summary-line">{vehicle?.summary || ""}</div>
-          </div>
-          {/* Alignment Measurements */}
-          {(alignment || staff || jobDetails) && (
-            <div className="jc-details-section">
-              <div className="jc-details-grid">
-                <div className="jc-details-col">
-                  <div className="jc-section-title">Job Details:</div>
-                  <FieldRow label="Service Type" value={jobDetails?.serviceType} />
-                  <FieldRow label="Work Type" value={jobDetails?.workType} />
-                  <FieldRow label="Technician" value={staff?.technicianName} />
-                  <div className="mt-2">
-                    <div className="jc-label">Complaint:</div>
-                    <div className="jc-text-box">{jobDetails?.problemReported || "-"}</div>
-                  </div>
-                </div>
-                
-                <div className="jc-details-col">
-                  <div className="jc-section-title">Alignment (Before):</div>
-                  <div className="jc-alignment-compact">
-                    <FieldRow label="F. Camber" value={alignment?.beforeFrontCamber} />
-                    <FieldRow label="F. Caster" value={alignment?.beforeFrontCaster} />
-                    <FieldRow label="F. Toe" value={alignment?.beforeFrontToe} />
-                    <FieldRow label="R. Camber" value={alignment?.beforeRearCamber} />
-                    <FieldRow label="R. Toe" value={alignment?.beforeRearToe} />
-                  </div>
-                </div>
-
-                <div className="jc-details-col">
-                  <div className="jc-section-title">Alignment (After):</div>
-                  <div className="jc-alignment-compact">
-                    <FieldRow label="F. Camber" value={alignment?.afterFrontCamber} />
-                    <FieldRow label="F. Caster" value={alignment?.afterFrontCaster} />
-                    <FieldRow label="F. Toe" value={alignment?.afterFrontToe} />
-                    <FieldRow label="R. Camber" value={alignment?.afterRearCamber} />
-                    <FieldRow label="R. Toe" value={alignment?.afterRearToe} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="jc-section-subtitle">Service Items & Labour:</div>
-          <table className="jc-items-table">
-            <thead>
-              <tr>
-                <th style={{ width: "23%" }}>Item</th>
-                <th style={{ width: "37%" }}>Description</th>
-                <th style={{ width: "25%" }}>Location</th>
-                <th style={{ width: "15%", textAlign: "right" }}>Quantity</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.length > 0 ? (
-                items.map((row, index) => (
-                  <tr key={index}>
-                    <td>{row.item}</td>
-                    <td>{row.description}</td>
-                    <td>{row.location || ""}</td>
-                    <td style={{ textAlign: "right" }}>{row.quantity}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={4} className="jc-empty-row">
-                    No items added
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-
-          <div className="jc-notes-section">
-            <div className="jc-notes-title">Job Card Notes</div>
-            <div className="jc-notes-content">
-              {notes
-                ? notes.split("\n").map((line: string, idx: number) => <div key={idx}>{line}</div>)
-                : "No notes"}
-            </div>
-          </div>
-
-          <div className="jc-footer">
+  return (
+    <div ref={ref}>
+      <PrintLayout>
+        {/* Custom Header with black 'JOB CARD' box as per image */}
+        <div className="flex justify-between items-start mb-8 border-b-2 border-black pb-4">
+          <div className="flex gap-4 items-center">
+            <img src={logo} alt="KK Groups Logo" className="w-16 h-16 object-contain shadow-md" />
             <div>
-              <strong>{company?.name || "KK Enterprises"}</strong>
+              <h1 className="text-2xl font-black uppercase tracking-tighter">{company?.company_name || 'KK ENTERPRISES'}</h1>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Automobile Workshop & Service Matrix</p>
+              <div className="text-[11px] mt-2 font-medium text-gray-600 leading-tight">
+                <p>{company?.address || 'Building No. 12, Industrial Area, Phase I'}</p>
+                <p>Phone: {company?.phone || '+91 7558130111'}</p>
+              </div>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="bg-black text-white px-8 py-2 mb-2">
+              <h2 className="text-2xl font-black tracking-widest italic text-white">JOB CARD</h2>
+            </div>
+            <div className="text-xs font-bold space-y-0.5">
+              <p className="flex justify-between gap-4">Ref No: <span>{data.jobCardNo}</span></p>
+              <p className="flex justify-between gap-4">Date: <span>{data.date}</span></p>
             </div>
           </div>
         </div>
-      </div>
-    );
-  }
-);
 
-JobCardPrint.displayName = "JobCardPrint";
+        <SectionHeader title="Customer Information" />
+        <div className="grid grid-cols-2 gap-8 mb-6 border-b border-gray-100 pb-6">
+          <div>
+            <label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Bill To:</label>
+            <div className="font-bold text-base">{data.customerName}</div>
+            <div className="text-xs text-gray-600 mt-1">{data.customerAddress || 'N/A'}</div>
+            <div className="text-blue-600 font-bold text-sm mt-1">{data.customerPhone}</div>
+          </div>
+          <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+            <label className="text-[9px] font-bold text-blue-400 uppercase tracking-widest block mb-1">Vehicle Particulars:</label>
+            <div className="grid grid-cols-2 gap-y-1 text-xs">
+              <span className="font-bold">Registration:</span><span>{data.vehicleNumber}</span>
+              <span className="font-bold">Make/Model:</span><span>{data.vehicleMake} {data.vehicleModel}</span>
+              <span className="font-bold">KM Reading:</span><span>{data.kmReading}</span>
+            </div>
+          </div>
+        </div>
+
+        <SectionHeader title="Job Description & Notes" />
+        <div className="grid grid-cols-3 gap-6 mb-8">
+          <div className="col-span-2 space-y-4">
+            <div>
+              <span className="font-bold block text-[10px] uppercase text-gray-400 mb-1">Problem Reported:</span>
+              <p className="text-xs italic min-h-[3em] bg-gray-50 p-3 rounded-lg border border-gray-100">{data.problemReported || 'Standard diagnostic requested'}</p>
+            </div>
+            <div>
+              <span className="font-bold block text-[10px] uppercase text-gray-400 mb-1">Technical Observation:</span>
+              <p className="text-xs italic min-h-[3em] bg-gray-50 p-3 rounded-lg border border-gray-100">{data.workDone || 'Inspection in progress'}</p>
+            </div>
+          </div>
+          <div className="border-l pl-6 space-y-4 border-gray-100">
+            <div>
+              <span className="font-bold block text-[10px] uppercase text-gray-400 mb-1">Designer in Charge:</span>
+              <p className="font-black text-blue-900 text-lg leading-tight uppercase tracking-tighter">{data.processedBy || data.technicianName || 'N/A'}</p>
+            </div>
+            <div className="pt-4 border-t border-gray-100">
+              <span className="font-bold block text-[10px] uppercase text-gray-400 mb-1">Current Status:</span>
+              <div className="inline-block px-3 py-1 bg-black text-white text-[10px] font-black uppercase tracking-widest italic rounded">SERVICE RECORD</div>
+            </div>
+          </div>
+        </div>
+
+        <PrintTable headers={headers} rows={rows} widths={['10%', '50%', '10%', '15%', '15%']} />
+
+        <PrintSummary totals={totals} />
+
+        <div className="grid grid-cols-2 gap-12 items-end mt-12 mb-8">
+          <div className="text-center">
+            <div className="border-b-2 border-black pb-2 mb-2 font-bold italic tracking-tighter">{data.customerName}</div>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Customer Authorization</span>
+          </div>
+          <div className="text-center">
+            <div className="border-b-2 border-black pb-2 mb-2 font-black text-xl italic tracking-tighter">KK ENTERPRISES</div>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Authorized Signature</span>
+          </div>
+        </div>
+
+        <PrintFooter company={company} />
+      </PrintLayout>
+    </div>
+  );
+});
+
+JobCardPrint.displayName = 'JobCardPrint';
 
 export default JobCardPrint;

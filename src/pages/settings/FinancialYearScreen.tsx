@@ -135,7 +135,7 @@ export function FinancialYearScreen({ isDarkMode }: FinancialYearScreenProps) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active': return isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700';
+      case 'Active': return isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-100 text-blue-700';
       case 'Closed': return isDarkMode ? 'bg-gray-500/20 text-gray-400' : 'bg-gray-100 text-gray-700';
       case 'Future': return isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-700';
       default: return isDarkMode ? 'bg-gray-500/20 text-gray-400' : 'bg-gray-100 text-gray-700';
@@ -211,10 +211,10 @@ export function FinancialYearScreen({ isDarkMode }: FinancialYearScreenProps) {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <CheckCircle className={`w-5 h-5 ${
-                  isDarkMode ? 'text-green-400' : 'text-green-600'
+                  isDarkMode ? 'text-blue-400' : 'text-blue-600'
                 }`} />
                 <span className={`text-sm font-semibold ${
-                  isDarkMode ? 'text-green-400' : 'text-green-600'
+                  isDarkMode ? 'text-blue-400' : 'text-blue-600'
                 }`}>
                   Current Financial Year
                 </span>
@@ -338,7 +338,7 @@ export function FinancialYearScreen({ isDarkMode }: FinancialYearScreenProps) {
                     <td className="px-6 py-4 whitespace-nowrap">
                       {year.isCurrent ? (
                         <span className={`flex items-center gap-1 text-sm font-semibold ${
-                          isDarkMode ? 'text-green-400' : 'text-green-600'
+                          isDarkMode ? 'text-blue-400' : 'text-blue-600'
                         }`}>
                           <CheckCircle className="w-4 h-4" />
                           Yes
@@ -375,8 +375,8 @@ export function FinancialYearScreen({ isDarkMode }: FinancialYearScreenProps) {
                             year.isCurrent
                               ? 'opacity-50 cursor-not-allowed'
                               : isDarkMode
-                              ? 'hover:bg-red-500/20 text-red-400'
-                              : 'hover:bg-red-100 text-red-600'
+                              ? 'hover:bg-blue-700/20 text-blue-400'
+                              : 'hover:bg-blue-100 text-blue-700'
                           }`}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -414,7 +414,7 @@ export function FinancialYearScreen({ isDarkMode }: FinancialYearScreenProps) {
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 Active Year
               </p>
-              <p className={`text-2xl font-bold mt-1 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+              <p className={`text-2xl font-bold mt-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
                 {financialYears.filter(y => y.status === 'Active').length}
               </p>
             </div>

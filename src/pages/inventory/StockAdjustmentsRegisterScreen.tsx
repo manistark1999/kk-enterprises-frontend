@@ -183,9 +183,9 @@ export function StockAdjustmentsRegisterScreen({ isDarkMode }: StockAdjustmentsR
               <span className={`text-sm font-medium ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>Total Additions</span>
-              <TrendingUp className="w-5 h-5 text-green-500" />
+              <TrendingUp className="w-5 h-5 text-blue-500" />
             </div>
-            <div className="text-3xl font-bold text-green-500">{totalAdditions}</div>
+            <div className={`text-3xl font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{totalAdditions}</div>
             <p className={`text-xs mt-1 ${
               isDarkMode ? 'text-gray-500' : 'text-gray-500'
             }`}>{filteredAdjustments.filter(a => a.adjustmentType === 'Add').length} entries</p>
@@ -203,9 +203,9 @@ export function StockAdjustmentsRegisterScreen({ isDarkMode }: StockAdjustmentsR
               <span className={`text-sm font-medium ${
                 isDarkMode ? 'text-gray-400' : 'text-gray-600'
               }`}>Total Removals</span>
-              <TrendingDown className="w-5 h-5 text-red-500" />
+              <TrendingDown className="w-5 h-5 text-blue-900" />
             </div>
-            <div className="text-3xl font-bold text-red-500">{totalRemovals}</div>
+            <div className={`text-3xl font-bold ${isDarkMode ? 'text-blue-700' : 'text-blue-900'}`}>{totalRemovals}</div>
             <p className={`text-xs mt-1 ${
               isDarkMode ? 'text-gray-500' : 'text-gray-500'
             }`}>{filteredAdjustments.filter(a => a.adjustmentType === 'Remove').length} entries</p>
@@ -230,7 +230,7 @@ export function StockAdjustmentsRegisterScreen({ isDarkMode }: StockAdjustmentsR
             <div className={`text-3xl font-bold ${
               netAdjustment >= 0 
                 ? isDarkMode ? 'text-blue-400' : 'text-blue-600'
-                : 'text-red-500'
+                : 'text-blue-900 border-b border-blue-900/40'
             }`}>{netAdjustment >= 0 ? '+' : ''}{netAdjustment}</div>
             <p className={`text-xs mt-1 ${
               isDarkMode ? 'text-gray-500' : 'text-gray-500'
@@ -447,8 +447,8 @@ export function StockAdjustmentsRegisterScreen({ isDarkMode }: StockAdjustmentsR
                         <td className="py-3 px-4 text-center">
                           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
                             adj.adjustmentType === 'Add'
-                              ? isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'
-                              : isDarkMode ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-700'
+                              ? isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-100 text-blue-700'
+                              : isDarkMode ? 'bg-blue-900/40 text-blue-300' : 'bg-blue-900/10 text-blue-800'
                           }`}>
                             {adj.adjustmentType === 'Add' ? (
                               <><TrendingUp className="w-3 h-3" /> Add</>
@@ -458,7 +458,7 @@ export function StockAdjustmentsRegisterScreen({ isDarkMode }: StockAdjustmentsR
                           </span>
                         </td>
                         <td className={`py-3 px-4 text-sm font-bold text-right ${
-                          adj.adjustmentType === 'Add' ? 'text-green-500' : 'text-red-500'
+                          adj.adjustmentType === 'Add' ? 'text-blue-600' : 'text-blue-800'
                         }`}>{adj.quantity}</td>
                         <td className={`py-3 px-4 text-sm text-right ${
                           isDarkMode ? 'text-gray-400' : 'text-gray-600'

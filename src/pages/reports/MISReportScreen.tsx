@@ -527,7 +527,7 @@ export function MISReportScreen({ isDarkMode, module }: MISReportScreenProps) {
               }`}>
                 <DollarSign className="w-6 h-6 text-blue-500" />
               </div>
-              <div className="flex items-center gap-1 text-green-500 text-sm font-semibold bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-md">
+              <div className="flex items-center gap-1 text-blue-600 text-sm font-semibold bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md">
                 <TrendingUp className="w-3.5 h-3.5" />
                 {dashboardData.percentages.revenue}
               </div>
@@ -554,11 +554,11 @@ export function MISReportScreen({ isDarkMode, module }: MISReportScreenProps) {
           <div className="p-6 h-full flex flex-col">
             <div className="flex items-start justify-between mb-4">
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                isDarkMode ? 'bg-red-500/20' : 'bg-red-50'
+                isDarkMode ? 'bg-blue-700/20' : 'bg-blue-50'
               }`}>
-                <Wallet className="w-6 h-6 text-red-500" />
+                <Wallet className="w-6 h-6 text-blue-700" />
               </div>
-              <div className="flex items-center gap-1 text-red-500 text-sm font-semibold bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-md">
+              <div className="flex items-center gap-1 text-blue-700 text-sm font-semibold bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md">
                 <TrendingUp className="w-3.5 h-3.5" />
                 {dashboardData.percentages.expenses}
               </div>
@@ -585,11 +585,11 @@ export function MISReportScreen({ isDarkMode, module }: MISReportScreenProps) {
           <div className="p-6 h-full flex flex-col">
             <div className="flex items-start justify-between mb-4">
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                isDarkMode ? 'bg-green-500/20' : 'bg-green-50'
+                isDarkMode ? 'bg-blue-600/20' : 'bg-blue-50'
               }`}>
-                <TrendingUp className="w-6 h-6 text-green-500" />
+                <TrendingUp className="w-6 h-6 text-blue-600" />
               </div>
-              <div className="flex items-center gap-1 text-green-500 text-sm font-semibold bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-md">
+              <div className="flex items-center gap-1 text-blue-600 text-sm font-semibold bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md">
                 <TrendingUp className="w-3.5 h-3.5" />
                 {dashboardData.percentages.profit}
               </div>
@@ -620,7 +620,7 @@ export function MISReportScreen({ isDarkMode, module }: MISReportScreenProps) {
               }`}>
                 <Users className="w-6 h-6 text-blue-500" />
               </div>
-              <div className="flex items-center gap-1 text-green-500 text-sm font-semibold bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-md">
+              <div className="flex items-center gap-1 text-blue-600 text-sm font-semibold bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-md">
                 <TrendingUp className="w-3.5 h-3.5" />
                 {dashboardData.percentages.customers}
               </div>
@@ -852,9 +852,9 @@ export function MISReportScreen({ isDarkMode, module }: MISReportScreenProps) {
                 >
                   <div className="flex items-center gap-4">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${
-                      index === 0 ? 'bg-yellow-500/20 text-yellow-500' :
+                      index === 0 ? 'bg-blue-400/20 text-blue-400' :
                       index === 1 ? 'bg-gray-400/20 text-gray-400' :
-                      index === 2 ? 'bg-orange-500/20 text-orange-500' :
+                      index === 2 ? 'bg-blue-800/20 text-blue-800' :
                       'bg-blue-500/20 text-blue-500'
                     }`}>
                       #{index + 1}
@@ -897,7 +897,7 @@ export function MISReportScreen({ isDarkMode, module }: MISReportScreenProps) {
                 isDarkMode ? 'text-blue-400' : 'text-blue-600'
               }`} />
               <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-50 text-green-600'
+                isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-50 text-blue-600'
               }`}>On Track</span>
             </div>
             <h3 className={`text-sm font-medium mb-1 ${
@@ -921,10 +921,10 @@ export function MISReportScreen({ isDarkMode, module }: MISReportScreenProps) {
           <div className="p-5">
             <div className="flex items-center justify-between mb-3">
               <Receipt className={`w-8 h-8 ${
-                isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                isDarkMode ? 'text-blue-400' : 'text-blue-800'
               }`} />
               <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                isDarkMode ? 'bg-orange-500/20 text-orange-400' : 'bg-orange-50 text-orange-600'
+                isDarkMode ? 'bg-blue-800/20 text-blue-400' : 'bg-blue-50 text-blue-800'
               }`}>Average</span>
             </div>
             <h3 className={`text-sm font-medium mb-1 ${
@@ -948,10 +948,10 @@ export function MISReportScreen({ isDarkMode, module }: MISReportScreenProps) {
           <div className="p-5">
             <div className="flex items-center justify-between mb-3">
               <AlertCircle className={`w-8 h-8 ${
-                isDarkMode ? 'text-red-400' : 'text-red-600'
+                isDarkMode ? 'text-blue-400' : 'text-blue-700'
               }`} />
               <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                isDarkMode ? 'bg-red-500/20 text-red-400' : 'bg-red-50 text-red-600'
+                isDarkMode ? 'bg-blue-700/20 text-blue-400' : 'bg-blue-50 text-blue-700'
               }`}>Action Needed</span>
             </div>
             <h3 className={`text-sm font-medium mb-1 ${

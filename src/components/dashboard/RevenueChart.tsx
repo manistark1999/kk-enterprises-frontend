@@ -26,11 +26,12 @@ interface RevenueData {
 
 interface RevenueChartProps {
   isDarkMode: boolean;
-  period: 'today' | 'weekly' | 'monthly' | 'yearly';
+  period?: 'today' | 'weekly' | 'monthly' | 'yearly';
   chartType?: 'bar' | 'pie' | 'line';
   data: RevenueData[];
-  loading: boolean;
+  loading?: boolean;
   error?: string | null;
+  colors?: string[];
 }
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
@@ -41,7 +42,8 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({
   chartType = 'line',
   data = [],
   loading,
-  error
+  error,
+  colors
 }) => {
 
   if (loading) {
@@ -130,7 +132,7 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({
                   label={({ label, percent }) => `${label}: ${(percent * 100).toFixed(0)}%`}
                 >
                   {displayData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={(colors || COLORS)[index % (colors || COLORS).length]} />
                   ))}
                 </Pie>
                 <Tooltip 

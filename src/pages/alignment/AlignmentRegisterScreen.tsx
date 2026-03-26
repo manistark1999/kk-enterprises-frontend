@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, Filter, Calendar, Car, User, DollarSign, Settings, Eye, Printer, Download, CheckCircle, Save, Edit, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAlignment } from '@/contexts/AlignmentContext';
+import { UnifiedPrintPreview } from '@/components/print/UnifiedPrintPreview';
 import { handlePrintWithTemplate, PrintData } from '@/utils/printUtils';
 
 interface AlignmentRegisterScreenProps {
@@ -36,11 +37,8 @@ export function AlignmentRegisterScreen({ isDarkMode }: AlignmentRegisterScreenP
   
   // Track changes to alignment entries
   useEffect(() => {
-    console.log('🔄 AlignmentRegisterScreen: Entries changed!', alignmentEntries.length);
   }, [alignmentEntries]);
   
-  console.log('📊 AlignmentRegisterScreen: Rendering with entries count:', alignmentEntries.length);
-  console.log('📊 AlignmentRegisterScreen: Entries:', alignmentEntries);
 
   // Convert context entries to records format
   const records: AlignmentRecord[] = alignmentEntries.map(entry => ({
@@ -77,9 +75,9 @@ export function AlignmentRegisterScreen({ isDarkMode }: AlignmentRegisterScreenP
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Completed': return isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700';
+      case 'Completed': return isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-100 text-blue-700';
       case 'In Progress': return isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-700';
-      case 'Pending': return isDarkMode ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-700';
+      case 'Pending': return isDarkMode ? 'bg-blue-400/20 text-blue-400' : 'bg-blue-100 text-blue-700';
       default: return isDarkMode ? 'bg-gray-500/20 text-gray-400' : 'bg-gray-100 text-gray-700';
     }
   };
@@ -88,7 +86,7 @@ export function AlignmentRegisterScreen({ isDarkMode }: AlignmentRegisterScreenP
     switch (type) {
       case 'Both': return isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-700';
       case 'Front': return isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-700';
-      case 'Rear': return isDarkMode ? 'bg-orange-500/20 text-orange-400' : 'bg-orange-100 text-orange-700';
+      case 'Rear': return isDarkMode ? 'bg-blue-800/20 text-blue-400' : 'bg-blue-100 text-blue-700';
       default: return isDarkMode ? 'bg-gray-500/20 text-gray-400' : 'bg-gray-100 text-gray-700';
     }
   };
@@ -99,60 +97,12 @@ export function AlignmentRegisterScreen({ isDarkMode }: AlignmentRegisterScreenP
   const completedCount = filteredRecords.filter(r => r.status === 'Completed').length;
   const pendingCount = filteredRecords.filter(r => r.status === 'Pending' || r.status === 'In Progress').length;
 
-  const handlePrint = (record: AlignmentRecord) => {
-    const printData: PrintData = {
-      header: {
-        documentTitle: 'ALIGNMENT SERVICE RECEIPT',
-        documentNumber: record.billNo,
-        documentDate: new Date(record.date).toLocaleDateString('en-IN', { 
-          day: '2-digit', 
-          month: 'long', 
-          year: 'numeric' 
-        })
-      },
-      companyInfo: {
-        name: 'KK Enterprises',
-        address1: 'Workshop Management System',
-        address2: 'Professional Auto Service Center',
-        phone: '+91 98765 43210',
-        email: 'info@kkenterprises.com',
-        gst: 'GST123456789'
-      },
-      customerInfo: {
-        name: record.customerName,
-      },
-      vehicleInfo: {
-        vehicleNumber: record.vehicleNo,
-        vehicleMake: record.vehicleMake
-      },
-      columns: [
-        { header: 'Service', key: 'service', align: 'left' },
-        { header: 'Type', key: 'type', align: 'center', width: '150px' },
-        { header: 'Technician', key: 'technician', align: 'left', width: '150px' },
-        { header: 'Amount', key: 'amount', align: 'right', width: '120px' }
-      ],
-      data: [{
-        service: 'Wheel Alignment Service',
-        type: record.alignmentType,
-        technician: record.technician,
-        amount: `₹${record.charges.toLocaleString('en-IN')}`
-      }],
-      totals: {
-        total: record.charges,
-        currency: '₹'
-      },
-      additionalInfo: `
-        <div style="font-size: 11px; color: #6b7280;">
-          <p><strong>Service Status:</strong> <span style="color: ${
-            record.status === 'Completed' ? '#10b981' : 
-            record.status === 'Pending' ? '#f59e0b' : '#3b82f6'
-          }; font-weight: bold;">${record.status}</span></p>
-        </div>
-      `,
-      notes: 'Thank you for choosing KK Enterprises. Regular wheel alignment helps improve vehicle handling and tire life.'
-    };
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [printData, setPrintData] = useState<any>(null);
 
-    handlePrintWithTemplate(printData);
+  const handlePrint = (record: AlignmentRecord) => {
+    setPrintData(record);
+    setIsPrintModalOpen(true);
     toast.success('Opening print preview...');
   };
 
@@ -232,7 +182,6 @@ export function AlignmentRegisterScreen({ isDarkMode }: AlignmentRegisterScreenP
       
       toast.success(`Alignment history successfully stored in PostgreSQL and downloaded.`);
     } catch (err) {
-      console.error('Failed to save history to DB:', err);
       // Fallback or just let context toast error
     }
   };
@@ -534,7 +483,7 @@ export function AlignmentRegisterScreen({ isDarkMode }: AlignmentRegisterScreenP
                       </div>
                     </td>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${
-                      isDarkMode ? 'text-green-400' : 'text-green-600'
+                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
                     }`}>
                       ₹{record.charges.toLocaleString('en-IN')}
                     </td>
@@ -572,8 +521,8 @@ export function AlignmentRegisterScreen({ isDarkMode }: AlignmentRegisterScreenP
                           onClick={() => handleEdit(record)}
                           className={`p-2 rounded-lg transition-colors ${
                             isDarkMode
-                              ? 'hover:bg-green-500/20 text-green-400'
-                              : 'hover:bg-green-100 text-green-600'
+                              ? 'hover:bg-blue-600/20 text-blue-400'
+                              : 'hover:bg-blue-100 text-blue-600'
                           }`}
                           title="Edit"
                         >
@@ -612,7 +561,7 @@ export function AlignmentRegisterScreen({ isDarkMode }: AlignmentRegisterScreenP
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 Total Charges
               </p>
-              <p className={`text-2xl font-bold mt-1 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+              <p className={`text-2xl font-bold mt-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
                 ₹{totalCharges.toLocaleString('en-IN')}
               </p>
             </div>
@@ -628,7 +577,7 @@ export function AlignmentRegisterScreen({ isDarkMode }: AlignmentRegisterScreenP
               <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                 Pending
               </p>
-              <p className={`text-2xl font-bold mt-1 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
+              <p className={`text-2xl font-bold mt-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-500'}`}>
                 {pendingCount}
               </p>
             </div>
@@ -765,7 +714,7 @@ export function AlignmentRegisterScreen({ isDarkMode }: AlignmentRegisterScreenP
                         <span className={`font-bold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                           Total Amount:
                         </span>
-                        <span className="font-bold text-2xl text-green-500">
+                        <span className="font-bold text-2xl text-blue-600">
                           ₹{recordToView.charges.toLocaleString('en-IN')}
                         </span>
                       </div>
@@ -816,6 +765,13 @@ export function AlignmentRegisterScreen({ isDarkMode }: AlignmentRegisterScreenP
             </motion.div>
           </div>
         )}
+        <UnifiedPrintPreview
+          type="alignment"
+          data={printData}
+          isOpen={isPrintModalOpen}
+          onClose={() => setIsPrintModalOpen(false)}
+          isDarkMode={isDarkMode}
+        />
       </div>
     </div>
   );

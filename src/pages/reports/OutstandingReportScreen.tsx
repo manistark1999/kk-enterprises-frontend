@@ -166,11 +166,11 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Critical':
-        return isDarkMode ? 'text-red-400 bg-red-500/20' : 'text-red-600 bg-red-50';
+        return isDarkMode ? 'text-blue-400 bg-blue-700/20' : 'text-blue-700 bg-blue-50';
       case 'Overdue':
-        return isDarkMode ? 'text-orange-400 bg-orange-500/20' : 'text-orange-600 bg-orange-50';
+        return isDarkMode ? 'text-blue-400 bg-blue-800/20' : 'text-blue-800 bg-blue-50';
       case 'Warning':
-        return isDarkMode ? 'text-yellow-400 bg-yellow-500/20' : 'text-yellow-600 bg-yellow-50';
+        return isDarkMode ? 'text-blue-400 bg-blue-400/20' : 'text-blue-500 bg-blue-50';
       case 'Due Soon':
         return isDarkMode ? 'text-blue-400 bg-blue-500/20' : 'text-blue-600 bg-blue-50';
       default:
@@ -188,7 +188,7 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-            isDarkMode ? 'bg-orange-600' : 'bg-orange-600'
+            isDarkMode ? 'bg-blue-600' : 'bg-blue-600'
           }`}>
             <AlertCircle className="w-6 h-6 text-white" />
           </div>
@@ -214,8 +214,8 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
           </button>
           <button className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
             isDarkMode 
-              ? 'bg-orange-600 text-white hover:bg-orange-700' 
-              : 'bg-orange-600 text-white hover:bg-orange-700'
+              ? 'bg-blue-600 text-white hover:bg-blue-700' 
+              : 'bg-blue-600 text-white hover:bg-blue-700'
           }`}>
             <Send className="w-4 h-4" />
             Send Reminders
@@ -318,11 +318,11 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
           <div className="p-5">
             <div className="flex items-center justify-between mb-3">
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-orange-500/20' : 'bg-orange-50'
+                isDarkMode ? 'bg-blue-800/20' : 'bg-blue-50'
               }`}>
-                <DollarSign className="w-6 h-6 text-orange-500" />
+                <DollarSign className="w-6 h-6 text-blue-800" />
               </div>
-              <div className="flex items-center gap-1 text-orange-500 text-sm font-medium">
+              <div className="flex items-center gap-1 text-blue-800 text-sm font-medium">
                 <AlertCircle className="w-4 h-4" />
                 Pending
               </div>
@@ -348,11 +348,11 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
           <div className="p-5">
             <div className="flex items-center justify-between mb-3">
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-red-500/20' : 'bg-red-50'
+                isDarkMode ? 'bg-blue-700/20' : 'bg-blue-50'
               }`}>
-                <XCircle className="w-6 h-6 text-red-500" />
+                <XCircle className="w-6 h-6 text-blue-700" />
               </div>
-              <div className="flex items-center gap-1 text-red-500 text-sm font-medium">
+              <div className="flex items-center gap-1 text-blue-700 text-sm font-medium">
                 <TrendingUp className="w-4 h-4" />
                 Critical
               </div>
@@ -378,11 +378,11 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
           <div className="p-5">
             <div className="flex items-center justify-between mb-3">
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-yellow-500/20' : 'bg-yellow-50'
+                isDarkMode ? 'bg-blue-400/20' : 'bg-blue-50'
               }`}>
-                <Clock className="w-6 h-6 text-yellow-500" />
+                <Clock className="w-6 h-6 text-blue-400" />
               </div>
-              <div className="flex items-center gap-1 text-yellow-500 text-sm font-medium">
+              <div className="flex items-center gap-1 text-blue-400 text-sm font-medium">
                 <AlertCircle className="w-4 h-4" />
                 Warning
               </div>
@@ -408,11 +408,11 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
           <div className="p-5">
             <div className="flex items-center justify-between mb-3">
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-green-500/20' : 'bg-green-50'
+                isDarkMode ? 'bg-blue-600/20' : 'bg-blue-50'
               }`}>
-                <CheckCircle className="w-6 h-6 text-green-500" />
+                <CheckCircle className="w-6 h-6 text-blue-600" />
               </div>
-              <div className="flex items-center gap-1 text-green-500 text-sm font-medium">
+              <div className="flex items-center gap-1 text-blue-600 text-sm font-medium">
                 <TrendingDown className="w-4 h-4" />
                 -8.5%
               </div>
@@ -450,7 +450,7 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
                 }`}>Outstanding by age brackets</p>
               </div>
               <Activity className={`w-5 h-5 ${
-                isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                isDarkMode ? 'text-blue-400' : 'text-blue-800'
               }`} />
             </div>
             <ResponsiveContainer width="100%" height={280}>
@@ -503,7 +503,7 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
                 }`}>6-month progression</p>
               </div>
               <TrendingUp className={`w-5 h-5 ${
-                isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                isDarkMode ? 'text-blue-400' : 'text-blue-800'
               }`} />
             </div>
             <ResponsiveContainer width="100%" height={280}>
@@ -560,7 +560,7 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
               }`}>Highest pending amounts</p>
             </div>
             <Target className={`w-5 h-5 ${
-              isDarkMode ? 'text-orange-400' : 'text-orange-600'
+              isDarkMode ? 'text-blue-400' : 'text-blue-800'
             }`} />
           </div>
           <div className="space-y-3">
@@ -573,9 +573,9 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
               >
                 <div className="flex items-center gap-4">
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${
-                    index === 0 ? 'bg-red-500/20 text-red-500' :
-                    index === 1 ? 'bg-orange-500/20 text-orange-500' :
-                    index === 2 ? 'bg-yellow-500/20 text-yellow-500' :
+                    index === 0 ? 'bg-blue-700/20 text-blue-700' :
+                    index === 1 ? 'bg-blue-800/20 text-blue-800' :
+                    index === 2 ? 'bg-blue-400/20 text-blue-400' :
                     'bg-gray-500/20 text-gray-500'
                   }`}>
                     #{index + 1}
@@ -591,7 +591,7 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
                 </div>
                 <div className="text-right">
                   <p className={`font-bold text-lg ${
-                    isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                    isDarkMode ? 'text-blue-400' : 'text-blue-800'
                   }`}>₹{customer.amount.toLocaleString()}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <button className={`p-1.5 rounded-lg transition-colors ${
@@ -600,7 +600,7 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
                       <PhoneCall className="w-3.5 h-3.5" />
                     </button>
                     <button className={`p-1.5 rounded-lg transition-colors ${
-                      isDarkMode ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' : 'bg-green-50 text-green-600 hover:bg-green-100'
+                      isDarkMode ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
                     }`}>
                       <Mail className="w-3.5 h-3.5" />
                     </button>
@@ -622,7 +622,7 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <FileText className={`w-5 h-5 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
+              <FileText className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-800'}`} />
               <h2 className={`text-lg font-bold ${
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}>Outstanding Details</h2>
@@ -690,7 +690,7 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
                         </div>
                       </td>
                       <td className={`py-3 px-4 text-sm font-medium ${
-                        isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                        isDarkMode ? 'text-blue-400' : 'text-blue-800'
                       }`}>{customer.invoiceNo}</td>
                       <td className={`py-3 px-4 text-sm ${
                         isDarkMode ? 'text-gray-300' : 'text-gray-700'
@@ -703,9 +703,9 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
                       }`}>₹{customer.amount.toLocaleString()}</td>
                       <td className="py-3 px-4 text-center">
                         <span className={`inline-flex items-center justify-center w-12 h-8 rounded-lg font-bold text-sm ${
-                          customer.days > 90 ? 'bg-red-500/20 text-red-500' :
-                          customer.days > 60 ? 'bg-orange-500/20 text-orange-500' :
-                          customer.days > 30 ? 'bg-yellow-500/20 text-yellow-500' :
+                          customer.days > 90 ? 'bg-blue-700/20 text-blue-700' :
+                          customer.days > 60 ? 'bg-blue-800/20 text-blue-800' :
+                          customer.days > 30 ? 'bg-blue-400/20 text-blue-400' :
                           'bg-blue-500/20 text-blue-500'
                         }`}>
                           {customer.days}
@@ -726,12 +726,12 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
                             <PhoneCall className="w-4 h-4" />
                           </button>
                           <button className={`p-2 rounded-lg transition-colors ${
-                            isDarkMode ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' : 'bg-green-50 text-green-600 hover:bg-green-100'
+                            isDarkMode ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
                           }`} title="Email">
                             <Mail className="w-4 h-4" />
                           </button>
                           <button className={`p-2 rounded-lg transition-colors ${
-                            isDarkMode ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30' : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
+                            isDarkMode ? 'bg-blue-800/20 text-blue-400 hover:bg-blue-800/30' : 'bg-blue-50 text-blue-800 hover:bg-blue-100'
                           }`} title="Send Reminder">
                             <Bell className="w-4 h-4" />
                           </button>

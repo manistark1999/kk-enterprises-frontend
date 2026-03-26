@@ -1,217 +1,418 @@
-/* Unified Print System Styles */
+/* =============================
+   Print System CSS
+   ============================= */
 
-@media print {
-  @page {
-    size: A4;
-    margin: 0;
-  }
-  
-  body {
-    background: white !important;
-    margin: 0;
-    padding: 0;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  .no-print {
-    display: none !important;
-  }
-
-  .print-container {
-    padding: 0 !important;
-    margin: 0 !important;
-    width: 210mm;
-    min-height: 297mm;
-    background: white !important;
-  }
+/* --- Container --- */
+.print-container {
+  font-family: 'Inter', Arial, sans-serif;
+  font-size: 13px;
+  color: #1a202c;
+  background: #f3f4f6;
+  min-height: 100vh;
+  padding: 24px;
 }
 
 .print-preview-container {
-  width: 210mm;
-  min-height: 297mm;
-  padding: 15mm;
-  margin: 1rem auto;
-  background: white;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-  color: #111;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  display: flex;
-  flex-direction: column;
+  background: #ffffff;
+  max-width: 900px;
+  margin: 0 auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+  padding: 40px 48px;
 }
 
-/* Typography */
+/* --- Document Header --- */
+.print-doc-header {
+  margin-bottom: 24px;
+  border-bottom: 2px solid #2563eb;
+  padding-bottom: 20px;
+}
+
 .print-title {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
-  color: #000;
-  margin-bottom: 4px;
+  color: #1e3a8a;
+  margin: 0 0 4px 0;
 }
 
 .print-subtitle {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 24px;
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
 }
 
-/* Header Sections */
+/* --- Header Grid --- */
 .print-header-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 40px;
-  margin-bottom: 40px;
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 16px;
 }
 
 .print-info-block {
-  font-size: 13px;
-  line-height: 1.5;
+  flex: 1;
+  font-size: 12px;
+  color: #374151;
+  line-height: 1.6;
 }
 
 .print-info-label {
-  font-weight: 700;
-  color: #000;
-  margin-bottom: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   display: block;
+  margin-bottom: 4px;
 }
 
-/* Metadata (Date, Number) */
+/* --- Meta Grid --- */
 .print-meta-grid {
   display: flex;
-  gap: 40px;
-  margin-bottom: 40px;
-  font-size: 13px;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+  background: #eff6ff;
+  border-radius: 6px;
+  padding: 10px 16px;
 }
 
 .print-meta-item {
   display: flex;
   flex-direction: column;
+  min-width: 120px;
+  font-size: 12px;
 }
 
 .print-meta-label {
+  font-size: 10px;
   font-weight: 600;
-  color: #000;
-}
-
-/* Table Design */
-.print-table-section {
-  flex-grow: 1;
-  margin-bottom: 40px;
-}
-
-.print-section-header {
-  font-size: 16px;
-  font-weight: 700;
+  color: #6b7280;
   text-transform: uppercase;
-  margin-bottom: 12px;
-  color: #000;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
+  margin-bottom: 2px;
+}
+
+/* --- Section Header --- */
+.print-section-header {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e40af;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  border-bottom: 1px solid #dbeafe;
+  padding-bottom: 6px;
+  margin: 20px 0 10px 0;
+}
+
+/* --- Table --- */
+.print-table-section {
+  margin-bottom: 16px;
+  overflow-x: auto;
 }
 
 .print-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 20px;
+  font-size: 12px;
 }
 
-.print-table th {
+.print-table thead tr {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.print-table thead th {
+  padding: 8px 12px;
   text-align: left;
-  padding: 12px 8px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #000;
-  border-bottom: 2px solid #000;
-  background-color: transparent;
+  font-weight: 600;
+  font-size: 11px;
+  white-space: nowrap;
 }
 
-.print-table td {
-  padding: 12px 8px;
-  font-size: 13px;
-  border-bottom: 1px solid #eee;
-  color: #333;
+.print-table tbody tr:nth-child(even) {
+  background: #f0f9ff;
 }
 
-.print-table tr:nth-child(even) {
-  background-color: #f9f9f9;
+.print-table tbody tr:hover {
+  background: #dbeafe;
 }
 
-/* Totals Box */
+.print-table tbody td {
+  padding: 7px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  color: #374151;
+}
+
+/* --- Summary / Totals --- */
+.print-bottom-layout {
+  margin-top: 20px;
+}
+
 .print-summary-container {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 40px;
+  margin-bottom: 20px;
 }
 
 .print-summary-box {
-  width: 300px;
+  min-width: 280px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
 }
 
 .print-summary-row {
   display: flex;
   justify-content: space-between;
-  padding: 8px 0;
-  font-size: 14px;
+  padding: 7px 14px;
+  font-size: 12px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
 }
 
 .print-summary-row.total {
-  border-top: 2px solid #000;
-  border-bottom: 2px solid #000;
-  margin-top: 8px;
-  padding: 12px 0;
-  font-weight: 800;
-  font-size: 18px;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14px;
+  border-bottom: none;
 }
 
-/* Footer & Details */
+/* --- Details Grid (Payment + Bank) --- */
 .print-details-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 40px;
-  margin-bottom: 60px;
-  font-size: 12px;
+  display: flex;
+  gap: 24px;
+  margin-top: 10px;
 }
 
 .print-details-header {
+  font-size: 12px;
   font-weight: 700;
-  margin-bottom: 8px;
-  color: #000;
+  color: #1e40af;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
-/* Simple 3-column footer bar */
-.print-bottom-bar {
-  border-top: 1px solid #eee;
-  padding-top: 20px;
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 20px;
-  font-size: 10px;
-  color: #666;
-}
-
-.print-bottom-bar-col strong {
-  color: #000;
-  display: block;
-  margin-bottom: 4px;
-}
-
-/* Signatures */
+/* --- Signature --- */
 .print-signature-section {
   display: flex;
   justify-content: space-between;
   margin-top: 40px;
-  margin-bottom: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
 }
 
 .print-signature-box {
-  width: 200px;
   text-align: center;
+  min-width: 160px;
 }
 
 .print-signature-line {
-  border-top: 1px solid #000;
-  margin-bottom: 8px;
+  border-bottom: 1px solid #374151;
+  margin-bottom: 6px;
+  height: 48px;
 }
 
 .print-signature-label {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* --- Footer Bar --- */
+.print-bottom-bar {
+  display: flex;
+  justify-content: space-between;
+  background: #1e3a8a;
+  color: #ffffff;
+  border-radius: 0 0 8px 8px;
+  padding: 14px 24px;
+  margin-top: 32px;
+  font-size: 11px;
+  gap: 16px;
+}
+
+.print-bottom-bar-col {
+  flex: 1;
+}
+
+.print-bottom-bar-col strong {
+  display: block;
   font-size: 12px;
-  font-weight: 600;
+  margin-bottom: 4px;
+  color: #93c5fd;
+}
+
+.print-bottom-bar-col p {
+  margin: 0;
+  line-height: 1.6;
+  color: #e0e7ef;
+}
+
+/* 
+  Special CSS Color Polyfill for html2canvas & Tailwind V4 (ESM Compat)
+  Tailwind V4 uses oklch() colors by default which html2canvas fails to parse.
+  We force standard RGB fallbacks specifically for the print area.
+*/
+#print-area {
+  --background: 255, 255, 255;
+  --foreground: 0, 0, 0;
+  --primary: 37, 99, 235; /* #2563eb */
+  --secondary: 100, 116, 139; /* #64748b */
+  --accent: 30, 58, 138; /* #1e3a8a */
+  --muted: 241, 245, 249; /* #f1f5f9 */
+  color: rgb(var(--foreground)) !important;
+  background-color: rgb(var(--background)) !important;
+}
+
+#print-area * {
+  border-color: rgb(229, 231, 235) !important; /* Standard #e5e7eb */
+  outline-color: transparent !important;
+}
+
+#print-area .bg-blue-600 { background-color: rgb(37, 99, 235) !important; }
+#print-area .text-blue-600 { color: rgb(37, 99, 235) !important; }
+#print-area .bg-gray-100 { background-color: rgb(243, 244, 246) !important; }
+#print-area .text-gray-900 { color: rgb(17, 24, 39) !important; }
+#print-area .text-gray-600 { color: rgb(75, 85, 99) !important; }
+#print-area .text-gray-400 { color: rgb(156, 163, 175) !important; }
+#print-area .border-gray-200 { border-color: rgb(229, 231, 235) !important; }
+#print-area .bg-blue-50\/30 { background-color: rgba(239, 246, 255, 0.3) !important; }
+#print-area .text-blue-500 { color: rgb(59, 130, 246) !important; }
+#print-area .border-blue-100 { border-color: rgb(219, 234, 254) !important; }
+#print-area .bg-blue-600\/20 { background-color: rgba(37, 99, 235, 0.2) !important; }
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm; /* Small consistent margin for physical print bleed */
+  }
+
+  /* 1. NUCLEAR BODY PURGE
+     Immediately hide every direct child of body except our Portal Root.
+  */
+  body > *:not(.print-portal-root) {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* 2. NEUTRALIZE SHELL & WRAPPERS
+     Make all ancestors of the print area invisible to layout but visible to children.
+     We use 'display: contents' to make them disappear from the box model,
+     preventing centering, scrolling, or height constraints from interfering.
+  */
+  html, body {
+    background: white !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-portal-root,
+  .print-modal-wrapper,
+  .print-body-preview,
+  .print-container,
+  .print-preview-container {
+    display: contents !important; /* The elements vanish, but children remain */
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    visibility: visible !important;
+    position: static !important;
+    transform: none !important;
+  }
+
+  /* 3. ISOLATED PRINT AREA
+     This is the actual document. We force it to fill the page width
+     and ensure it starts exactly at the top.
+  */
+  #print-area {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+    z-index: 1000 !important;
+  }
+
+  /* 4. FORCE CONTENT RENDERING
+     Neutralize any Tailwind/Motion styles that might hide content.
+  */
+  #print-area * {
+    visibility: visible !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    height: auto !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+    color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Fix Grid & Flex for Print Engines */
+  #print-area .grid { display: grid !important; }
+  #print-area .flex { display: flex !important; }
+  
+  #print-area .bg-white { background-color: white !important; }
+  #print-area .bg-black { background-color: #000000 !important; -webkit-print-color-adjust: exact !important; color: white !important; }
+  #print-area .text-white { color: #ffffff !important; }
+  #print-area .bg-gray-50 { background-color: #f9fafb !important; }
+  #print-area .bg-blue-50\/50, #print-area .bg-blue-50\/30 { background-color: #eff6ff !important; }
+  #print-area .text-blue-600 { color: #2563eb !important; }
+  #print-area .text-blue-900 { color: #1e3a8a !important; }
+  #print-area .text-gray-400 { color: #9ca3af !important; }
+  #print-area .text-gray-600 { color: #4b5563 !important; }
+
+  /* 5. HIDE UI ELEMENTS
+     Buttons, X icons, modal headers, etc.
+  */
+  .no-print,
+  .print-preview-header,
+  .print-preview-actions,
+  .preview-shell-footer,
+  aside, 
+  nav, 
+  header, 
+  button,
+  svg:not(.print-include) {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* 6. PAGE BREAK CONTROL */
+  .page-break-avoid {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  table { page-break-inside: auto !important; }
+  tr { page-break-inside: avoid !important; page-break-after: auto !important; }
+  thead { display: table-header-group !important; }
+  tfoot { display: table-footer-group !important; }
 }

@@ -16,17 +16,23 @@ import {
   X,
   CheckCircle,
   Clock,
-  XCircle
+  XCircle,
+  ChevronDown, // Added
+  Check, // Added
+  Truck // Added
 } from 'lucide-react';
+import { VehicleAutocomplete } from '@/components/ui/VehicleAutocomplete'; // Added
 import { SearchableDropdown } from '@/components/ui/SearchableDropdown';
-import { useLabourBills } from '@/contexts/LabourBillContext';
+import { useLabourBills, LabourBillRecord } from '@/contexts/LabourBillContext';
 import { useEstimations } from '@/contexts/EstimationContext';
 import { useSales } from '@/contexts/SalesContext';
 import { usePurchases } from '@/contexts/PurchaseContext';
 import { useMasters } from '@/contexts/MastersContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { useItemsServices } from '@/contexts/ItemsServicesContext';
 import { useCustomers } from '@/contexts/CustomerContext';
 import { useSuppliers } from '@/contexts/SupplierContext';
+import { useVehicleRegistry } from '@/contexts/VehicleRegistryContext';
 import { toast } from 'sonner';
 import { UnifiedPrintPreview } from '@/components/print/UnifiedPrintPreview';
 import { api, endpoints } from '@/services/api';
@@ -83,18 +89,21 @@ interface BillingScreenEnhancedProps {
 export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix, onNavigate, editBill }: BillingScreenEnhancedProps) {
   const { addLabourBill, updateLabourBill, deleteLabourBill, labourBills, refreshLabourBills, getNextBillNumber } = useLabourBills();
   const { estimations, addEstimation, updateEstimation, deleteEstimation, refreshEstimations } = useEstimations();
+  const { isAuthenticated, canCreate, canEdit, canDelete, canPrint } = useAuth();
   const { sales, addSale, updateSale, deleteSale, refreshSales } = useSales();
   const { purchases, addPurchase, updatePurchase, deletePurchase, refreshPurchases } = usePurchases();
-  const { vehicleMakes, getModelsByMake } = useMasters();
+  const { vehicleMakes, vehicleModels, getModelsByMake } = useMasters();
   const { itemsServices } = useItemsServices();
   const { customers } = useCustomers();
   const { suppliers } = useSuppliers();
+  const { vehicles, getVehicleByNumber, lookupVehicle } = useVehicleRegistry();
   const [items, setItems] = useState<BillingItem[]>([]);
   const [discount, setDiscount] = useState(0);
   const [customerId, setCustomerId] = useState(''); // Store customer ID
   const [customerName, setCustomerName] = useState(''); // Store customer name for display
   const [customerAddress, setCustomerAddress] = useState('');
   const [vehicleNumber, setVehicleNumber] = useState('');
+  const [vehicleId, setVehicleId] = useState('');
   const [vehicleModel, setVehicleModel] = useState('');
   const [vehicleMakeDropdown, setVehicleMakeDropdown] = useState(''); // For dropdown selection
   const [kmReading, setKmReading] = useState('');
@@ -144,7 +153,6 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
   // Load editBill data when provided
   useEffect(() => {
     if (editBill) {
-      console.log('Loading edit bill:', editBill);
       setIsEditMode(true);
       setEditBillId(editBill.id);
       setCurrentBillNumber(editBill.billNo);
@@ -154,6 +162,7 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
       setCustomerPhone(editBill.customerPhone || '');
       setCustomerAddress(editBill.customerAddress || '');
       setVehicleNumber(editBill.vehicleNumber);
+      setVehicleId(editBill.vehicleId || '');
       setVehicleMakeDropdown(editBill.vehicleMake || '');
       setVehicleModel(editBill.vehicleModel);
       setKmReading(editBill.kmReading || '');
@@ -165,8 +174,7 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
     }
   }, [editBill]);
 
-  // Fetch next bill number from backend
-  const fetchNextBillNumber = async () => {
+  const fetchNextBillNumber = async (selectedDate?: string) => {
     try {
       let endpoint = '';
       if (billType === 'estimation') endpoint = '/estimations/next-number';
@@ -175,39 +183,62 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
       else if (billType === 'purchase') endpoint = '/inventory/purchases/next-number';
 
       if (endpoint) {
-        console.log(`📡 Fetching next ${billType} number from ${endpoint}...`);
-        const response = await api.get(endpoint);
+        // Pass the date to ensure correct sequence for that month
+        const dateParam = selectedDate || billDate;
+        const response = await api.get(`${endpoint}?date=${dateParam}`);
 
-        if (response.success && response.data) {
-          // Robust extraction: check both response.data.data and response.data
-          const billNo =
-            (typeof response.data.data === 'string' ? response.data.data : null) ||
-            (typeof response.data === 'string' ? response.data : null) ||
-            response.data.data?.bill_no ||
-            response.data.bill_no ||
-            response.data.data?.jobcard_no ||
-            currentBillNumber; // Fallback to current if still nothing
+        if (!response.success) {
+          throw new Error(response.message || `Failed to fetch next ${billType} number`);
+        }
 
-          if (billNo && typeof billNo === 'string') {
-            setCurrentBillNumber(billNo);
-            console.log(`✅ Fetched next ${billType} number: ${billNo}`);
-          } else {
-            console.error(`⚠️ Could not find a valid number in response for ${billType}`, response.data);
-          }
+        const billNo =
+          (typeof response.data?.data === 'string' ? response.data.data : null) ||
+          (typeof response.data === 'string' ? response.data : null) ||
+          response.data?.data?.bill_no ||
+          response.data?.bill_no ||
+          response.data?.data?.jobcard_no ||
+          currentBillNumber;
+
+        if (billNo && typeof billNo === 'string') {
+          setCurrentBillNumber(billNo);
+        } else {
+          throw new Error('Invalid number received from server');
         }
       }
-    } catch (err) {
-      console.error(`❌ Failed to fetch next ${billType} number:`, err);
-      toast.error(`Could not fetch next ${billType} number. Please refresh.`);
+    } catch (err: any) {
+      if (isAuthenticated) {
+        console.error("Fetch bill number error:", err);
+      }
+      // fallback to local context calculation
+      if (billType === 'labour') {
+        try {
+          const fallback = getNextBillNumber(billPrefix as string);
+          setCurrentBillNumber(fallback);
+        } catch (fallbackErr) {
+        }
+      }
     }
   };
 
-  // Initial fetch for create mode
+  // Initial fetch and re-fetch on date change for create mode
   useEffect(() => {
-    if (!isEditMode) {
+    if (isAuthenticated && !isEditMode) {
       fetchNextBillNumber();
     }
-  }, [isEditMode, billType]);
+  }, [isAuthenticated, isEditMode, billType, billDate]);
+
+  // Fallback to local context calculation if API fetch fails or returns empty
+  useEffect(() => {
+    if (isAuthenticated && !isEditMode && !currentBillNumber) {
+      try {
+        const fallbackNumber = getNextBillNumber(billPrefix as string);
+        if (fallbackNumber) {
+          setCurrentBillNumber(fallbackNumber);
+        }
+      } catch (err) {
+      }
+    }
+  }, [isAuthenticated, isEditMode, currentBillNumber, billType, billPrefix, getNextBillNumber]);
 
   // Automatically load all items from Items/Services master on mount - OPTIMIZED
   useEffect(() => {
@@ -237,7 +268,6 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
         });
 
         setItems(loadedItems);
-        console.log('✅ Auto-loaded items from master:', loadedItems.length);
       }
     }
   }, [isEditMode]); // Only run when edit mode changes
@@ -266,44 +296,73 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
 
   // Create vehicle make dropdown options - filter only active makes
   const vehicleMakeOptions = vehicleMakes
-    .filter(vm => vm.status === 'Active')
+    .filter(vm => vm.status?.toLowerCase() === 'active')
     .map(vm => vm.name);
 
-  const vehicleModelOptions = vehicleMakeDropdown 
-    ? getModelsByMake(vehicleMakeDropdown)
-    : [];
+  const vehicleModelOptions = useMemo(() => {
+    if (!vehicleMakeDropdown) return [];
+    // Enhanced model lookup from vehicleModels master
+    const make = vehicleMakes.find(vm => vm.name === vehicleMakeDropdown);
+    if (!make) return [];
+    
+    return vehicleModels
+      .filter(vm => String(vm.makeId) === String(make.id) && vm.status.toLowerCase() === 'active')
+      .map(vm => vm.modelName);
+  }, [vehicleModels, vehicleMakeDropdown, vehicleMakes]);
 
   // Create item options from items/services master
   const itemOptions = itemsServices
-    .filter(item => item.type === 'Service' && item.status === 'Active')
+    .filter(item => item.type === 'Service' && item.status?.toLowerCase() === 'active')
     .map(item => ({
       value: item.name,
       label: `${item.name} (₹${item.defaultRate})`
     }));
 
+  const vehicleOptions = vehicles.map(v => ({
+    value: v.vehicle_number,
+    label: `${v.vehicle_number} (${v.owner_name})`
+  }));
+
   const handleCustomerChange = (customerId: string) => {
-    console.log('🔍 Selected customer ID or Typed Name:', customerId);
     setCustomerId(customerId);
 
     // Find customer by ID
     const selectedCustomer = customers.find(c => String(c.id) === customerId);
-    console.log('📞 Found customer:', selectedCustomer);
 
     if (selectedCustomer) {
       setCustomerPhone(selectedCustomer.phone);
       setCustomerAddress(selectedCustomer.address || '');
       setCustomerName(selectedCustomer.name);
-      console.log('✅ Auto-filled phone:', selectedCustomer.phone);
     } else {
       setCustomerPhone('');
       setCustomerAddress('');
       setCustomerName(customerId); // Keep the raw typed text!
-      console.log('ℹ️ Customer not found - using raw text as customer name');
     }
   };
 
+const handleVehicleSelect = (vehicleData: any) => {
+    
+    // Auto-fill everything synchronously for instant feedback
+    setVehicleNumber(vehicleData.vehicleNumber);
+    if (vehicleData.vehicleMake) setVehicleMakeDropdown(vehicleData.vehicleMake);
+    if (vehicleData.vehicleModel) setVehicleModel(vehicleData.vehicleModel);
+    
+    // Priority: Master linked customer > Vehicle record local info
+    if (vehicleData.customerName) setCustomerName(vehicleData.customerName);
+    if (vehicleData.mobileNumber) setCustomerPhone(vehicleData.mobileNumber);
+    if (vehicleData.address) setCustomerAddress(vehicleData.address);
+    if (vehicleData.customerId) setCustomerId(String(vehicleData.customerId));
+    if (vehicleData.id) setVehicleId(String(vehicleData.id));
+    
+    toast.success(`✓ Linked to Master: ${vehicleData.vehicleNumber} (${vehicleData.customerName || 'Customer'})`);
+  };
+
+  const handleVehicleNumberChange = (vNumber: string) => {
+    setVehicleNumber(vNumber.toUpperCase());
+    validateField('vehicleNumber', vNumber);
+  };
+
   const handleSupplierChange = (supplierId: string) => {
-    console.log('🔍 Selected supplier ID:', supplierId);
     setCustomerId(supplierId);
 
     const selectedSupplier = suppliers.find(s => String(s.id) === supplierId);
@@ -311,7 +370,6 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
       setCustomerPhone(selectedSupplier.mobile || '');
       setCustomerAddress(selectedSupplier.address || '');
       setCustomerName(selectedSupplier.name);
-      console.log('✅ Auto-filled supplier:', selectedSupplier.name);
     } else {
       setCustomerPhone('');
       setCustomerAddress('');
@@ -408,10 +466,6 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
     if (!customerName) missingFields.push(nameLabel);
     if (billType !== 'purchase' && billType !== 'sales' && !vehicleNumber) missingFields.push('Vehicle Number');
 
-    console.log('--- SAVE VALIDATION TRIGGERED ---');
-    console.log('Raw Items:', items);
-    console.log('Valid Items identified:', validItems);
-    console.log('Missing Fields detected:', missingFields);
 
     if (missingFields.length > 0) {
       toast.error(`Required: ${missingFields.join(', ')}`);
@@ -460,6 +514,8 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
             customerName: customerName.split(' - ')[0] || customerName,
             customerPhone: customerPhone,
             customerAddress: customerAddress,
+            customerId: customerId,
+            vehicleId: vehicleId,
             vehicleNumber: vehicleNumber,
             vehicleMake: vehicleMakeDropdown,
             vehicleModel: vehicleModel,
@@ -486,7 +542,6 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
           handleReset();
           await fetchNextBillNumber();
         } catch (error: any) {
-          console.error('[BillingPage] Estimation save failed:', error);
         }
       };
       saveEstimationFlow();
@@ -520,7 +575,6 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
           handleReset();
           await fetchNextBillNumber();
         } catch (error: any) {
-          console.error('[BillingPage] Sale save failed:', error);
         }
       };
       saveSaleFlow();
@@ -563,7 +617,6 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
 
         } catch (error: any) {
           // Error is already logged and toasted by the context
-          console.error('[BillingScreen] Purchase save failed. Error was handled by PurchaseContext.');
         }
       };
       savePurchase();
@@ -581,6 +634,8 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
           customerName: customerName.split(' - ')[0] || customerName,
           customerPhone: customerPhone,
           customerAddress: customerAddress,
+          customerId: customerId,
+          vehicleId: vehicleId,
           vehicleNumber: vehicleNumber,
           vehicleMake: vehicleMakeDropdown,
           vehicleModel: vehicleModel,
@@ -608,7 +663,6 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
 
       } catch (error: any) {
         // Error toast is already handled in the context's catch block
-        console.error('[BillingScreen] Save failed. The error was caught and handled by the context.');
       }
     };
     saveBill();
@@ -622,6 +676,7 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
     setCustomerPhone('');
     setCustomerAddress('');
     setVehicleNumber('');
+    setVehicleId('');
     setVehicleModel('');
     setVehicleMakeDropdown('');
     setKmReading('');
@@ -696,7 +751,6 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
       return;
     }
 
-    console.log('🔍 Item selected:', value);
     // Find the selected item from master data
     const selectedItem = itemsServices.find(item => item.name === value);
 
@@ -723,7 +777,6 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
 
       toast.success(`Auto-filled: ${selectedItem.name} - ₹${selectedItem.defaultRate}`);
     } else {
-      console.log('❌ Item not found in master data');
       // Just update the name if item not found
       updateItem(id, 'itemName', value);
       toast.warning('Item not found in master data. Please enter rate manually.');
@@ -798,73 +851,61 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
         <div className="p-6">
           {/* Bill Header Info */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div>
+            <div className="relative">
               <label className={`${getLabelClass(isDarkMode)} flex items-center gap-1`}>
-                Bill No {!currentBillNumber && <span className="text-red-500">*</span>}
+                {billType === 'estimation' ? 'Estimation No' : 
+                 billType === 'labour' ? 'Labour Bill No' : 
+                 billType === 'sales' ? 'Sales Bill No' : 
+                 billType === 'purchase' ? 'Purchase Bill No' : 'Bill No'}
+                {!currentBillNumber && <span className="text-blue-700">*</span>}
               </label>
-              <input
-                type="text"
-                value={currentBillNumber}
-                readOnly
-                placeholder={!currentBillNumber ? "Fetching..." : "Auto-generated"}
-                className={`${getInputClass(isDarkMode)} ${!currentBillNumber ? 'animate-pulse text-gray-400' : 'bg-gray-100/50 dark:bg-gray-700/30'} cursor-not-allowed`}
-              />
-              {!isEditMode && (
-                <button
-                  onClick={fetchNextBillNumber}
-                  className={`absolute right-3 top-3 p-1 rounded-md transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
-                  title="Refresh Number"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                </button>
-              )}
+              <div className="relative">
+                <input
+                  type="text"
+                  value={currentBillNumber}
+                  readOnly
+                  placeholder={!currentBillNumber ? "Fetching..." : "Auto-generated"}
+                  className={`${getInputClass(isDarkMode)} ${!currentBillNumber ? 'animate-pulse text-gray-400' : 'bg-gray-100/50 dark:bg-gray-700/30'} cursor-not-allowed pr-10`}
+                />
+                {!isEditMode && (
+                  <button
+                    type="button"
+                    onClick={() => fetchNextBillNumber()}
+                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md transition-colors ${isDarkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
+                    title="Refresh Number"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
             <div>
               <label className={`${getLabelClass(isDarkMode)} flex items-center gap-1`}>
-                Date {!billDate && touched.billDate && <span className="text-red-500">*</span>}
+                Date {!billDate && touched.billDate && <span className="text-blue-700">*</span>}
               </label>
               <div className="relative">
                 <input
                   type="date"
                   value={billDate}
-                  onChange={(e) => {
-                    setBillDate(e.target.value);
-                    validateField('billDate', e.target.value);
-                  }}
-                  onBlur={() => {
-                    handleBlur('billDate');
-                    validateField('billDate', billDate);
-                  }}
-                  className={getInputClassWithError('billDate')}
-                  disabled={isEditMode}
+                  onChange={(e) => setBillDate(e.target.value)}
+                  className={getInputClass(isDarkMode)}
+                  style={{ colorScheme: isDarkMode ? 'dark' : 'light' }}
                 />
-                <Calendar className={`absolute right-3 top-3 w-4 h-4 pointer-events-none ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`} />
               </div>
-              {errors.billDate && touched.billDate && (
-                <p className="text-red-500 text-xs mt-1">This field is required</p>
-              )}
             </div>
             <div>
               <label className={`${getLabelClass(isDarkMode)} flex items-center gap-1`}>
-                Time {!billTime && touched.billTime && <span className="text-red-500">*</span>}
+                Time {!billTime && touched.billTime && <span className="text-blue-700">*</span>}
               </label>
-              <input
-                type="time"
-                value={billTime}
-                onChange={(e) => {
-                  setBillTime(e.target.value);
-                  validateField('billTime', e.target.value);
-                }}
-                onBlur={() => {
-                  handleBlur('billTime');
-                  validateField('billTime', billTime);
-                }}
-                className={getInputClassWithError('billTime')}
-              />
-              {errors.billTime && touched.billTime && (
-                <p className="text-red-500 text-xs mt-1">This field is required</p>
-              )}
+              <div className="relative">
+                <input
+                  type="time"
+                  value={billTime}
+                  onChange={(e) => setBillTime(e.target.value)}
+                  className={getInputClass(isDarkMode)}
+                  style={{ colorScheme: isDarkMode ? 'dark' : 'light' }}
+                />
+              </div>
             </div>
           </div>
 
@@ -876,7 +917,7 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
             <div>
               <label className={`${getLabelClass(isDarkMode)} flex items-center gap-1`}>
                 {billType === 'purchase' ? 'Supplier Name' : 'Customer Name'}
-                {!customerName && touched.customerName && <span className="text-red-500">*</span>}
+                {!customerName && touched.customerName && <span className="text-blue-700">*</span>}
               </label>
               <div className={errors.customerName && touched.customerName ? 'border-2 border-red-500 rounded-lg' : ''}>
                 <SearchableDropdown
@@ -892,7 +933,7 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
                 />
               </div>
               {errors.customerName && touched.customerName && (
-                <p className="text-red-500 text-xs mt-1">This field is required</p>
+                <p className="text-blue-700 text-xs mt-1">This field is required</p>
               )}
             </div>
             <div>
@@ -923,25 +964,20 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
-              <label className={`${getLabelClass(isDarkMode)} flex items-center gap-1`}>
-                Vehicle Number {!vehicleNumber && touched.vehicleNumber && <span className="text-red-500">*</span>}
+              <label className={`${getLabelClass(isDarkMode)} flex items-center gap-1 mb-1.5`}>
+                Vehicle Number {!vehicleNumber && touched.vehicleNumber ? <span className="text-blue-700">*</span> : <span className="text-blue-500 font-bold ml-1">Master Lookup</span>}
               </label>
-              <input
-                type="text"
+              <VehicleAutocomplete
                 value={vehicleNumber}
-                onChange={(e) => {
-                  setVehicleNumber(e.target.value.toUpperCase());
-                  validateField('vehicleNumber', e.target.value);
-                }}
-                onBlur={() => {
-                  handleBlur('vehicleNumber');
-                  validateField('vehicleNumber', vehicleNumber);
-                }}
-                placeholder="e.g., KA01AB1234"
-                className={getInputClassWithError('vehicleNumber')}
+                onChange={handleVehicleNumberChange}
+                onSelect={handleVehicleSelect}
+                isDarkMode={isDarkMode}
+                error={errors.vehicleNumber && touched.vehicleNumber}
               />
               {errors.vehicleNumber && touched.vehicleNumber && (
-                <p className="text-red-500 text-xs mt-1">This field is required</p>
+                <p className="text-blue-700 text-[11px] mt-1 ml-1 flex items-center gap-1 font-medium">
+                  <span className="w-1 h-1 rounded-full bg-blue-700" /> This field is required
+                </p>
               )}
             </div>
             <div className="relative !overflow-visible z-[50]">
@@ -962,6 +998,9 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
                 className={getInputClass(isDarkMode)}
               >
                 <option value="">Select model</option>
+                {vehicleModel && !vehicleModelOptions.includes(vehicleModel) && (
+                  <option key="custom-model" value={vehicleModel}>{vehicleModel}</option>
+                )}
                 {vehicleModelOptions.map(model => (
                   <option key={model} value={model}>{model}</option>
                 ))}
@@ -1020,13 +1059,15 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
             <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900 z-20'}`}>
               Service Items
             </h3>
-            <button
-              onClick={addItem}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg"
-            >
-              <Plus className="w-4 h-4" />
-              Add Item
-            </button>
+            {canCreate(billType === 'sales' ? 'Sales' : billType === 'purchase' ? 'Purchase' : billType === 'labour' ? 'Labour Bill' : 'Estimation') && (
+              <button
+                onClick={addItem}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg"
+              >
+                <Plus className="w-4 h-4" />
+                Add Item
+              </button>
+            )}
           </div>
 
           <div className="overflow-x-auto">
@@ -1035,7 +1076,7 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
                 <tr className={`border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'
                   }`}>
                   <th className={`text-left py-3 px-4 text-sm font-semibold min-w-[300px] ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>Item Name <span className="text-red-500">*</span></th>
+                    }`}>Item Name <span className="text-blue-700">*</span></th>
                   <th className={`text-center py-3 px-4 text-sm font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
                     }`}>Quantity</th>
                   <th className={`text-right py-3 px-4 text-sm font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
@@ -1119,8 +1160,8 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
                         <button
                           onClick={() => deleteItem(item.id)}
                           className={`p-2 rounded-lg transition-colors ${isDarkMode
-                            ? 'hover:bg-red-500/20 text-red-400'
-                            : 'hover:bg-red-50 text-red-600'
+                            ? 'hover:bg-blue-700/20 text-blue-400'
+                            : 'hover:bg-blue-50 text-blue-700'
                             }`}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1193,23 +1234,28 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
               Reset
             </button>
             <div className="flex items-center gap-4">
-              <button
-                onClick={handlePrint}
-                className={`px-6 py-3 rounded-lg transition-all font-medium ${isDarkMode
-                  ? 'bg-gray-700 text-white hover:bg-gray-600'
-                  : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                  }`}
-              >
-                <Printer className="w-4 h-4 inline mr-2" />
-                Print
-              </button>
-              <button
-                onClick={handleSave}
-                className="px-6 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg"
-              >
-                <Save className="w-4 h-4 inline mr-2" />
-                {isEditMode ? 'Update Bill' : 'Save Bill'}
-              </button>
+              {canPrint(billType === 'sales' ? 'Sales' : billType === 'purchase' ? 'Purchase' : billType === 'labour' ? 'Labour Bill' : 'Estimation') && (
+                <button
+                  onClick={handlePrint}
+                  className={`px-6 py-3 rounded-lg transition-all font-medium ${isDarkMode
+                    ? 'bg-gray-700 text-white hover:bg-gray-600'
+                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                    }`}
+                >
+                  <Printer className="w-4 h-4 inline mr-2" />
+                  Print
+                </button>
+              )}
+              
+              {(isEditMode ? canEdit(billType === 'sales' ? 'Sales' : billType === 'purchase' ? 'Purchase' : billType === 'labour' ? 'Labour Bill' : 'Estimation') : canCreate(billType === 'sales' ? 'Sales' : billType === 'purchase' ? 'Purchase' : billType === 'labour' ? 'Labour Bill' : 'Estimation')) && (
+                <button
+                  onClick={handleSave}
+                  className="px-6 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg"
+                >
+                  <Save className="w-4 h-4 inline mr-2" />
+                  {isEditMode ? 'Update Bill' : 'Save Bill'}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1238,7 +1284,12 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
                 <tr className={`border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'
                   }`}>
                   <th className={`text-left py-3 px-4 text-sm font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
-                    }`}>Bill No</th>
+                    }`}>
+                    {billType === 'estimation' ? 'Estimation No' : 
+                     billType === 'labour' ? 'Labour Bill No' : 
+                     billType === 'sales' ? 'Sales Bill No' : 
+                     billType === 'purchase' ? 'Purchase Bill No' : 'Bill No'}
+                  </th>
                   <th className={`text-left py-3 px-4 text-sm font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
                     }`}>Date & Time</th>
                   <th className={`text-left py-3 px-4 text-sm font-semibold ${isDarkMode ? 'text-gray-400' : 'text-gray-600'
@@ -1310,10 +1361,10 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${bill.status === 'Completed' || bill.status === 'Received' || bill.status === 'Paid'
-                            ? 'bg-green-500/10 text-green-500'
+                            ? 'bg-blue-600/10 text-blue-600'
                             : bill.status === 'Pending' || bill.status === 'Partial'
-                              ? 'bg-yellow-500/10 text-yellow-500'
-                              : 'bg-red-500/10 text-red-500'
+                              ? 'bg-blue-400/10 text-blue-400'
+                              : 'bg-blue-700/10 text-blue-700'
                             }`}>
                             {(bill.status === 'Completed' || bill.status === 'Received' || bill.status === 'Paid') && <CheckCircle className="w-3 h-3" />}
                             {(bill.status === 'Pending' || bill.status === 'Partial') && <Clock className="w-3 h-3" />}
@@ -1323,60 +1374,66 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => {
-                                setIsEditMode(true);
-                                setEditBillId(bill.id);
-                                setCurrentBillNumber(bill.billNo);
-                                setBillDate(bill.date);
-                                setBillTime(bill.time || getCurrentTime());
-                                setCustomerName(bill.customerName || bill.supplierName);
-                                setCustomerPhone(bill.customerPhone || '');
-                                setCustomerAddress(bill.customerAddress || '');
-                                setVehicleNumber(bill.vehicleNumber || '');
-                                setVehicleMakeDropdown(bill.vehicleMake || '');
-                                setVehicleModel(bill.vehicleModel || '');
-                                setKmReading(bill.kmReading || '');
-                                setFuelLevel(bill.fuelLevel || '');
-                                setStatus(bill.status || 'Completed');
-                                setDiscount(bill.discount || 0);
-                                setItems((bill.items || []).map((item: any) => ({
-                                  id: String(item.id),
-                                  itemName: item.itemName,
-                                  quantity: item.quantity,
-                                  rate: item.rate,
-                                  gst: item.gst || item.gstPercent,
-                                  amount: item.amount
-                                })));
-                                toast.info(`Editing ${bill.billNo}`);
-                                window.scrollTo({ top: 0, behavior: 'smooth' });
-                              }}
-                              className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-blue-500/20 text-blue-400' : 'hover:bg-blue-50 text-blue-600'
-                                }`}
-                              title="Edit"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={async () => {
-                                if (window.confirm(`Are you sure you want to delete ${bill.billNo}?`)) {
-                                  try {
-                                    if (billType === 'labour') await deleteLabourBill(bill.id);
-                                    else if (billType === 'estimation') await deleteEstimation(bill.id);
-                                    else if (billType === 'sales') await deleteSale(bill.id);
-                                    else if (billType === 'purchase') await deletePurchase(bill.id);
-                                    toast.success(`${bill.billNo} deleted`);
-                                  } catch (err) {
-                                    toast.error('Failed to delete');
+                            {canEdit(billType === 'sales' ? 'Sales' : billType === 'purchase' ? 'Purchase' : billType === 'labour' ? 'Labour Bill' : 'Estimation') && (
+                              <button
+                                onClick={() => {
+                                  setIsEditMode(true);
+                                  setEditBillId(bill.id);
+                                  setCurrentBillNumber(bill.billNo);
+                                  setBillDate(bill.date);
+                                  setBillTime(bill.time || getCurrentTime());
+                                  setCustomerName(bill.customerName || bill.supplierName);
+                                  setCustomerPhone(bill.customerPhone || '');
+                                  setCustomerAddress(bill.customerAddress || '');
+                                  setVehicleNumber(bill.vehicleNumber || '');
+                                  setVehicleMakeDropdown(bill.vehicleMake || '');
+                                  setVehicleModel(bill.vehicleModel || '');
+                                  setKmReading(bill.kmReading || '');
+                                  setFuelLevel(bill.fuelLevel || '');
+                                  setStatus(bill.status || 'Completed');
+                                  setDiscount(bill.discount || 0);
+                                  setItems((bill.items || []).map((item: any) => ({
+                                    id: String(item.id),
+                                    itemName: item.itemName,
+                                    quantity: item.quantity,
+                                    rate: item.rate,
+                                    gst: item.gst || item.gstPercent,
+                                    amount: item.amount
+                                  })));
+                                  toast.info(`Editing ${bill.billNo}`);
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-blue-500/20 text-blue-400' : 'hover:bg-blue-50 text-blue-600'
+                                  }`}
+                                title="Edit"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                            )}
+                            
+                            {canDelete(billType === 'sales' ? 'Sales' : billType === 'purchase' ? 'Purchase' : billType === 'labour' ? 'Labour Bill' : 'Estimation') && (
+                              <button
+                                onClick={async () => {
+                                  if (window.confirm(`Are you sure you want to delete ${bill.billNo}?`)) {
+                                    try {
+                                      if (billType === 'labour') await deleteLabourBill(bill.id);
+                                      else if (billType === 'estimation') await deleteEstimation(bill.id);
+                                      else if (billType === 'sales') await deleteSale(bill.id);
+                                      else if (billType === 'purchase') await deletePurchase(bill.id);
+                                      toast.success(`${bill.billNo} deleted`);
+                                      await fetchNextBillNumber();
+                                    } catch (err) {
+                                      toast.error('Failed to delete');
+                                    }
                                   }
-                                }
-                              }}
-                              className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-red-500/20 text-red-400' : 'hover:bg-red-50 text-red-600'
-                                }`}
-                              title="Delete"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                                }}
+                                className={`p-2 rounded-lg transition-colors ${isDarkMode ? 'hover:bg-blue-700/20 text-blue-400' : 'hover:bg-blue-50 text-blue-700'
+                                  }`}
+                                title="Delete"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1389,7 +1446,7 @@ export function BillingScreenEnhanced({ isDarkMode, billType, title, billPrefix,
       </motion.div>
 
       <UnifiedPrintPreview
-        type="bill"
+        type={billType === 'labour' ? 'labour' : billType === 'estimation' ? 'estimation' : 'bill'}
         data={printData}
         isOpen={isPrintModalOpen}
         onClose={() => setIsPrintModalOpen(false)}

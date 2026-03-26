@@ -3,6 +3,7 @@ import { api } from '@/services/api';
 import { useAuth } from './AuthContext';
 import { useNotifications } from './NotificationContext';
 import { toast } from 'sonner';
+import { useDashboardRefresh } from './DashboardRefreshContext';
 
 export interface ReceiptRecord {
   id: string;
@@ -20,6 +21,8 @@ export interface ReceiptRecord {
   bank_name?: string;
   status: string;
   created_at?: string;
+  processed_by?: string;
+  processed_by_id?: number | string;
 }
 
 export interface PaymentRecord {
@@ -70,7 +73,10 @@ export function ReceiptsPaymentsProvider({ children }: { children: ReactNode }) 
   const [receipts, setReceipts] = useState<ReceiptRecord[]>([]);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const { addNotification } = useNotifications();
+
+  const { isAuthenticated, user } = useAuth();
+  const { triggerDashboardRefresh } = useDashboardRefresh();
 
   const fetchReceipts = async () => {
     if (!isAuthenticated) {
@@ -84,7 +90,6 @@ export function ReceiptsPaymentsProvider({ children }: { children: ReactNode }) 
         setReceipts(response.data.data);
       }
     } catch (error: any) {
-      console.error('Error fetching receipts:', error);
       toast.error('Failed to fetch receipts');
     } finally {
       setIsLoading(false);
@@ -99,29 +104,20 @@ export function ReceiptsPaymentsProvider({ children }: { children: ReactNode }) 
     setIsLoading(true);
     try {
       const response = await api.get('/payments');
-      console.log('[ReceiptsPaymentsContext] fetchPayments response:', response);
       
       if (response.success && response.data) {
-        // Handle both: response.data.data (array) AND response.data (array)
         const rawData = response.data.data || response.data;
         if (Array.isArray(rawData)) {
           const mapped = rawData.map((row: any) => ({
             ...row,
-            id: row.id?.toString() || row.payment_no // Ensure ID is a string for UI consistency
+            id: row.id?.toString() || row.payment_no 
           }));
           setPayments(mapped);
         } else {
-          console.warn('[ReceiptsPaymentsContext] Unexpected payments data format:', rawData);
           setPayments([]);
         }
       }
     } catch (error: any) {
-      console.error('[ReceiptsPaymentsContext] Error fetching payments:', error);
-      // Detailed error logging to help diagnose server vs proxy vs client issues
-      if (error instanceof Error) {
-        console.error('Error message:', error.message);
-        console.error('Stack:', error.stack);
-      }
       toast.error('Failed to fetch payments');
     } finally {
       setIsLoading(false);
@@ -134,39 +130,63 @@ export function ReceiptsPaymentsProvider({ children }: { children: ReactNode }) 
   }, [isAuthenticated]);
 
   const addReceipt = async (receiptData: Partial<ReceiptRecord>) => {
-    console.log('[ReceiptsPaymentsContext] Attempting to add receipt...');
-    console.log('[ReceiptsPaymentsContext] Payload:', receiptData);
     try {
-      const response = await api.post('/receipts', receiptData);
+      const payload = {
+        ...receiptData,
+        processed_by: user?.username || receiptData.processed_by || 'admin',
+        processed_by_id: user?.id || receiptData.processed_by_id
+      };
+      const response = await api.post('/receipts', payload);
       if (response.success) {
         await fetchReceipts();
+        triggerDashboardRefresh();
         toast.success('Receipt created successfully');
+
+        // ADD NOTIFICATION
+        addNotification(
+          'Saved', 
+          receiptData.receipt_no || 'New Receipt', 
+          'Receipt', 
+          `Payment received from ${receiptData.customer_name} for invoice ${receiptData.labour_bill_no || 'N/A'}`,
+          { totalAmount: receiptData.amount }
+        );
       } else {
         throw new Error(response.message || response.error || 'Failed to create receipt');
       }
     } catch (error: any) {
-      console.error('[ReceiptsPaymentsContext] Error in addReceipt:', error);
       toast.error(error.message || 'Failed to create receipt');
       throw error;
     }
   };
 
   const updateReceipt = async (id: string, receiptData: Partial<ReceiptRecord>) => {
-    console.log(`[ReceiptsPaymentsContext] Attempting to update receipt ${id}...`);
     try {
       const existing = receipts.find(r => r.id === id);
-      const merged = { ...existing, ...receiptData };
-      console.log('[ReceiptsPaymentsContext] Merged Payload:', merged);
+      const merged = { 
+        ...existing, 
+        ...receiptData,
+        processed_by: user?.username || receiptData.processed_by || 'admin',
+        processed_by_id: user?.id || receiptData.processed_by_id
+      } as any;
 
       const response = await api.put(`/receipts/${id}`, merged);
       if (response.success) {
         await fetchReceipts();
+        triggerDashboardRefresh();
         toast.success('Receipt updated successfully');
+
+        // ADD NOTIFICATION
+        addNotification(
+          'Updated', 
+          merged.receipt_no, 
+          'Receipt', 
+          `Receipt ${merged.receipt_no} for ${merged.customer_name} updated`,
+          { totalAmount: merged.amount }
+        );
       } else {
         throw new Error(response.message || response.error || 'Failed to update receipt');
       }
     } catch (error: any) {
-      console.error(`[ReceiptsPaymentsContext] Error in updateReceipt (ID: ${id}):`, error);
       toast.error(error.message || 'Failed to update receipt');
       throw error;
     }
@@ -174,10 +194,22 @@ export function ReceiptsPaymentsProvider({ children }: { children: ReactNode }) 
 
   const deleteReceipt = async (id: string) => {
     try {
+      const existing = receipts.find(r => r.id === id);
       const response = await api.delete(`/receipts/${id}`);
       if (response.success) {
         await fetchReceipts();
+        triggerDashboardRefresh();
         toast.success('Receipt deleted successfully');
+
+        // ADD NOTIFICATION
+        if (existing) {
+          addNotification(
+            'Deleted', 
+            existing.receipt_no, 
+            'Receipt', 
+            `Removed receipt record ${existing.receipt_no}`
+          );
+        }
       } else {
         throw new Error(response.error || 'Failed to delete receipt');
       }
@@ -195,73 +227,95 @@ export function ReceiptsPaymentsProvider({ children }: { children: ReactNode }) 
       }
       return null;
     } catch (error) {
-      console.error('Failed to get next receipt number:', error);
       return null;
     }
   };
 
-  // Payment implementations
   const addPayment = async (paymentData: Partial<PaymentRecord>) => {
-    console.log('[ReceiptsPaymentsContext] Attempting to add payment...');
-    console.log('[ReceiptsPaymentsContext] Payload to be sent:', paymentData);
     try {
-      const response = await api.post('/payments', paymentData);
-      console.log('[ReceiptsPaymentsContext] API response received:', response);
+      const payload = {
+        ...paymentData,
+        processed_by: user?.username || (paymentData as any).processed_by || 'admin',
+        processed_by_id: user?.id || (paymentData as any).processed_by_id
+      };
+      const response = await api.post('/payments', payload);
       if (response.success) {
-        console.log('[ReceiptsPaymentsContext] API call successful. Refetching payments...');
         await fetchPayments();
+        triggerDashboardRefresh();
         toast.success('Payment recorded successfully');
+
+        // ADD NOTIFICATION
+        addNotification(
+          'Saved', 
+          paymentData.payment_no || 'New Payment', 
+          'Payment', 
+          `Outgoing payment ${paymentData.payment_no} recorded for ${paymentData.customer_name || 'N/A'}`,
+          { totalAmount: paymentData.amount }
+        );
       } else {
-        console.error('[ReceiptsPaymentsContext] API call returned success:false.', response);
         throw new Error(response.message || response.error || 'Failed to record payment');
       }
     } catch (error: any) {
-      console.error('[ReceiptsPaymentsContext] Error in addPayment catch block:', error);
       toast.error(error.message || 'Failed to record payment');
       throw error;
     }
   };
 
   const updatePayment = async (id: string, paymentData: Partial<PaymentRecord>) => {
-    console.log(`[ReceiptsPaymentsContext] Attempting to update payment ${id}...`);
     try {
       const existing = payments.find(p => p.id === id);
-      const merged = { ...existing, ...paymentData };
-      console.log('[ReceiptsPaymentsContext] Merged Payload:', merged);
+      const merged = { 
+        ...existing, 
+        ...paymentData,
+        processed_by: user?.username || (paymentData as any).processed_by || 'admin',
+        processed_by_id: user?.id || (paymentData as any).processed_by_id
+      } as any;
 
       const response = await api.put(`/payments/${id}`, merged);
-      console.log('[ReceiptsPaymentsContext] API response received:', response);
       if (response.success) {
-        console.log('[ReceiptsPaymentsContext] API call successful. Refetching payments...');
         await fetchPayments();
+        triggerDashboardRefresh();
         toast.success('Payment updated successfully');
+
+        // ADD NOTIFICATION
+        addNotification(
+          'Updated', 
+          merged.payment_no, 
+          'Payment', 
+          `Payment record ${merged.payment_no} modified`,
+          { totalAmount: merged.amount }
+        );
       } else {
-        console.error('[ReceiptsPaymentsContext] API call returned success:false.', response);
         throw new Error(response.message || response.error || 'Failed to update payment');
       }
     } catch (error: any) {
-      console.error(`[ReceiptsPaymentsContext] Error in updatePayment catch block (ID: ${id}):`, error);
       toast.error(error.message || 'Failed to update payment');
       throw error;
     }
   };
 
   const deletePayment = async (id: string) => {
-    console.log(`[ReceiptsPaymentsContext] Attempting to delete payment ${id}...`);
     try {
+      const existing = payments.find(p => p.id === id);
       const response = await api.delete(`/payments/${id}`);
-      console.log('[ReceiptsPaymentsContext] API response received:', response);
       if (response.success) {
-        console.log('[ReceiptsPaymentsContext] API call successful. Refreshing payments...');
-        // No longer need optimistic update, fetchPayments will get the latest state.
         await fetchPayments();
+        triggerDashboardRefresh();
         toast.success('Payment deleted successfully');
+
+        // ADD NOTIFICATION
+        if (existing) {
+          addNotification(
+            'Deleted', 
+            existing.payment_no, 
+            'Payment', 
+            `Removed payment record ${existing.payment_no}`
+          );
+        }
       } else {
-        console.error('[ReceiptsPaymentsContext] API call returned success:false.', response);
         throw new Error(response.message || response.error || 'Failed to delete payment');
       }
     } catch (error: any) {
-      console.error(`[ReceiptsPaymentsContext] Error in deletePayment catch block (ID: ${id}):`, error);
       toast.error(error.message || 'Failed to delete payment');
       throw error;
     }
@@ -275,7 +329,6 @@ export function ReceiptsPaymentsProvider({ children }: { children: ReactNode }) 
       }
       return null;
     } catch (error) {
-      console.error('Failed to get next payment number:', error);
       return null;
     }
   };

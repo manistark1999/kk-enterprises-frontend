@@ -4,20 +4,21 @@ import App from "@/App";
 import "@/assets/styles/index.css";
 
 window.onerror = function(message, source, lineno, colno, error) {
-  if (message && (message.toString().includes('pasted-image') || 
-      message.toString().includes('Cannot read') ||
-      message.toString().includes('image input'))) {
-    console.warn('Browser extension error suppressed:', message);
+  const msg = String(message || '');
+  if (msg.includes('pasted-image') || 
+      msg.includes('Cannot read') ||
+      msg.includes('image input') ||
+      msg.includes('model does not support')) {
     return true;
   }
   return false;
 };
 
 window.onunhandledrejection = function(event) {
-  if (event.reason && event.reason.message && 
-      (event.reason.message.includes('pasted-image') || 
-       event.reason.message.includes('Cannot read'))) {
-    console.warn('Browser extension promise error suppressed');
+  const msg = String(event.reason?.message || '');
+  if (msg.includes('pasted-image') || 
+      msg.includes('Cannot read') ||
+      msg.includes('model does not support')) {
     event.preventDefault();
   }
 };

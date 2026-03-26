@@ -84,11 +84,11 @@ export function StockReportScreen({ isDarkMode }: StockReportScreenProps) {
 
   const categoryDistribution = [
     { name: 'Lubricants', value: 28, color: '#2563EB', id: 'dist-lube' },
-    { name: 'Filters', value: 22, color: '#10B981', id: 'dist-filters' },
-    { name: 'Brake Parts', value: 18, color: '#F59E0B', id: 'dist-brake' },
-    { name: 'Engine Parts', value: 15, color: '#8B5CF6', id: 'dist-engine' },
-    { name: 'Electrical', value: 10, color: '#EF4444', id: 'dist-electrical' },
-    { name: 'Others', value: 7, color: '#6B7280', id: 'dist-others' },
+    { name: 'Filters', value: 22, color: '#3B82F6', id: 'dist-filters' },
+    { name: 'Brake Parts', value: 18, color: '#60A5FA', id: 'dist-brake' },
+    { name: 'Engine Parts', value: 15, color: '#93C5FD', id: 'dist-engine' },
+    { name: 'Electrical', value: 10, color: '#1E40AF', id: 'dist-electrical' },
+    { name: 'Others', value: 7, color: '#1E3A8A', id: 'dist-others' },
   ];
 
   const stockValueTrend = [
@@ -260,11 +260,11 @@ export function StockReportScreen({ isDarkMode }: StockReportScreenProps) {
           <div className="p-5">
             <div className="flex items-center justify-between mb-3">
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-blue-500/20' : 'bg-blue-50'
+                isDarkMode ? 'bg-blue-600/20' : 'bg-blue-100'
               }`}>
-                <DollarSign className="w-6 h-6 text-blue-500" />
+                <DollarSign className="w-6 h-6 text-blue-600" />
               </div>
-              <div className="flex items-center gap-1 text-green-500 text-sm font-medium">
+              <div className="flex items-center gap-1 text-blue-600 text-sm font-medium">
                 <TrendingUp className="w-4 h-4" />
                 +12.5%
               </div>
@@ -290,11 +290,11 @@ export function StockReportScreen({ isDarkMode }: StockReportScreenProps) {
           <div className="p-5">
             <div className="flex items-center justify-between mb-3">
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-orange-500/20' : 'bg-orange-50'
+                isDarkMode ? 'bg-blue-600/10' : 'bg-blue-50'
               }`}>
-                <AlertCircle className="w-6 h-6 text-orange-500" />
+                <AlertCircle className="w-6 h-6 text-blue-600" />
               </div>
-              <div className="flex items-center gap-1 text-orange-500 text-sm font-medium">
+              <div className="flex items-center gap-1 text-blue-600 text-sm font-medium">
                 <AlertCircle className="w-4 h-4" />
                 Alert
               </div>
@@ -320,11 +320,11 @@ export function StockReportScreen({ isDarkMode }: StockReportScreenProps) {
           <div className="p-5">
             <div className="flex items-center justify-between mb-3">
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-red-500/20' : 'bg-red-50'
+                isDarkMode ? 'bg-blue-900/20' : 'bg-blue-200'
               }`}>
-                <TrendingDown className="w-6 h-6 text-red-500" />
+                <TrendingDown className="w-6 h-6 text-blue-700" />
               </div>
-              <div className="flex items-center gap-1 text-red-500 text-sm font-medium">
+              <div className="flex items-center gap-1 text-blue-700 text-sm font-medium">
                 <TrendingDown className="w-4 h-4" />
                 Critical
               </div>
@@ -350,11 +350,11 @@ export function StockReportScreen({ isDarkMode }: StockReportScreenProps) {
           <div className="p-5">
             <div className="flex items-center justify-between mb-3">
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-green-500/20' : 'bg-green-50'
+                isDarkMode ? 'bg-blue-500/20' : 'bg-blue-100'
               }`}>
-                <Activity className="w-6 h-6 text-green-500" />
+                <Activity className="w-6 h-6 text-blue-600" />
               </div>
-              <div className="flex items-center gap-1 text-green-500 text-sm font-medium">
+              <div className="flex items-center gap-1 text-blue-600 text-sm font-medium">
                 <TrendingUp className="w-4 h-4" />
                 Good
               </div>
@@ -416,8 +416,8 @@ export function StockReportScreen({ isDarkMode }: StockReportScreenProps) {
                   }}
                 />
                 <Legend />
-                <Bar dataKey="inward" fill="#10B981" name="Inward" radius={[8, 8, 0, 0]} id="bar-inward" />
-                <Bar dataKey="outward" fill="#EF4444" name="Outward" radius={[8, 8, 0, 0]} id="bar-outward" />
+                <Bar dataKey="inward" fill="#3B82F6" name="Inward" radius={[8, 8, 0, 0]} id="bar-inward" />
+                <Bar dataKey="outward" fill="#1E3A8A" name="Outward" radius={[8, 8, 0, 0]} id="bar-outward" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -602,17 +602,17 @@ export function StockReportScreen({ isDarkMode }: StockReportScreenProps) {
                         isDarkMode ? 'text-gray-300' : 'text-gray-700'
                       }`}>{movement.opening}</td>
                       <td className="py-3 px-4 text-sm text-right">
-                        <span className="text-green-500 font-medium">+{movement.inward}</span>
+                        <span className="text-blue-500 font-medium">+{movement.inward}</span>
                       </td>
                       <td className="py-3 px-4 text-sm text-right">
-                        <span className="text-red-500 font-medium">-{movement.outward}</span>
+                        <span className="text-blue-900 font-medium">-{movement.outward}</span>
                       </td>
                       <td className={`py-3 px-4 text-sm font-semibold text-right ${
                         movement.closing === 0
-                          ? 'text-red-500'
+                          ? 'text-blue-900 border-b border-blue-900/30'
                           : movement.closing < 15
-                          ? isDarkMode ? 'text-orange-400' : 'text-orange-600'
-                          : isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                          ? isDarkMode ? 'text-blue-400' : 'text-blue-600'
+                          : isDarkMode ? 'text-blue-300' : 'text-blue-500'
                       }`}>{movement.closing}</td>
                       <td className={`py-3 px-4 text-sm font-bold text-right ${
                         isDarkMode ? 'text-blue-400' : 'text-blue-600'
@@ -659,9 +659,9 @@ export function StockReportScreen({ isDarkMode }: StockReportScreenProps) {
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                      isDarkMode ? 'bg-green-500/20' : 'bg-green-50'
+                      isDarkMode ? 'bg-blue-600/20' : 'bg-blue-100'
                     }`}>
-                      <TrendingUp className="w-5 h-5 text-green-500" />
+                      <TrendingUp className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
                       <h4 className={`font-semibold text-sm ${
@@ -673,9 +673,9 @@ export function StockReportScreen({ isDarkMode }: StockReportScreenProps) {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-green-500 font-bold">{item.trend}</p>
+                    <p className="text-blue-600 font-bold">{item.trend}</p>
                     <span className={`text-xs px-2 py-1 rounded-full ${
-                      isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-50 text-green-600'
+                      isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-100 text-blue-600'
                     }`}>{item.status}</span>
                   </div>
                 </div>
@@ -715,9 +715,9 @@ export function StockReportScreen({ isDarkMode }: StockReportScreenProps) {
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                      isDarkMode ? 'bg-orange-500/20' : 'bg-orange-50'
+                      isDarkMode ? 'bg-blue-900/20' : 'bg-blue-200'
                     }`}>
-                      <TrendingDown className="w-5 h-5 text-orange-500" />
+                      <TrendingDown className="w-5 h-5 text-blue-800" />
                     </div>
                     <div>
                       <h4 className={`font-semibold text-sm ${
@@ -729,9 +729,9 @@ export function StockReportScreen({ isDarkMode }: StockReportScreenProps) {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-orange-500 font-bold">{item.trend}</p>
+                    <p className="text-blue-800 font-bold">{item.trend}</p>
                     <span className={`text-xs px-2 py-1 rounded-full ${
-                      isDarkMode ? 'bg-orange-500/20 text-orange-400' : 'bg-orange-50 text-orange-600'
+                      isDarkMode ? 'bg-blue-900/20 text-blue-300' : 'bg-blue-100 text-blue-800'
                     }`}>Review</span>
                   </div>
                 </div>

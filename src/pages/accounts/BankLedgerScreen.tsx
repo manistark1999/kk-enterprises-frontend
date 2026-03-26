@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
+import {
   Building2,
   Save,
   Plus,
@@ -48,8 +48,8 @@ export function BankLedgerScreen({ isDarkMode }: BankLedgerScreenProps) {
     description: ''
   });
 
-  const { transactions, summary, loading, addTransaction, deleteTransaction, fetchTransactions } = useBankTransactions();
-  const { bankAccounts } = useBankAccounts();
+  const { transactions = [], summary = { totalCredit: 0, totalDebit: 0, balance: 0 }, loading, addTransaction, deleteTransaction, fetchTransactions } = useBankTransactions();
+  const { bankAccounts = [] } = useBankAccounts();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'All' | 'Credit' | 'Debit'>('All');
@@ -57,26 +57,29 @@ export function BankLedgerScreen({ isDarkMode }: BankLedgerScreenProps) {
   const [dateFrom, setDateFrom] = useState('2024-02-01');
   const [dateTo, setDateTo] = useState('2024-02-28');
 
-  const { totalCredit, totalDebit, balance: netBalance } = summary;
+  // Defensive values for destructuring
+  const currentSummary = summary || { totalCredit: 0, totalDebit: 0, balance: 0 };
+  const { totalCredit = 0, totalDebit = 0, balance: netBalance = 0 } = currentSummary;
 
-  const bankNames = ['All', ...Array.from(new Set(transactions.map(t => t.bank_name)))];
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+  const bankNames = ['All', ...Array.from(new Set(safeTransactions.map(t => t.bank_name)))];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const filteredTransactions = transactions.filter(transaction => {
-    const matchesSearch = 
+  const filteredTransactions = safeTransactions.filter(transaction => {
+    const matchesSearch =
       (transaction.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (transaction.bank_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (transaction.reference_no || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (transaction.received_from?.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (transaction.paid_to?.toLowerCase().includes(searchQuery.toLowerCase()));
-    
+
     const matchesType = filterType === 'All' || transaction.type === filterType;
     const matchesBank = filterBank === 'All' || transaction.bank_name === filterBank;
-    
+
     return matchesSearch && matchesType && matchesBank;
   });
 
@@ -128,36 +131,43 @@ export function BankLedgerScreen({ isDarkMode }: BankLedgerScreenProps) {
   return (
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto space-y-6">
       {/* Header */}
-      <motion.div 
-        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+      <motion.div
+        className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
         <div className="flex items-center gap-3">
-          <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>
-            <Building2 className="w-6 h-6" />
+          <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600 shadow-sm'}`}>
+            <Landmark className="w-6 h-6" />
           </div>
           <div>
             <h1 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Bank Ledger</h1>
-            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Manage all bank transactions</p>
+            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Monitor and manage your bank transactions</p>
           </div>
         </div>
-        
+
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => fetchTransactions()} className={`px-4 py-2 rounded-lg flex items-center gap-2 ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-white text-gray-700 shadow-sm'}`}>
+          <button onClick={() => fetchTransactions()} className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-white hover:bg-gray-50 text-gray-700 shadow-sm border border-gray-100'}`}>
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span className="text-sm font-medium">Refresh</span>
           </button>
-          <button onClick={() => toast.success('Printing...')} className={`px-4 py-2 rounded-lg flex items-center gap-2 ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-white text-gray-700 shadow-sm'}`}>
+          <button onClick={() => toast.success('Printing...')} className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${isDarkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-white hover:bg-gray-50 text-gray-700 shadow-sm border border-gray-100'}`}>
             <Printer className="w-4 h-4" />
             <span className="text-sm font-medium">Print</span>
           </button>
-          <button onClick={() => toast.success('Exporting...')} className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2">
+          <button onClick={() => toast.success('Exporting...')} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 shadow-md transition-all active:scale-95">
             <Download className="w-4 h-4" />
             <span className="text-sm font-medium">Export</span>
           </button>
         </div>
       </motion.div>
+
+      {/* Summary Cards - Moved to Top */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <SummaryCard label="Total Credit" value={totalCredit} icon={<TrendingUp />} color="green" isDarkMode={isDarkMode} />
+        <SummaryCard label="Total Debit" value={totalDebit} icon={<TrendingDown />} color="red" isDarkMode={isDarkMode} />
+        <SummaryCard label="Net Balance" value={netBalance} icon={<Building2 />} color="blue" isDarkMode={isDarkMode} />
+      </div>
 
       {/* Entry Form */}
       <div className={`rounded-xl p-6 ${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white border-gray-200 shadow-sm'} border`}>
@@ -230,12 +240,6 @@ export function BankLedgerScreen({ isDarkMode }: BankLedgerScreenProps) {
         </div>
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <SummaryCard label="Total Credit" value={totalCredit} icon={<TrendingUp />} color="green" isDarkMode={isDarkMode} />
-        <SummaryCard label="Total Debit" value={totalDebit} icon={<TrendingDown />} color="red" isDarkMode={isDarkMode} />
-        <SummaryCard label="Net Balance" value={netBalance} icon={<DollarSign />} color="blue" isDarkMode={isDarkMode} />
-      </div>
 
       {/* Table */}
       <div className={`rounded-xl overflow-hidden border ${isDarkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-white border-gray-200'}`}>
@@ -253,36 +257,47 @@ export function BankLedgerScreen({ isDarkMode }: BankLedgerScreenProps) {
               </tr>
             </thead>
             <tbody className={`divide-y ${isDarkMode ? 'divide-gray-700' : 'divide-gray-200'}`}>
-              {filteredTransactions.map((t) => (
-                <tr key={t.id} className={isDarkMode ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50'}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>{new Date(t.transaction_date).toLocaleDateString()}</div>
-                    <div className="text-xs text-gray-500">{t.transaction_time}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <div className="font-medium">{t.bank_name}</div>
-                    <div className="text-xs text-gray-500">{t.account_no}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${t.type === 'Credit' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{t.type}</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{t.category}</td>
-                  <td className="px-6 py-4">
-                    <div className="line-clamp-1">{t.description}</div>
-                    <div className="text-xs text-gray-500">{t.reference_no}</div>
-                  </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-right font-bold ${t.type === 'Credit' ? 'text-green-600' : 'text-red-600'}`}>
-                    ₹{t.amount.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <div className="flex justify-center gap-2">
-                       <button onClick={() => deleteTransaction(t.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg">
-                        <Trash2 className="w-4 h-4" />
-                       </button>
+              {filteredTransactions.length > 0 ? (
+                filteredTransactions.map((t) => (
+                  <tr key={t.id} className={isDarkMode ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50'}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>{new Date(t.transaction_date).toLocaleDateString()}</div>
+                      <div className="text-xs text-gray-500">{t.transaction_time}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <div className="font-medium">{t.bank_name}</div>
+                      <div className="text-xs text-gray-500">{t.account_no}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 rounded-full text-xs font-bold ${t.type === 'Credit' ? 'bg-blue-100 text-blue-700' : 'bg-blue-100 text-blue-700'}`}>{t.type}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">{t.category}</td>
+                    <td className="px-6 py-4">
+                      <div className="line-clamp-1">{t.description}</div>
+                      <div className="text-xs text-gray-500">{t.reference_no}</div>
+                    </td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-right font-bold ${t.type === 'Credit' ? 'text-blue-600' : 'text-blue-700'}`}>
+                      ₹{(t.amount || 0).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <div className="flex justify-center gap-2">
+                        <button onClick={() => deleteTransaction(t.id)} className="p-1.5 text-blue-700 hover:bg-blue-50 rounded-lg">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="px-6 py-10 text-center">
+                    <div className="flex flex-col items-center gap-2 text-gray-500">
+                      <FileText className="w-8 h-8 opacity-20" />
+                      <p>No transactions found matching criteria</p>
                     </div>
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -293,21 +308,24 @@ export function BankLedgerScreen({ isDarkMode }: BankLedgerScreenProps) {
 
 function SummaryCard({ label, value, icon, color, isDarkMode }: any) {
   const colors: any = {
-    green: isDarkMode ? 'bg-green-900/20 border-green-700/50 text-green-400' : 'bg-green-50 border-green-200 text-green-700',
-    red: isDarkMode ? 'bg-red-900/20 border-red-700/50 text-red-400' : 'bg-red-50 border-red-200 text-red-700',
-    blue: isDarkMode ? 'bg-blue-900/20 border-blue-700/50 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-700',
+    green: isDarkMode ? 'bg-blue-600/10 border-green-500/20 text-blue-400 font-bold' : 'bg-blue-50 border-green-200 text-blue-600',
+    red: isDarkMode ? 'bg-blue-700/10 border-red-500/20 text-blue-400 font-bold' : 'bg-blue-50 border-red-200 text-blue-700',
+    blue: isDarkMode ? 'bg-blue-500/10 border-blue-500/20 text-blue-400 font-bold' : 'bg-blue-50 border-blue-200 text-blue-600',
   };
 
   return (
-    <div className={`p-6 rounded-xl border ${colors[color]} shadow-sm`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium opacity-80">{label}</p>
-          <p className="text-2xl font-bold">₹{value.toLocaleString()}</p>
-        </div>
-        <div className={`p-3 rounded-lg bg-current opacity-10`} />
-        <div className="absolute opacity-100">{React.cloneElement(icon, { className: 'w-6 h-6' })}</div>
+    <div className={`group p-6 rounded-2xl border transition-all duration-300 hover:shadow-lg relative overflow-hidden flex items-center min-h-[110px] w-full ${colors[color]} ${isDarkMode ? 'backdrop-blur-md' : 'shadow-sm'}`}>
+      <div className="relative z-10 flex-1">
+        <p className="text-xs font-bold uppercase tracking-wider opacity-70 mb-1.5">{label}</p>
+        <h3 className="text-2xl md:text-3xl font-black tracking-tight">₹{(value || 0).toLocaleString()}</h3>
       </div>
+
+      <div className={`relative z-10 p-4 rounded-2xl bg-current/10 flex items-center justify-center transition-all group-hover:scale-110 group-hover:rotate-6 duration-300`}>
+        {React.cloneElement(icon, { className: 'w-7 h-7' })}
+      </div>
+
+      {/* Premium background accent */}
+      <div className="absolute -right-6 -top-6 w-24 h-24 bg-current opacity-[0.05] rounded-full blur-2xl transition-all duration-500 group-hover:opacity-[0.1]" />
     </div>
   );
 }

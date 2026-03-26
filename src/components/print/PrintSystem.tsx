@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import './print-system.css';
+import kkPrintLogo from '../../assets/images/kk-groups-logo-header-print.png';
 
 // Master Print Layout Component
 export interface PrintLayoutProps {
@@ -46,16 +47,26 @@ export const DocumentHeader: React.FC<DocumentHeaderProps> = ({
   metaDetails = []
 }) => {
   return (
-    <div className="print-doc-header">
-      <div className="flex justify-between items-start mb-8">
-        <div>
-          <h1 className="print-title">{title} {docNumber}</h1>
-          <p className="print-subtitle">Automobile Workshop Management System</p>
+    <div className="print-doc-header border-b-2 border-black pb-6 mb-8">
+      <div className="flex justify-between items-start">
+        <div className="flex gap-4 items-center">
+          <img src={kkPrintLogo} alt="KK Groups Logo" className="w-16 h-16 object-contain shadow-md" />
+          <div>
+            <h1 className="text-2xl font-black uppercase tracking-tighter">{company?.name || 'KK ENTERPRISES'}</h1>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Automobile Workshop & Service Matrix</p>
+            <div className="text-[11px] mt-2 font-medium text-gray-600 leading-tight">
+              <p>{company?.address || 'Shanmuga Nagar, Attanthangal Village, Chennai - 52'}</p>
+              <p>Phone: {company?.phone || 'N/A'}</p>
+            </div>
+          </div>
         </div>
         <div className="text-right">
-          <div className="flex items-center gap-2 justify-end mb-1">
-             <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold">K</div>
-             <span className="font-bold text-lg">{company?.name || 'KK Enterprises'}</span>
+          <div className="bg-black text-white px-8 py-2 mb-2">
+            <h2 className="text-2xl font-black tracking-widest italic text-white uppercase">{title}</h2>
+          </div>
+          <div className="text-xs font-bold space-y-0.5">
+            {docNumber && <p className="flex justify-between gap-4 uppercase">Ref No: <span>{docNumber}</span></p>}
+            {date && <p className="flex justify-between gap-4 uppercase">Date: <span>{date}</span></p>}
           </div>
         </div>
       </div>

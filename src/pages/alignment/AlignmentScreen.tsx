@@ -57,9 +57,9 @@ export function AlignmentScreen({ isDarkMode }: AlignmentScreenProps) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Completed': return isDarkMode ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700';
+      case 'Completed': return isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-100 text-blue-700';
       case 'In Progress': return isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-700';
-      case 'Pending': return isDarkMode ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-700';
+      case 'Pending': return isDarkMode ? 'bg-blue-400/20 text-blue-400' : 'bg-blue-100 text-blue-700';
       default: return isDarkMode ? 'bg-gray-500/20 text-gray-400' : 'bg-gray-100 text-gray-700';
     }
   };
@@ -68,7 +68,7 @@ export function AlignmentScreen({ isDarkMode }: AlignmentScreenProps) {
     switch (type) {
       case 'Both': return isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-700';
       case 'Front': return isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-700';
-      case 'Rear': return isDarkMode ? 'bg-orange-500/20 text-orange-400' : 'bg-orange-100 text-orange-700';
+      case 'Rear': return isDarkMode ? 'bg-blue-800/20 text-blue-400' : 'bg-blue-100 text-blue-700';
       default: return isDarkMode ? 'bg-gray-500/20 text-gray-400' : 'bg-gray-100 text-gray-700';
     }
   };
@@ -279,7 +279,7 @@ export function AlignmentScreen({ isDarkMode }: AlignmentScreenProps) {
             <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               Total Amount
             </p>
-            <p className={`text-2xl font-bold mt-1 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
+            <p className={`text-2xl font-bold mt-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
               ₹{totalAmount.toLocaleString('en-IN')}
             </p>
           </div>
@@ -295,7 +295,7 @@ export function AlignmentScreen({ isDarkMode }: AlignmentScreenProps) {
             <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               Pending
             </p>
-            <p className={`text-2xl font-bold mt-1 ${isDarkMode ? 'text-yellow-400' : 'text-yellow-600'}`}>
+            <p className={`text-2xl font-bold mt-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-500'}`}>
               {pendingCount}
             </p>
           </div>
@@ -411,7 +411,7 @@ export function AlignmentScreen({ isDarkMode }: AlignmentScreenProps) {
                       </span>
                     </td>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${
-                      isDarkMode ? 'text-green-400' : 'text-green-600'
+                      isDarkMode ? 'text-blue-400' : 'text-blue-600'
                     }`}>
                       ₹{entry.amount.toLocaleString('en-IN')}
                     </td>
@@ -437,8 +437,8 @@ export function AlignmentScreen({ isDarkMode }: AlignmentScreenProps) {
                           onClick={() => handleDelete(entry.id)}
                           className={`p-2 rounded-lg transition-colors ${
                             isDarkMode
-                              ? 'hover:bg-red-500/20 text-red-400'
-                              : 'hover:bg-red-100 text-red-600'
+                              ? 'hover:bg-blue-700/20 text-blue-400'
+                              : 'hover:bg-blue-100 text-blue-700'
                           }`}
                         >
                           <Trash2 className="w-4 h-4" />

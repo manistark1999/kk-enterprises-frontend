@@ -35,6 +35,8 @@ import { useReceiptsPayments, ReceiptRecord } from '@/contexts/ReceiptsPaymentsC
 import { useCustomers } from '@/contexts/CustomerContext';
 import { useLabourBills } from '@/contexts/LabourBillContext';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { UnifiedPrintPreview } from '@/components/print/UnifiedPrintPreview';
 
 interface ReceiptScreenProps {
   isDarkMode: boolean;
@@ -42,6 +44,8 @@ interface ReceiptScreenProps {
 
 export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [printData, setPrintData] = useState<any>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingReceipt, setEditingReceipt] = useState<ReceiptRecord | null>(null);
   const [filterStatus, setFilterStatus] = useState<'All' | 'Received' | 'Pending'>('All');
@@ -64,6 +68,7 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
     createdBy: 'Yatan Prajapati'
   });
 
+  const { canCreate, canEdit, canDelete, canPrint } = useAuth();
   const { receipts, addReceipt, updateReceipt, deleteReceipt, getTotalReceived, getNextReceiptNo, refreshReceipts } = useReceiptsPayments();
   const { customers } = useCustomers();
   const { labourBills } = useLabourBills();
@@ -252,43 +257,13 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
         });
       }
     } catch (error) {
-      console.error('Error saving receipt:', error);
     }
   };
 
   // Handle individual receipt print
   const handlePrint = (receipt: ReceiptRecord) => {
-    const printData: PrintData = {
-      header: {
-        documentTitle: 'RECEIPT',
-        documentNumber: receipt.receipt_no,
-        documentDate: new Date(receipt.receipt_date).toLocaleDateString('en-IN')
-      },
-      customerInfo: {
-        name: receipt.customer_name,
-        phone: receipt.customer_phone || '-',
-        address: '-'
-      },
-      columns: [
-        { header: 'Description', key: 'description', align: 'left' },
-        { header: 'Payment Mode', key: 'mode', align: 'center', width: '150px' },
-        { header: 'Reference', key: 'ref', align: 'center', width: '150px' },
-        { header: 'Amount', key: 'amount', align: 'right', width: '150px' }
-      ],
-      data: [{
-        description: receipt.description || 'Payment Received',
-        mode: receipt.payment_mode,
-        ref: receipt.reference_no || '-',
-        amount: `₹${Number(receipt.amount).toLocaleString('en-IN')}`
-      }],
-      totals: {
-        total: Number(receipt.amount),
-        currency: '₹'
-      },
-      notes: 'Thank you for your payment. This is a computer generated receipt.'
-    };
-
-    handlePrintWithTemplate(printData);
+    setPrintData(receipt);
+    setIsPrintModalOpen(true);
     toast.success('Opening print preview...');
   };
 
@@ -322,19 +297,21 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
           {/* Integration Badge */}
           <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
             isDarkMode 
-              ? 'bg-green-500/10 border-green-500/30 text-green-400' 
-              : 'bg-green-50 border-green-200 text-green-700'
+              ? 'bg-blue-600/10 border-green-500/30 text-blue-400' 
+              : 'bg-blue-50 border-green-200 text-blue-700'
           }`}>
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <div className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
             <span className="text-xs font-medium">Synced with Receipt Register</span>
           </div>
-          <button 
-            onClick={handleAddNew}
-            className={`${primaryButtonClass} flex items-center gap-2`}
-          >
-            <Plus className="w-4 h-4" />
-            New Receipt
-          </button>
+          {canCreate('Receipt') && (
+            <button 
+              onClick={handleAddNew}
+              className={`${primaryButtonClass} flex items-center gap-2`}
+            >
+              <Plus className="w-4 h-4" />
+              New Receipt
+            </button>
+          )}
         </div>
       </div>
 
@@ -378,13 +355,13 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
                   Received
                 </p>
                 <p className={`text-2xl font-bold mt-1 ${
-                  isDarkMode ? 'text-green-400' : 'text-green-600'
+                  isDarkMode ? 'text-blue-400' : 'text-blue-600'
                 }`}>{stats.received}</p>
               </div>
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-green-500/20' : 'bg-green-100'
+                isDarkMode ? 'bg-blue-600/20' : 'bg-blue-100'
               }`}>
-                <TrendingUp className={`w-6 h-6 ${isDarkMode ? 'text-green-400' : 'text-green-600'}`} />
+                <TrendingUp className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
               </div>
             </div>
           </div>
@@ -403,13 +380,13 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
                   Pending
                 </p>
                 <p className={`text-2xl font-bold mt-1 ${
-                  isDarkMode ? 'text-orange-400' : 'text-orange-600'
+                  isDarkMode ? 'text-blue-400' : 'text-blue-800'
                 }`}>{stats.pending}</p>
               </div>
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-orange-500/20' : 'bg-orange-100'
+                isDarkMode ? 'bg-blue-800/20' : 'bg-blue-100'
               }`}>
-                <Wallet className={`w-6 h-6 ${isDarkMode ? 'text-orange-400' : 'text-orange-600'}`} />
+                <Wallet className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-800'}`} />
               </div>
             </div>
           </div>
@@ -582,7 +559,7 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
                         isDarkMode ? 'text-gray-300' : 'text-gray-700'
                       }`}>{receipt.description}</td>
                       <td className={`py-3 px-4 text-sm font-semibold text-right ${
-                        isDarkMode ? 'text-green-400' : 'text-green-600'
+                        isDarkMode ? 'text-blue-400' : 'text-blue-600'
                       }`}>₹{Number(receipt.amount).toLocaleString('en-IN')}</td>
                       <td className={`py-3 px-4 text-xs ${
                         isDarkMode ? 'text-gray-400' : 'text-gray-600'
@@ -590,35 +567,43 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
                       <td className="py-3 px-4">
                         <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
                           receipt.status === 'Received'
-                            ? 'bg-green-500/20 text-green-500'
-                            : 'bg-orange-500/20 text-orange-500'
+                            ? 'bg-blue-600/20 text-blue-600'
+                            : 'bg-blue-800/20 text-blue-800'
                         }`}>
                           {receipt.status}
                         </span>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center justify-center gap-2">
-                          <button 
-                            onClick={() => handleEdit(receipt)}
-                            className="p-1 hover:text-blue-500 transition-colors"
-                            title="Edit"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => handlePrint(receipt)}
-                            className="p-1 hover:text-green-500 transition-colors"
-                            title="Print Receipt"
-                          >
-                            <Printer className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(receipt.id, receipt.receipt_no)}
-                            className="p-1 hover:text-red-500 transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {canEdit('Receipt') && (
+                            <button 
+                              onClick={() => handleEdit(receipt)}
+                              className="p-1 hover:text-blue-500 transition-colors"
+                              title="Edit"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          
+                          {canPrint('Receipt') && (
+                            <button 
+                              onClick={() => handlePrint(receipt)}
+                              className="p-1 hover:text-blue-600 transition-colors"
+                              title="Print Receipt"
+                            >
+                              <Printer className="w-4 h-4" />
+                            </button>
+                          )}
+                          
+                          {canDelete('Receipt') && (
+                            <button 
+                              onClick={() => handleDelete(receipt.id, receipt.receipt_no)}
+                              className="p-1 hover:text-blue-700 transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </motion.tr>
@@ -752,7 +737,7 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
 
                       <div>
                         <label className={labelClass}>
-                          Date <span className="text-red-500">*</span>
+                          Date <span className="text-blue-700">*</span>
                         </label>
                         <input
                           type="date"
@@ -764,7 +749,7 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
 
                       <div>
                         <label className={labelClass}>
-                          Customer <span className="text-red-500">*</span>
+                          Customer <span className="text-blue-700">*</span>
                         </label>
                         <select
                           value={formData.customerId}
@@ -794,7 +779,7 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
 
                       <div>
                         <label className={labelClass}>
-                          Amount <span className="text-red-500">*</span>
+                          Amount <span className="text-blue-700">*</span>
                         </label>
                         <input
                           type="number"
@@ -878,13 +863,15 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
                       <X className="w-4 h-4" />
                       Cancel
                     </button>
-                    <button
-                      onClick={handleSave}
-                      className={primaryButtonClass}
-                    >
-                      <Save className="w-4 h-4" />
-                      {editingReceipt ? 'Update Receipt' : 'Save Receipt'}
-                    </button>
+                    {(editingReceipt ? canEdit('Receipt') : canCreate('Receipt')) && (
+                      <button
+                        onClick={handleSave}
+                        className={primaryButtonClass}
+                      >
+                        <Save className="w-4 h-4" />
+                        {editingReceipt ? 'Update Receipt' : 'Save Receipt'}
+                      </button>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -892,6 +879,14 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
           </>
         )}
       </AnimatePresence>
+
+      <UnifiedPrintPreview
+        type="receipt"
+        data={printData}
+        isOpen={isPrintModalOpen}
+        onClose={() => setIsPrintModalOpen(false)}
+        isDarkMode={isDarkMode}
+      />
     </div>
   );
 }

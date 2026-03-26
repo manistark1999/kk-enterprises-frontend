@@ -8,6 +8,7 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { TopBar } from '@/components/layout/TopBar';
 import { LottieLoadingScreen } from '@/components/shared/LottieLoadingScreen';
 import { SignInPage } from '@/pages/auth/SignInPage';
+import { ChangePasswordPage } from '@/pages/auth/ChangePasswordPage';
 import { StockModal } from '@/components/modals/StockModal';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { LabourBillScreen } from '@/pages/billing/LabourBillScreen';
@@ -55,6 +56,7 @@ import { CustomerProvider } from '@/contexts/CustomerContext';
 import { ReceiptsPaymentsProvider } from '@/contexts/ReceiptsPaymentsContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { UserManagementScreen } from '@/pages/settings/UserManagementScreen';
+import { RolesScreen } from '@/pages/settings/RolesScreen';
 import { FinancialYearScreen } from '@/pages/settings/FinancialYearScreen';
 import { AlignmentRegisterScreen } from '@/pages/alignment/AlignmentRegisterScreen';
 import { AlignmentScreen } from '@/pages/alignment/AlignmentScreen';
@@ -80,34 +82,34 @@ import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { ProtectedRoute } from '@/components/shared/ProtectedRoute';
 import { LoadingProvider, useLoading } from '@/contexts/LoadingContext';
 import { LoadingScreen } from '@/components/shared/LoadingScreen';
+import { PermissionGuard } from '@/components/shared/PermissionGuard';
+import { CompanyProvider } from '@/contexts/CompanyContext';
+import { DashboardRefreshProvider } from '@/contexts/DashboardRefreshContext';
 
 
 function MainLayout({ isDarkMode, setIsDarkMode }) {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     const [isStockModalOpen, setIsStockModalOpen] = useState(false);
     const [showBackupPanel, setShowBackupPanel] = useState(false);
     const [showRestorePanel, setShowRestorePanel] = useState(false);
     const [isReceiptPanelOpen, setIsReceiptPanelOpen] = useState(false);
     const [isAlignmentPanelOpen, setIsAlignmentPanelOpen] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
 
     const handleNavigate = (screen: any, data?: any) => {
         navigate(`/${screen}`, { state: data });
     };
 
+    // Close mobile sidebar when route changes
     useEffect(() => {
-        const handleResize = () => {
-            if (window.innerWidth < 1024) setIsSidebarCollapsed(true);
-            else setIsSidebarCollapsed(false);
-        };
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+        setIsMobileSidebarOpen(false);
+    }, [location.pathname]);
 
     return (
         <div 
-          className={`min-h-screen relative overflow-hidden ${isDarkMode ? 'dark' : ''}`}
+          className={`min-h-screen relative overflow-hidden ${isDarkMode ? 'dark' : ''} print:min-h-0 print:overflow-visible print:bg-white`}
           style={{
             backgroundImage: isDarkMode 
               ? 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)'
@@ -130,28 +132,35 @@ function MainLayout({ isDarkMode, setIsDarkMode }) {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <Sidebar 
-              isCollapsed={isSidebarCollapsed}
-              onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              isDarkMode={isDarkMode}
-              onToggleTheme={() => setIsDarkMode(!isDarkMode)}
-              onNavigate={handleNavigate}
-              onOpenBackup={() => setShowBackupPanel(true)}
-              onOpenRestore={() => setShowRestorePanel(true)}
-              onOpenReceiptPanel={() => setIsReceiptPanelOpen(true)}
-              onOpenAlignmentPanel={() => setIsAlignmentPanelOpen(true)}
-              currentScreen={location.pathname.substring(1)}
-            />
-            
-            <div className="flex-1 flex flex-col overflow-hidden">
-              <TopBar 
+            <div className="no-print">
+              <Sidebar 
+                isCollapsed={isSidebarCollapsed}
+                onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                 isDarkMode={isDarkMode}
                 onToggleTheme={() => setIsDarkMode(!isDarkMode)}
-                showBackupPanel={showBackupPanel}
-                onCloseBackupPanel={() => setShowBackupPanel(false)}
-                showRestorePanel={showRestorePanel}
-                onCloseRestorePanel={() => setShowRestorePanel(false)}
+                onNavigate={handleNavigate}
+                onOpenBackup={() => setShowBackupPanel(true)}
+                onOpenRestore={() => setShowRestorePanel(true)}
+                onOpenReceiptPanel={() => setIsReceiptPanelOpen(true)}
+                onOpenAlignmentPanel={() => setIsAlignmentPanelOpen(true)}
+                currentScreen={location.pathname.substring(1)}
+                isMobileOpen={isMobileSidebarOpen}
+                onMobileClose={() => setIsMobileSidebarOpen(false)}
               />
+            </div>
+            
+            <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+              <div className="no-print">
+                <TopBar 
+                  isDarkMode={isDarkMode}
+                  onToggleTheme={() => setIsDarkMode(!isDarkMode)}
+                  showBackupPanel={showBackupPanel}
+                  onCloseBackupPanel={() => setShowBackupPanel(false)}
+                  showRestorePanel={showRestorePanel}
+                  onCloseRestorePanel={() => setShowRestorePanel(false)}
+                  onMobileMenuToggle={() => setIsMobileSidebarOpen(true)}
+                />
+              </div>
               
               <div className="flex-1 overflow-y-auto overflow-x-hidden">
                 <AnimatePresence mode="wait">
@@ -188,26 +197,16 @@ function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Rigid authenticated user redirection: Keep users away from login if session is active
-  useEffect(() => {
-    if (isAuthenticated && (location.pathname === '/signin' || location.pathname === '/')) {
-      const from = (location.state as any)?.from?.pathname || '/dashboard';
-      console.log(`[AppContent] Authenticated user at login route, moving to: ${from}`);
-      navigate(from, { replace: true });
-    }
-  }, [isAuthenticated, navigate, location]);
+  // REMOVED: Automatic redirection from Login page. 
+  // The user explicitly requested that the Login page be visible first.
 
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // Remove initial splash screen once React mounts
   useEffect(() => {
-    // Show loading screen for 3.5 seconds
-    const timer = setTimeout(() => {
-      setIsInitialLoading(false);
-      document.body.classList.add('loaded');
-    }, 3500);
-
-    return () => clearTimeout(timer);
+    // Show loading screen immediately then remove
+    setIsInitialLoading(false);
+    document.body.classList.add('loaded');
   }, []);
 
   // Global error boundary & Figma error suppression
@@ -243,7 +242,7 @@ function AppContent() {
       transition={{ duration: 0.8, ease: "easeOut" }}
     >
       <AnimatePresence>
-        {(isLoading || isGlobalLoading) && (
+        {((isLoading && location.pathname !== '/') || isGlobalLoading) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -259,8 +258,18 @@ function AppContent() {
       </AnimatePresence>
 
       <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/signin" element={<SignInPage isDarkMode={isDarkMode} />} />
+        <Route path="/" element={<SignInPage isDarkMode={isDarkMode} />} />
+        <Route path="/signin" element={<Navigate to="/" replace />} />
+        
+        <Route 
+          path="/change-password" 
+          element={
+            <ProtectedRoute isDarkMode={isDarkMode}>
+              <ChangePasswordPage isDarkMode={isDarkMode} />
+            </ProtectedRoute>
+          } 
+        />
+
         <Route 
           path="/*"
           element={
@@ -270,49 +279,61 @@ function AppContent() {
           }
         >
           <Route path="dashboard" element={<DashboardPage isDarkMode={isDarkMode} onNavigate={(screen, data) => navigate(`/${screen}`, { state: data })} />} />
-          <Route path="job-card" element={<JobCardScreenUnified isDarkMode={isDarkMode} onNavigate={(screen, data) => navigate(`/${screen}`, { state: data })} />} />
-          <Route path="job-card-form" element={<JobCardScreenUnified isDarkMode={isDarkMode} onNavigate={(screen, data) => navigate(`/${screen}`, { state: data })} />} />
-          <Route path="labour" element={<LabourBillScreen isDarkMode={isDarkMode} onNavigate={(screen, data) => navigate(`/${screen}`, { state: data })} />} />
-          <Route path="labour-history" element={<LabourBillHistoryScreen isDarkMode={isDarkMode} onNavigate={(screen, data) => navigate(`/${screen}`, { state: data })} />} />
-          <Route path="estimation" element={<EstimationScreen isDarkMode={isDarkMode} onNavigate={(screen, data) => navigate(`/${screen}`, { state: data })} />} />
-          <Route path="estimation-history" element={<EstimationHistoryScreen isDarkMode={isDarkMode} onNavigate={(screen, data) => navigate(`/${screen}`, { state: data })} />} />
-          <Route path="sales" element={<SalesScreen isDarkMode={isDarkMode} onNavigate={(screen, data) => navigate(`/${screen}`, { state: data })} />} />
-          <Route path="purchase" element={<PurchaseScreen isDarkMode={isDarkMode} onNavigate={(screen, data) => navigate(`/${screen}`, { state: data })} />} />
-          <Route path="payment" element={<PaymentScreen isDarkMode={isDarkMode} />} />
-          <Route path="stock-adjustment" element={<StockAdjustmentScreen isDarkMode={isDarkMode} />} />
-          <Route path="stock-list" element={<StockListScreen isDarkMode={isDarkMode} />} />
-          <Route path="cash-register" element={<CashRegisterScreen isDarkMode={isDarkMode} />} />
-          <Route path="cash-register-report" element={<CashRegisterReportScreen isDarkMode={isDarkMode} />} />
-          <Route path="mis-report" element={<MISReportScreen isDarkMode={isDarkMode} />} />
-          <Route path="stock-report" element={<StockReportScreen isDarkMode={isDarkMode} />} />
-          <Route path="stock-register" element={<StockRegisterScreen isDarkMode={isDarkMode} />} />
-          <Route path="stock-adjustments-register" element={<StockAdjustmentsRegisterScreen isDarkMode={isDarkMode} />} />
-          <Route path="outstanding-report" element={<OutstandingReportScreen isDarkMode={isDarkMode} />} />
-          <Route path="vehicle-make" element={<VehicleMakeScreen isDarkMode={isDarkMode} />} />
-          <Route path="vehicle-register" element={<VehicleRegisterScreen isDarkMode={isDarkMode} />} />
-          <Route path="work-group" element={<WorkGroupScreen isDarkMode={isDarkMode} />} />
-          <Route path="work-type" element={<WorkTypeScreen isDarkMode={isDarkMode} />} />
-          <Route path="supplier" element={<SupplierScreen isDarkMode={isDarkMode} />} />
-          <Route path="brand" element={<BrandScreen isDarkMode={isDarkMode} />} />
-          <Route path="bank-accounts" element={<BankAccountsScreen isDarkMode={isDarkMode} />} />
-          <Route path="expense" element={<ExpenseScreen isDarkMode={isDarkMode} />} />
-          <Route path="receipt" element={<ReceiptScreen isDarkMode={isDarkMode} />} />
-          <Route path="advance" element={<AdvanceScreen isDarkMode={isDarkMode} />} />
-          <Route path="salary" element={<SalaryScreen isDarkMode={isDarkMode} />} />
-          <Route path="expense-register" element={<ExpenseRegisterScreen isDarkMode={isDarkMode} />} />
-          <Route path="receipt-register" element={<ReceiptRegisterScreen isDarkMode={isDarkMode} />} />
-          <Route path="gst-report" element={<GSTReportScreen isDarkMode={isDarkMode} />} />
-          <Route path="transport" element={<TransportMasterScreen isDarkMode={isDarkMode} />} />
-          <Route path="staff" element={<StaffMasterScreen isDarkMode={isDarkMode} />} />
-          <Route path="item" element={<ItemsServicesScreen isDarkMode={isDarkMode} />} />
-          <Route path="receipt-voucher" element={<PaymentsVouchersScreen isDarkMode={isDarkMode} />} />
-          <Route path="user-management" element={<UserManagementScreen isDarkMode={isDarkMode} />} />
-          <Route path="financial-year" element={<FinancialYearScreen isDarkMode={isDarkMode} />} />
-          <Route path="alignment-register" element={<AlignmentRegisterScreen isDarkMode={isDarkMode} />} />
-          <Route path="alignment" element={<AlignmentScreen isDarkMode={isDarkMode} />} />
-          <Route path="bank-ledger" element={<BankLedgerScreen isDarkMode={isDarkMode} />} />
-          <Route path="company" element={<CompanyScreen isDarkMode={isDarkMode} />} />
-          <Route path="customer" element={<CustomerMasterScreen isDarkMode={isDarkMode} />} />
+          {/* Billing Modules */}
+          <Route path="job-card" element={<PermissionGuard module="Job Card"><JobCardScreenUnified isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="job-card-form" element={<PermissionGuard module="Job Card"><JobCardScreenUnified isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="labour" element={<PermissionGuard module="Labour Bill"><LabourBillScreen isDarkMode={isDarkMode} onNavigate={(screen, data) => navigate(`/${screen}`, { state: data })} /></PermissionGuard>} />
+          <Route path="labour-history" element={<PermissionGuard module="Labour Bill"><LabourBillHistoryScreen isDarkMode={isDarkMode} onNavigate={(screen, data) => navigate(`/${screen}`, { state: data })} /></PermissionGuard>} />
+          <Route path="estimation" element={<PermissionGuard module="Estimation"><EstimationScreen isDarkMode={isDarkMode} onNavigate={(screen, data) => navigate(`/${screen}`, { state: data })} /></PermissionGuard>} />
+          <Route path="estimation-history" element={<PermissionGuard module="Estimation"><EstimationHistoryScreen isDarkMode={isDarkMode} onNavigate={(screen, data) => navigate(`/${screen}`, { state: data })} /></PermissionGuard>} />
+          
+          {/* Inventory Modules */}
+          <Route path="sales" element={<PermissionGuard module="Sales"><SalesScreen isDarkMode={isDarkMode} onNavigate={(screen, data) => navigate(`/${screen}`, { state: data })} /></PermissionGuard>} />
+          <Route path="purchase" element={<PermissionGuard module="Purchase"><PurchaseScreen isDarkMode={isDarkMode} onNavigate={(screen, data) => navigate(`/${screen}`, { state: data })} /></PermissionGuard>} />
+          <Route path="stock-adjustment" element={<PermissionGuard module="Stock Adjustment"><StockAdjustmentScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="stock-list" element={<PermissionGuard module="Stock List"><StockListScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          
+          {/* Accounts Modules */}
+          <Route path="payment" element={<PermissionGuard module="Payment"><PaymentScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="receipt" element={<PermissionGuard module="Receipt"><ReceiptScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="expense" element={<PermissionGuard module="Expense Entry"><ExpenseScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="advance" element={<PermissionGuard module="Staff Advance"><AdvanceScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="salary" element={<PermissionGuard module="Salary Entry"><SalaryScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="bank-ledger" element={<PermissionGuard module="Bank Ledger"><BankLedgerScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="cash-register" element={<PermissionGuard module="Cash Entry"><CashRegisterScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          
+          {/* Reports Modules */}
+          <Route path="alignment-register" element={<PermissionGuard module="Alignment Register"><AlignmentRegisterScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="expense-register" element={<PermissionGuard module="Expense Register"><ExpenseRegisterScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="receipt-register" element={<PermissionGuard module="Receipt Register"><ReceiptRegisterScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="cash-register-report" element={<PermissionGuard module="Cash Register"><CashRegisterReportScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="stock-adjustments-register" element={<PermissionGuard module="Stock Adjustments Register"><StockAdjustmentsRegisterScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="stock-report" element={<PermissionGuard module="Stock Report"><StockReportScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="stock-register" element={<PermissionGuard module="Stock Register"><StockRegisterScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="gst-report" element={<PermissionGuard module="GST Report"><GSTReportScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="mis-report" element={<PermissionGuard module="MIS Report"><MISReportScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="outstanding-report" element={<PermissionGuard module="Reports"><OutstandingReportScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          
+          {/* Masters Modules */}
+          <Route path="customer" element={<PermissionGuard module="Customer"><CustomerMasterScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="transport" element={<PermissionGuard module="Transport"><TransportMasterScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="vehicle-make" element={<PermissionGuard module="Vehicle Make"><VehicleMakeScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="vehicle-register" element={<PermissionGuard module="Vehicle Register"><VehicleRegisterScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="work-group" element={<PermissionGuard module="Work Group"><WorkGroupScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="work-type" element={<PermissionGuard module="Work Type"><WorkTypeScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="supplier" element={<PermissionGuard module="Supplier"><SupplierScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="brand" element={<PermissionGuard module="Brand"><BrandScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="item" element={<PermissionGuard module="Item"><ItemsServicesScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="bank-accounts" element={<PermissionGuard module="Bank Accounts"><BankAccountsScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="staff" element={<PermissionGuard module="Staff"><StaffMasterScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="alignment" element={<PermissionGuard module="Dashboard"><AlignmentScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+
+          {/* Settings Modules */}
+          <Route path="company" element={<PermissionGuard module="Company"><CompanyScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="financial-year" element={<PermissionGuard module="Financial Year"><FinancialYearScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="user-management" element={<PermissionGuard module="User Management"><UserManagementScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="role-management" element={<PermissionGuard module="Role Management"><RolesScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>
@@ -326,6 +347,7 @@ export default function App() {
       <LoadingProvider>
         <NotificationProvider>
         <AuthProvider>
+        <DashboardRefreshProvider>
           <StockProvider>
             <LabourBillProvider>
               <EstimationProvider>
@@ -344,7 +366,9 @@ export default function App() {
                                     <TransportProvider>
                                       <PurchaseProvider>
                                         <SalesProvider>
-                                          <AppContent />
+                                          <CompanyProvider>
+                                            <AppContent />
+                                          </CompanyProvider>
                                         </SalesProvider>
                                       </PurchaseProvider>
                                     </TransportProvider>
@@ -363,9 +387,10 @@ export default function App() {
               </EstimationProvider>
             </LabourBillProvider>
           </StockProvider>
-        </AuthProvider>
-      </NotificationProvider>
-      </LoadingProvider>
-    </ErrorBoundary>
+        </DashboardRefreshProvider>
+      </AuthProvider>
+    </NotificationProvider>
+  </LoadingProvider>
+</ErrorBoundary>
   );
 }
