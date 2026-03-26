@@ -159,17 +159,20 @@ export const getTextareaClassWithValidation = (isDarkMode: boolean, hasError: bo
  * Get select/dropdown class with validation styling
  */
 export const getSelectClassWithValidation = (isDarkMode: boolean, hasError: boolean = false): string => {
-  const baseClass = `w-full px-4 py-2.5 ${FORM_CONSTANTS.INPUT_HEIGHT} ${FORM_CONSTANTS.INPUT_RADIUS} border transition-all outline-none text-sm appearance-none bg-no-repeat bg-right pr-10`;
-  
+  const baseClass = `w-full px-4 py-2.5 ${FORM_CONSTANTS.INPUT_HEIGHT} ${FORM_CONSTANTS.INPUT_RADIUS} border transition-all outline-none text-sm appearance-none bg-no-repeat bg-right pr-10 cursor-pointer`;
+  const chevron = isDarkMode 
+    ? "bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')]"
+    : "bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')]";
+
   if (hasError) {
-    return `${baseClass} ${
+    return `${baseClass} ${chevron} bg-[length:1.25rem] bg-[position:calc(100%-1rem)_50%] ${
       isDarkMode
         ? 'bg-gray-700/50 border-red-500 text-white focus:border-red-500 focus:bg-gray-700 focus:ring-2 focus:ring-red-500/20'
         : 'bg-white border-red-500 text-gray-900 focus:border-red-500 focus:bg-white focus:ring-2 focus:ring-red-500/20'
     }`;
   }
   
-  return `${baseClass} ${
+  return `${baseClass} ${chevron} bg-[length:1.25rem] bg-[position:calc(100%-1rem)_50%] ${
     isDarkMode
       ? 'bg-gray-700/50 border-gray-600 text-white focus:border-blue-500 focus:bg-gray-700 focus:ring-2 focus:ring-blue-500/20'
       : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20'
@@ -180,7 +183,12 @@ export const getSelectClassWithValidation = (isDarkMode: boolean, hasError: bool
  * Get select/dropdown class with consistent styling (44px height)
  */
 export const getSelectClass = (isDarkMode: boolean): string => {
-  return `w-full px-4 py-2.5 ${FORM_CONSTANTS.INPUT_HEIGHT} ${FORM_CONSTANTS.INPUT_RADIUS} border transition-all outline-none text-sm appearance-none bg-no-repeat bg-right pr-10 ${
+  const baseClass = `w-full px-4 py-2.5 ${FORM_CONSTANTS.INPUT_HEIGHT} ${FORM_CONSTANTS.INPUT_RADIUS} border transition-all outline-none text-sm appearance-none bg-no-repeat bg-right pr-10 cursor-pointer`;
+  const chevron = isDarkMode 
+    ? "bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')]"
+    : "bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2024%2024%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%3E%3Cpath%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20d%3D%22m19.5%208.25-7.5%207.5-7.5-7.5%22%2F%3E%3C%2Fsvg%3E')]";
+
+  return `${baseClass} ${chevron} bg-[length:1.25rem] bg-[position:calc(100%-1rem)_50%] ${
     isDarkMode
       ? 'bg-gray-700/50 border-gray-600 text-white focus:border-blue-500 focus:bg-gray-700 focus:ring-2 focus:ring-blue-500/20'
       : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20'

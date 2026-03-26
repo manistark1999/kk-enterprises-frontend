@@ -87,7 +87,12 @@ import { CompanyProvider } from '@/contexts/CompanyContext';
 import { DashboardRefreshProvider } from '@/contexts/DashboardRefreshContext';
 
 
-function MainLayout({ isDarkMode, setIsDarkMode }) {
+interface MainLayoutProps {
+  isDarkMode: boolean;
+  setIsDarkMode: (isDark: boolean) => void;
+}
+
+function MainLayout({ isDarkMode, setIsDarkMode }: MainLayoutProps) {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
     const [isStockModalOpen, setIsStockModalOpen] = useState(false);
@@ -98,7 +103,7 @@ function MainLayout({ isDarkMode, setIsDarkMode }) {
     const navigate = useNavigate();
     const location = useLocation();
 
-    const handleNavigate = (screen: any, data?: any) => {
+    const handleNavigate = (screen: string, data?: any) => {
         navigate(`/${screen}`, { state: data });
     };
 
@@ -146,6 +151,7 @@ function MainLayout({ isDarkMode, setIsDarkMode }) {
                 currentScreen={location.pathname.substring(1)}
                 isMobileOpen={isMobileSidebarOpen}
                 onMobileClose={() => setIsMobileSidebarOpen(false)}
+                onMobileOpen={() => setIsMobileSidebarOpen(true)}
               />
             </div>
             
@@ -159,6 +165,8 @@ function MainLayout({ isDarkMode, setIsDarkMode }) {
                   showRestorePanel={showRestorePanel}
                   onCloseRestorePanel={() => setShowRestorePanel(false)}
                   onMobileMenuToggle={() => setIsMobileSidebarOpen(true)}
+                  onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                  isCollapsed={isSidebarCollapsed}
                 />
               </div>
               

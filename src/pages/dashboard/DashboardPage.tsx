@@ -31,7 +31,7 @@ import { useDashboardRefresh } from '@/contexts/DashboardRefreshContext';
 
 interface DashboardContentProps {
   isDarkMode: boolean;
-  onNavigate: (screen: any, data?: any) => void;
+  onNavigate: (screen: string, data?: any) => void;
 }
 
 type TimePeriod = 'today' | 'weekly' | 'monthly' | 'yearly';

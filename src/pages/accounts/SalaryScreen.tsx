@@ -48,6 +48,9 @@ export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
   const [filterDesignation, setFilterDesignation] = useState<string>('all');
   const [viewDetailsModalOpen, setViewDetailsModalOpen] = useState(false);
   const [selectedSalary, setSelectedSalary] = useState<StaffSalary | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingSalary, setEditingSalary] = useState<StaffSalary | null>(null);
+  const [isProcessModalOpen, setIsProcessModalOpen] = useState(false);
   
   // Fetch salaries from backend
   const fetchSalaries = async () => {
@@ -65,11 +68,50 @@ export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
           r.salary_month === targetMonthName && r.salary_year === targetYear
         );
 
-        if (dbRecords.length > 0) {
-          // Use DB records
-          setStaffSalaries(dbRecords.map((r: any) => ({
+        // MERGE LOGIC: Every active staff from Masters should be here
+        const activeStaff = staff.filter(s => s.status?.toLowerCase() === 'active');
+        
+        const mergedSalaries: StaffSalary[] = activeStaff.map(s => {
+          const dbRecord = dbRecords.find((r: any) => String(r.staff_id) === String(s.id));
+          
+          if (dbRecord) {
+            return {
+              id: s.id,
+              dbId: dbRecord.id,
+              staffName: dbRecord.staff_name,
+              designation: dbRecord.designation,
+              basicSalary: dbRecord.basic,
+              hra: dbRecord.hra,
+              allowances: dbRecord.allowances,
+              overtime: dbRecord.overtime,
+              advance: dbRecord.advance_amount,
+              deductions: dbRecord.deductions,
+              netSalary: dbRecord.net_salary,
+              status: dbRecord.status
+            };
+          } else {
+            return {
+              id: s.id,
+              staffName: s.name,
+              designation: s.designation,
+              basicSalary: s.salary,
+              hra: 0,
+              allowances: 0,
+              overtime: 0,
+              advance: 0,
+              deductions: 0,
+              netSalary: s.salary,
+              status: 'Pending'
+            };
+          }
+        });
+
+        // Also include any DB records for staff that might be inactive now but were processed
+        const inactiveProcessed = dbRecords
+          .filter((r: any) => !activeStaff.find(s => String(s.id) === String(r.staff_id)))
+          .map((r: any) => ({
             id: r.staff_id,
-            dbId: r.id, // Keep the real ID for updates
+            dbId: r.id,
             staffName: r.staff_name,
             designation: r.designation,
             basicSalary: r.basic,
@@ -80,24 +122,9 @@ export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
             deductions: r.deductions,
             netSalary: r.net_salary,
             status: r.status
-          })));
-        } else {
-          // Initialize from Master Staff
-          const activeStaff = staff.filter(s => s.status?.toLowerCase() === 'active');
-          setStaffSalaries(activeStaff.map(s => ({
-            id: s.id,
-            staffName: s.name,
-            designation: s.designation,
-            basicSalary: s.salary,
-            hra: 0,
-            allowances: 0,
-            overtime: 0,
-            advance: 0,
-            deductions: 0,
-            netSalary: s.salary,
-            status: 'Pending'
-          })));
-        }
+          }));
+
+        setStaffSalaries([...mergedSalaries, ...inactiveProcessed]);
       }
     } catch (err) {
       toast.error('Error loading salary data');
@@ -146,20 +173,18 @@ export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
     }
   };
 
-  const handleProcessAll = async () => {
-    const unprocessed = staffSalaries.filter(s => s.status === 'Pending');
-    if (unprocessed.length === 0) {
-      toast.info('No pending salaries to process');
-      return;
-    }
-    
+  const handleProcessAll = () => {
+    setIsProcessModalOpen(true);
+  };
+
+  const handleBulkSubmit = async (processedSalaries: StaffSalary[]) => {
     setLoading(true);
     let successCount = 0;
-    for (const s of unprocessed) {
-      try {
-        const [year, monthNum] = salaryMonth.split('-');
-        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        
+    try {
+      const [year, monthNum] = salaryMonth.split('-');
+      const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      
+      for (const s of processedSalaries) {
         const payload = {
           salary_no: `SAL-${year}-${monthNum}-${s.id}`,
           salary_month: monthNames[parseInt(monthNum) - 1],
@@ -183,12 +208,29 @@ export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
           await api.post(endpoints.accounts.salary.create, payload);
         }
         successCount++;
-      } catch (err) {
       }
+      toast.success(`Successfully processed ${successCount} salaries`);
+      setIsProcessModalOpen(false);
+      fetchSalaries();
+    } catch (err: any) {
+      toast.error(err.message || 'Bulk processing failed');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-    toast.success(`Processed ${successCount} salaries!`);
-    fetchSalaries();
+  };
+
+  const handleUpdateSalary = (updated: StaffSalary) => {
+    const net = (Number(updated.basicSalary) || 0) + 
+                (Number(updated.hra) || 0) + 
+                (Number(updated.allowances) || 0) + 
+                (Number(updated.overtime) || 0) - 
+                (Number(updated.advance) || 0) - 
+                (Number(updated.deductions) || 0);
+    const finalUpdate = { ...updated, netSalary: net };
+    
+    setStaffSalaries(prev => prev.map(s => s.id === finalUpdate.id ? finalUpdate : s));
+    setEditModalOpen(false);
+    toast.success(`Adjustments updated for ${finalUpdate.staffName}`);
   };
 
   const cardClass = `rounded-xl ${
@@ -199,13 +241,13 @@ export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
 
   const calculateTotals = () => {
     return {
-      totalBasic: staffSalaries.reduce((sum, s) => sum + s.basicSalary, 0),
-      totalHRA: staffSalaries.reduce((sum, s) => sum + s.hra, 0),
-      totalAllowances: staffSalaries.reduce((sum, s) => sum + s.allowances, 0),
-      totalOvertime: staffSalaries.reduce((sum, s) => sum + s.overtime, 0),
-      totalAdvance: staffSalaries.reduce((sum, s) => sum + s.advance, 0),
-      totalDeductions: staffSalaries.reduce((sum, s) => sum + s.deductions, 0),
-      totalNet: staffSalaries.reduce((sum, s) => sum + s.netSalary, 0),
+      totalBasic: staffSalaries.reduce((sum, s) => sum + (Number(s.basicSalary) || 0), 0),
+      totalHRA: staffSalaries.reduce((sum, s) => sum + (Number(s.hra) || 0), 0),
+      totalAllowances: staffSalaries.reduce((sum, s) => sum + (Number(s.allowances) || 0), 0),
+      totalOvertime: staffSalaries.reduce((sum, s) => sum + (Number(s.overtime) || 0), 0),
+      totalAdvance: staffSalaries.reduce((sum, s) => sum + (Number(s.advance) || 0), 0),
+      totalDeductions: staffSalaries.reduce((sum, s) => sum + (Number(s.deductions) || 0), 0),
+      totalNet: staffSalaries.reduce((sum, s) => sum + (Number(s.netSalary) || 0), 0),
     };
   };
 
@@ -220,13 +262,13 @@ export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
 
   // Calculate totals for filtered data
   const filteredTotals = {
-    totalBasic: filteredSalaries.reduce((sum, s) => sum + s.basicSalary, 0),
-    totalHRA: filteredSalaries.reduce((sum, s) => sum + s.hra, 0),
-    totalAllowances: filteredSalaries.reduce((sum, s) => sum + s.allowances, 0),
-    totalOvertime: filteredSalaries.reduce((sum, s) => sum + s.overtime, 0),
-    totalAdvance: filteredSalaries.reduce((sum, s) => sum + s.advance, 0),
-    totalDeductions: filteredSalaries.reduce((sum, s) => sum + s.deductions, 0),
-    totalNet: filteredSalaries.reduce((sum, s) => sum + s.netSalary, 0),
+    totalBasic: filteredSalaries.reduce((sum, s) => sum + (Number(s.basicSalary) || 0), 0),
+    totalHRA: filteredSalaries.reduce((sum, s) => sum + (Number(s.hra) || 0), 0),
+    totalAllowances: filteredSalaries.reduce((sum, s) => sum + (Number(s.allowances) || 0), 0),
+    totalOvertime: filteredSalaries.reduce((sum, s) => sum + (Number(s.overtime) || 0), 0),
+    totalAdvance: filteredSalaries.reduce((sum, s) => sum + (Number(s.advance) || 0), 0),
+    totalDeductions: filteredSalaries.reduce((sum, s) => sum + (Number(s.deductions) || 0), 0),
+    totalNet: filteredSalaries.reduce((sum, s) => sum + (Number(s.netSalary) || 0), 0),
   };
 
   return (
@@ -504,6 +546,15 @@ export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">
                           <div className="flex items-center justify-center gap-2">
+                            <button className={`p-1.5 rounded-lg transition-all ${
+                              isDarkMode 
+                                ? 'hover:bg-blue-400/20 text-blue-400' 
+                                : 'hover:bg-blue-50 text-blue-600'
+                            }`} 
+                            onClick={() => { setEditingSalary(staff); setEditModalOpen(true); }}
+                            title="Edit Salary Details">
+                              <Plus className="w-4 h-4" />
+                            </button>
                             <button className={`p-1.5 rounded-lg transition-all ${
                               isDarkMode 
                                 ? 'hover:bg-blue-600/20 text-blue-400' 
@@ -791,6 +842,216 @@ export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
                 className="flex items-center gap-2 px-6 py-2.5 h-12 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-medium hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
               >
                 Close
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      {/* Bulk Process Modal */}
+      {isProcessModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className={`w-full max-w-6xl max-h-[90vh] rounded-3xl shadow-2xl overflow-hidden flex flex-col ${
+              isDarkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white'
+            }`}
+          >
+            {/* Modal Header */}
+            <div className={`p-8 border-b flex items-center justify-between ${
+              isDarkMode ? 'border-gray-800 bg-gray-900/50' : 'border-gray-100 bg-gray-50/50'
+            }`}>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center">
+                  <Calculator className="w-6 h-6 text-blue-500" />
+                </div>
+                <div>
+                  <h2 className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Process Bulk Salaries
+                  </h2>
+                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    Review and confirm payroll for {salaryMonth}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsProcessModalOpen(false)}
+                className={`p-2 rounded-xl transition-colors ${
+                  isDarkMode ? 'hover:bg-gray-800 text-gray-400' : 'hover:bg-gray-100 text-gray-500'
+                }`}
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-8">
+              <div className="space-y-6">
+                <div className={`grid grid-cols-4 gap-4 p-4 rounded-2xl border ${
+                  isDarkMode ? 'bg-gray-800/20 border-gray-800' : 'bg-blue-50/50 border-blue-100'
+                }`}>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-gray-500">Processing Month</p>
+                    <p className={`font-bold ${isDarkMode ? 'text-white' : 'text-blue-900'}`}>{salaryMonth}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-gray-500">Total Employees</p>
+                    <p className={`font-bold ${isDarkMode ? 'text-white' : 'text-blue-900'}`}>{staffSalaries.length}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-gray-500">Pending</p>
+                    <p className={`font-bold text-blue-500`}>{staffSalaries.filter(s => s.status === 'Pending').length}</p>
+                  </div>
+                  <div className="space-y-1 text-right">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-gray-500">Estimated Total</p>
+                    <p className={`font-bold text-2xl ${isDarkMode ? 'text-white' : 'text-blue-900'}`}>₹{totals.totalNet.toLocaleString()}</p>
+                  </div>
+                </div>
+
+                <div className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'border-gray-800' : 'border-gray-200'}`}>
+                  <table className="w-full text-left">
+                    <thead className={isDarkMode ? 'bg-gray-800/50' : 'bg-gray-50'}>
+                      <tr>
+                        <th className="px-4 py-3 text-[10px] font-black uppercase tracking-wider text-gray-500">Staff</th>
+                        <th className="px-4 py-3 text-[10px] font-black uppercase tracking-wider text-gray-500 text-right">Basic</th>
+                        <th className="px-4 py-3 text-[10px] font-black uppercase tracking-wider text-gray-500 text-right">HRA/Allow</th>
+                        <th className="px-4 py-3 text-[10px] font-black uppercase tracking-wider text-gray-500 text-right">Adv/Ded</th>
+                        <th className="px-4 py-3 text-[10px] font-black uppercase tracking-wider text-gray-500 text-right">Net Salary</th>
+                        <th className="px-4 py-3 text-[10px] font-black uppercase tracking-wider text-gray-500">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-800/10 dark:divide-gray-800">
+                      {staffSalaries.map((s) => (
+                        <tr key={s.id} className={isDarkMode ? 'hover:bg-gray-800/30' : 'hover:bg-blue-50/30'}>
+                          <td className="px-4 py-4">
+                            <p className={`font-bold text-sm ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{s.staffName}</p>
+                            <p className="text-[10px] text-gray-500 uppercase">{s.designation}</p>
+                          </td>
+                          <td className="px-4 py-4 text-right text-sm">₹{s.basicSalary.toLocaleString()}</td>
+                          <td className="px-4 py-4 text-right text-sm">₹{(s.hra + s.allowances).toLocaleString()}</td>
+                          <td className="px-4 py-4 text-right text-sm text-blue-600">₹{(s.advance + s.deductions).toLocaleString()}</td>
+                          <td className="px-4 py-4 text-right">
+                            <span className={`font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>₹{s.netSalary.toLocaleString()}</span>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase ${
+                              s.status === 'Paid' ? 'bg-blue-500/10 text-blue-500' : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                            }`}>
+                              {s.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className={`p-8 border-t flex items-center justify-end gap-4 ${
+              isDarkMode ? 'border-gray-800 bg-gray-900/50' : 'border-gray-100 bg-gray-50/50'
+            }`}>
+              <button
+                onClick={() => setIsProcessModalOpen(false)}
+                className={`px-8 py-3 rounded-2xl font-bold transition-all ${
+                  isDarkMode ? 'bg-gray-800 text-gray-400 hover:text-white' : 'bg-white border-2 border-gray-100 text-gray-500 hover:bg-gray-50'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleBulkSubmit(staffSalaries.filter(s => s.status === 'Pending'))}
+                disabled={loading || staffSalaries.filter(s => s.status === 'Pending').length === 0}
+                className="px-10 py-3 bg-blue-600 text-white rounded-2xl font-black shadow-xl shadow-blue-500/30 hover:bg-blue-700 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 disabled:shadow-none flex items-center gap-2"
+              >
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <CheckCircle className="w-5 h-5" />
+                )}
+                Confirm & Process All
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      {/* Edit Salary Modal */}
+      {editModalOpen && editingSalary && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md px-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className={`w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden ${
+              isDarkMode ? 'bg-gray-900 border border-gray-800' : 'bg-white'
+            }`}
+          >
+            <div className={`p-6 border-b flex items-center justify-between ${
+              isDarkMode ? 'border-gray-800 bg-gray-900/50' : 'border-gray-100 bg-gray-50/50'
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                  <Plus className="w-5 h-5 text-blue-500" />
+                </div>
+                <div>
+                  <h2 className={`text-xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Edit Salary Components</h2>
+                  <p className="text-xs text-gray-500 uppercase tracking-widest">{editingSalary.staffName} ({editingSalary.designation})</p>
+                </div>
+              </div>
+              <button onClick={() => setEditModalOpen(false)} className="text-gray-500 hover:text-gray-700"><X /></button>
+            </div>
+
+            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[
+                { label: 'Basic Salary', key: 'basicSalary' },
+                { label: 'HRA', key: 'hra' },
+                { label: 'Allowances', key: 'allowances' },
+                { label: 'Overtime Pay', key: 'overtime' },
+                { label: 'Advance Adjusted', key: 'advance' },
+                { label: 'Other Deductions', key: 'deductions' }
+              ].map((field) => (
+                <div key={field.key}>
+                  <label className="block text-[10px] font-black uppercase text-gray-500 mb-2">{field.label}</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">₹</span>
+                    <input
+                      type="number"
+                      value={(editingSalary as any)[field.key]}
+                      onChange={(e) => setEditingSalary({ ...editingSalary, [field.key]: parseFloat(e.target.value) || 0 })}
+                      className={`w-full pl-8 pr-4 py-3 rounded-xl border-2 transition-all outline-none font-bold ${
+                        isDarkMode 
+                          ? 'bg-gray-800 border-gray-700 text-white focus:border-blue-500' 
+                          : 'bg-white border-gray-100 text-gray-900 focus:border-blue-500'
+                      }`}
+                    />
+                  </div>
+                </div>
+              ))}
+              
+              <div className="md:col-span-2 p-4 rounded-2xl bg-blue-500/5 border-2 border-dashed border-blue-500/20">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-bold text-blue-600">Calculated Net Salary</p>
+                  <p className="text-2xl font-black text-blue-500">
+                    ₹{((editingSalary.basicSalary || 0) + (editingSalary.hra || 0) + (editingSalary.allowances || 0) + (editingSalary.overtime || 0) - (editingSalary.advance || 0) - (editingSalary.deductions || 0)).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className={`p-6 border-t flex items-center justify-end gap-3 ${
+              isDarkMode ? 'border-gray-800 bg-gray-900/50' : 'border-gray-100 bg-gray-50/50'
+            }`}>
+              <button
+                onClick={() => setEditModalOpen(false)}
+                className={`px-6 py-2.5 rounded-xl font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}
+              >
+                Discard
+              </button>
+              <button
+                onClick={() => handleUpdateSalary(editingSalary)}
+                className="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-black shadow-lg shadow-blue-500/25"
+              >
+                Apply Changes
               </button>
             </div>
           </motion.div>

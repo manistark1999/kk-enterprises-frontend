@@ -29,7 +29,8 @@ import {
   getInputClass,
   getLabelClass,
   getPrimaryButtonClass,
-  getSecondaryButtonClass
+  getSecondaryButtonClass,
+  getSelectClass
 } from '@/utils/formStyles';
 import { useReceiptsPayments, ReceiptRecord } from '@/contexts/ReceiptsPaymentsContext';
 import { useCustomers } from '@/contexts/CustomerContext';
@@ -85,6 +86,7 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
   const labelClass = getLabelClass(isDarkMode);
   const primaryButtonClass = getPrimaryButtonClass();
   const secondaryButtonClass = getSecondaryButtonClass(isDarkMode);
+  const selectClass = getSelectClass(isDarkMode);
 
   // Filter receipts
   const filteredReceipts = receipts.filter((receipt: ReceiptRecord) => {
@@ -445,7 +447,7 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as any)}
-                className={inputClass}
+                className={selectClass}
               >
                 <option value="All">All Status</option>
                 <option value="Received">Received</option>
@@ -455,7 +457,7 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
               <select
                 value={filterPaymentMode}
                 onChange={(e) => setFilterPaymentMode(e.target.value as any)}
-                className={inputClass}
+                className={selectClass}
               >
                 <option value="All">All Modes</option>
                 <option value="Cash">Cash</option>
@@ -703,7 +705,7 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
                       <select
                         value={formData.labourBillId}
                         onChange={(e) => handleLabourBillChange(e.target.value)}
-                        className={inputClass}
+                        className={selectClass}
                       >
                         <option value="">Not linked to any bill</option>
                         {labourBills.map(bill => (
@@ -754,7 +756,7 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
                         <select
                           value={formData.customerId}
                           onChange={(e) => handleCustomerChange(e.target.value)}
-                          className={inputClass}
+                          className={selectClass}
                           disabled={!!formData.labourBillId}
                         >
                           <option value="">Select Customer</option>
@@ -796,7 +798,7 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
                         <select
                           value={formData.paymentMode}
                           onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value as any })}
-                          className={inputClass}
+                          className={selectClass}
                         >
                           <option value="Cash">Cash</option>
                           <option value="Card">Card</option>
@@ -839,7 +841,7 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
                         <select
                           value={formData.status}
                           onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                          className={inputClass}
+                          className={selectClass}
                         >
                           <option value="Received">Received</option>
                           <option value="Pending">Pending</option>

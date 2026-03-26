@@ -22,13 +22,15 @@ import {
   Package
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { SearchableDropdown } from '@/components/ui/SearchableDropdown';
 import { 
   FORM_CONSTANTS,
   getCardClass,
   getInputClass,
   getLabelClass,
   getPrimaryButtonClass,
-  getSecondaryButtonClass
+  getSecondaryButtonClass,
+  getSelectClass
 } from '@/utils/formStyles';
 import { useReceiptsPayments, PaymentRecord } from '@/contexts/ReceiptsPaymentsContext';
 import { useCustomers } from '@/contexts/CustomerContext';
@@ -80,6 +82,7 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
   const labelClass = getLabelClass(isDarkMode);
   const primaryButtonClass = getPrimaryButtonClass();
   const secondaryButtonClass = getSecondaryButtonClass(isDarkMode);
+  const selectClass = getSelectClass(isDarkMode);
 
   // Filter payments
   const filteredPayments = payments.filter((payment: PaymentRecord) => {
@@ -236,11 +239,18 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
   const handleBankAccountChange = (accountId: string) => {
     const account = bankAccounts.find(a => a.id === accountId);
     if (account) {
-      setFormData({
-        ...formData,
+      setFormData(prev => ({
+        ...prev,
         bankAccountId: account.id,
-        bankAccountName: account.accountName
-      });
+        bankAccountName: account.accountName,
+        paymentMode: prev.paymentMode === 'Cash' ? 'Bank Transfer' : prev.paymentMode
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        bankAccountId: '',
+        bankAccountName: ''
+      }));
     }
   };
 
@@ -411,7 +421,7 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as any)}
-                className={inputClass}
+                className={selectClass}
               >
                 <option value="All">All Status</option>
                 <option value="Paid">Paid</option>
@@ -421,7 +431,7 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value as any)}
-                className={inputClass}
+                className={selectClass}
               >
                 <option value="All">All Categories</option>
                 <option value="Purchase">Purchase</option>
@@ -691,35 +701,25 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
                       </div>
 
                       <div>
-                        <label className={labelClass}>
-                          Customer
-                        </label>
-                        <select
+                        <label className={labelClass}>Customer</label>
+                        <SearchableDropdown
+                          options={customers.map(c => ({ value: c.id, label: `${c.name} (${c.customerCode || c.customer_code})` }))}
                           value={formData.customerId}
-                          onChange={(e) => handleCustomerChange(e.target.value)}
-                          className={inputClass}
-                        >
-                          <option value="">Select Customer</option>
-                          {customers.map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                          ))}
-                        </select>
+                          onChange={handleCustomerChange}
+                          isDarkMode={isDarkMode}
+                          placeholder="Select Customer"
+                        />
                       </div>
 
                       <div>
-                        <label className={labelClass}>
-                          Labour Bill
-                        </label>
-                        <select
+                        <label className={labelClass}>Linked Bill</label>
+                        <SearchableDropdown
+                          options={labourBills.map(b => ({ value: b.id, label: `${b.billNo} - ₹${b.grandTotal}` }))}
                           value={formData.billId}
-                          onChange={(e) => handleBillChange(e.target.value)}
-                          className={inputClass}
-                        >
-                          <option value="">Select Bill</option>
-                          {labourBills.map(b => (
-                            <option key={b.id} value={b.id}>{b.billNo} - {b.customerName}</option>
-                          ))}
-                        </select>
+                          onChange={handleBillChange}
+                          isDarkMode={isDarkMode}
+                          placeholder="Select Bill (Optional)"
+                        />
                       </div>
 
                       <div>
@@ -740,7 +740,7 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
                         <select
                           value={formData.paymentType}
                           onChange={(e) => setFormData({ ...formData, paymentType: e.target.value })}
-                          className={inputClass}
+                          className={selectClass}
                         >
                           <option value="Supplier Payment">Supplier Payment</option>
                           <option value="Customer Refund">Customer Refund</option>
@@ -777,17 +777,19 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
 
                       <div>
                         <label className={labelClass}>Bank Account</label>
-                        <select
+                        <SearchableDropdown
+                          options={bankAccounts.map(a => ({ 
+                            value: a.id, 
+                            label: `${a.accountName} - ${a.accountNumber.slice(-4)}` 
+                          }))}
                           value={formData.bankAccountId}
-                          onChange={(e) => handleBankAccountChange(e.target.value)}
-                          className={inputClass}
-                          disabled={formData.paymentMode === 'Cash'}
-                        >
-                          <option value="">Select Account</option>
-                          {bankAccounts.map(a => (
-                            <option key={a.id} value={a.id}>{a.accountName}</option>
-                          ))}
-                        </select>
+                          onChange={handleBankAccountChange}
+                          isDarkMode={isDarkMode}
+                          placeholder={bankAccounts.length > 0 ? "Select Account" : "No Accounts Available"}
+                        />
+                        {formData.paymentMode === 'Cash' && bankAccounts.length > 0 && (
+                          <p className="text-[10px] text-blue-500 mt-1 italic">Selecting an account will change mode to Bank Transfer</p>
+                        )}
                       </div>
 
                       <div>
@@ -795,7 +797,7 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
                         <select
                           value={formData.paymentMode}
                           onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value as any })}
-                          className={inputClass}
+                          className={selectClass}
                         >
                           <option value="Cash">Cash</option>
                           <option value="Card">Card</option>
@@ -823,7 +825,7 @@ export function PaymentScreenEnhanced({ isDarkMode }: PaymentScreenProps) {
                         <select
                           value={formData.status}
                           onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                          className={inputClass}
+                          className={selectClass}
                         >
                           <option value="Completed">Completed</option>
                           <option value="Pending">Pending</option>

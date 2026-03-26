@@ -14,9 +14,21 @@ interface TopBarProps {
   showRestorePanel: boolean;
   onCloseRestorePanel: () => void;
   onMobileMenuToggle?: () => void;
+  onToggleCollapse?: () => void;
+  isCollapsed?: boolean;
 }
 
-export function TopBar({ isDarkMode, onToggleTheme, showBackupPanel, onCloseBackupPanel, showRestorePanel, onCloseRestorePanel, onMobileMenuToggle }: TopBarProps) {
+export function TopBar({ 
+  isDarkMode, 
+  onToggleTheme, 
+  showBackupPanel, 
+  onCloseBackupPanel, 
+  showRestorePanel, 
+  onCloseRestorePanel, 
+  onMobileMenuToggle,
+  onToggleCollapse,
+  isCollapsed
+}: TopBarProps) {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [selectedFinancialYear] = useState('2025-26');
@@ -34,20 +46,31 @@ export function TopBar({ isDarkMode, onToggleTheme, showBackupPanel, onCloseBack
       isDarkMode ? 'bg-gray-900/80 border-gray-800' : 'bg-white/80 border-gray-200'
     }`}>
       <div className="h-full px-3 md:px-6 flex items-center justify-between gap-2">
-        {/* Left Side */}
-        <div className="flex items-center gap-2 md:gap-3 min-w-0">
-          {/* Mobile Hamburger */}
-          <button
-            onClick={onMobileMenuToggle}
-            className={`md:hidden p-2 rounded-lg flex-shrink-0 ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-100'}`}
+        {/* Left Side: Toggle + Logo */}
+        <div className="flex items-center gap-3 md:gap-4 min-w-0">
+          <button 
+            onClick={() => {
+              if (window.innerWidth < 768) {
+                onMobileMenuToggle?.();
+              } else {
+                onToggleCollapse?.();
+              }
+            }}
+            className={`p-2 rounded-lg transition-all flex items-center justify-center hover:scale-110 active:scale-95 ${
+              isDarkMode 
+                ? 'text-gray-400 hover:text-white hover:bg-gray-800' 
+                : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+            }`}
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-5 h-5 md:w-6 md:h-6" />
           </button>
-
-          <img src={kkHeaderLogo} alt="KK Groups Logo" className="h-8 md:h-10 w-auto object-contain flex-shrink-0" />
-          <h1 className="text-base md:text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent truncate">
-            KK Enterprises
-          </h1>
+          
+          <div className="flex items-center gap-2 md:gap-3">
+            <img src={kkHeaderLogo} alt="KK Groups Logo" className="h-8 md:h-10 w-auto object-contain flex-shrink-0" />
+            <h1 className="text-base md:text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent truncate hidden sm:block">
+              KK Enterprises
+            </h1>
+          </div>
         </div>
 
         {/* Right Side */}

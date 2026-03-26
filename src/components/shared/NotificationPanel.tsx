@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Trash2, CheckCheck, Bell, BellOff } from 'lucide-react';
 import { 
@@ -15,11 +15,11 @@ interface NotificationPanelProps {
   isDarkMode: boolean;
 }
 
-export const NotificationPanel: React.FC<NotificationPanelProps> = ({
+export const NotificationPanel = React.forwardRef<HTMLDivElement, NotificationPanelProps>(function NotificationPanel({
   isOpen,
   onClose,
   isDarkMode,
-}) => {
+}, _ref) {
   const {
     notifications,
     unreadCount,
@@ -30,6 +30,16 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
   } = useNotifications();
 
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // Sync forwarded ref (from AnimatePresence) with internal panelRef
+  const setRef = useCallback((node: HTMLDivElement | null) => {
+    (panelRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    if (typeof _ref === 'function') {
+      _ref(node);
+    } else if (_ref) {
+      (_ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    }
+  }, [_ref]);
 
   // Close panel when clicking outside
   useEffect(() => {
@@ -56,7 +66,7 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          ref={panelRef}
+          ref={setRef}
           initial={{ opacity: 0, y: -10, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -353,4 +363,6 @@ export const NotificationPanel: React.FC<NotificationPanelProps> = ({
       )}
     </AnimatePresence>
   );
-};
+});
+
+NotificationPanel.displayName = 'NotificationPanel';

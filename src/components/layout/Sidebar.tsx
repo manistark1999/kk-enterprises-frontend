@@ -34,7 +34,8 @@ import {
   Building2,
   Download,
   Upload,
-  X
+  X,
+  Menu
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import kkSidebarLogo from '../../assets/images/kk-groups-logo-sidebar.png';
@@ -53,6 +54,7 @@ interface SidebarProps {
   currentScreen?: string;
   isMobileOpen?: boolean;
   onMobileClose?: () => void;
+  onMobileOpen?: () => void;
 }
 
 const screenKeyMap: Record<string, string> = {
@@ -105,7 +107,8 @@ export function Sidebar({
   onToggleTheme,
   currentScreen,
   isMobileOpen = false,
-  onMobileClose
+  onMobileClose,
+  onMobileOpen
 }: SidebarProps) {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [expandedNestedItems, setExpandedNestedItems] = useState<string[]>([]);
@@ -159,7 +162,15 @@ export function Sidebar({
 
   const currentMenuItem = currentScreen ? screenToMenuMap[currentScreen] : 'Dashboard';
 
-  const navTemplates = [
+  interface NavItem {
+    icon: any;
+    label: string;
+    hasSubmenu: boolean;
+    hasNestedSubmenu: boolean;
+    submenu?: { icon: any; label: string }[];
+  }
+
+  const navTemplates: NavItem[] = [
     { icon: LayoutDashboard, label: 'Dashboard', hasSubmenu: false, hasNestedSubmenu: false },
     {
       icon: Users, label: 'Masters', hasSubmenu: true, hasNestedSubmenu: false,
@@ -233,7 +244,7 @@ export function Sidebar({
     }
   ];
 
-  const mainNavItems = navTemplates.map(item => {
+  const mainNavItems: NavItem[] = navTemplates.map(item => {
     if (item.hasSubmenu && item.submenu) {
       const filteredSubmenu = item.submenu.filter(subItem => canView(subItem.label));
       if (filteredSubmenu.length === 0) return null;
@@ -241,7 +252,7 @@ export function Sidebar({
     }
     if (!canView(item.label)) return null;
     return item;
-  }).filter(Boolean) as any[];
+  }).filter(Boolean) as NavItem[];
 
   React.useEffect(() => {
     if (currentMenuItem && !isCollapsed) {
@@ -253,6 +264,10 @@ export function Sidebar({
           }
         }
       });
+    } else if (isCollapsed) {
+      // Clear expanded items in compact mode
+      if (expandedItems.length > 0) setExpandedItems([]);
+      if (expandedNestedItems.length > 0) setExpandedNestedItems([]);
     }
   }, [currentMenuItem, isCollapsed]);
 
@@ -288,27 +303,13 @@ export function Sidebar({
       className="h-full p-4 md:p-6 flex flex-col relative"
       style={{ background: 'linear-gradient(to bottom, #1e3c72 0%, #2a5298 40%, #3f7ccf 75%, #5a9be6 100%)' }}
     >
-      {/* Mobile close button */}
-      <button
-        onClick={onMobileClose}
-        className="absolute top-4 right-4 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center md:hidden z-10"
-      >
-        <X className="w-4 h-4 text-white" />
-      </button>
-
-      {/* Desktop collapse toggle */}
-      <button
-        onClick={onToggleCollapse}
-        className={`absolute -right-3 top-8 w-6 h-6 ${isDarkMode ? 'bg-gray-700' : 'bg-[#2563EB]'} rounded-full hidden md:flex items-center justify-center shadow-lg hover:scale-110 transition-transform z-[60]`}
-      >
-        {isCollapsed ? <ChevronRight className="w-3.5 h-3.5 text-white" /> : <ChevronLeft className="w-3.5 h-3.5 text-white" />}
-      </button>
+    
 
       {/* Logo */}
-      <div className={`mb-6 ${isCollapsed ? 'flex justify-center' : ''}`}>
+      <div className={`mb-6 flex flex-col items-center transition-all duration-300 ${isCollapsed ? 'px-0' : ''}`}>
         <div className="flex flex-col items-center">
-          <div className={`${isCollapsed ? 'w-12 h-12' : 'w-20 h-20 md:w-28 md:h-28'} transition-all duration-300 mb-2`}>
-            <img src={kkSidebarLogo} alt="KK Groups Logo" className="w-full h-full object-contain drop-shadow-xl" />
+          <div className={`${isCollapsed ? 'w-14 h-14' : 'w-20 h-20 md:w-28 md:h-28'} transition-all duration-300 mb-2`}>
+            <img src={kkSidebarLogo} alt="KK Groups Logo" className="w-full h-full object-contain drop-shadow-xl p-1" />
           </div>
           <AnimatePresence>
             {!isCollapsed && (
@@ -431,7 +432,7 @@ export function Sidebar({
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.2 }}
                 >
-                  {item.submenu.map((subItem: any) => (
+                  {item.submenu.map((subItem: { label: string; icon: any }) => (
                     <Link to={`/${screenKeyMap[subItem.label]}`} key={subItem.label} onClick={handleMobileNav}>
                       <div className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all ${
                         isMenuItemActive(subItem.label)
@@ -516,23 +517,21 @@ export function Sidebar({
       </AnimatePresence>
 
       {/* Mobile Drawer */}
-      <AnimatePresence>
-        {isMobileOpen && (
-          <motion.div
-            className="fixed left-0 top-0 h-full w-72 z-[100] md:hidden overflow-y-auto"
-            initial={{ x: -288 }}
-            animate={{ x: 0 }}
-            exit={{ x: -288 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          >
-            {sidebarContent}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <motion.div
+        className="fixed left-0 top-0 h-full w-72 z-[100] md:hidden"
+        initial={false}
+        animate={{ 
+          x: isMobileOpen ? 0 : -272,
+          boxShadow: isMobileOpen ? '4px 0 24px rgba(0,0,0,0.5)' : 'none'
+        }}
+        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+      >
+        {sidebarContent}
+      </motion.div>
 
       {/* Desktop Sidebar */}
       <motion.div
-        className="hidden md:block h-full flex-shrink-0 overflow-y-auto"
+        className="hidden md:block h-full flex-shrink-0 relative z-[60]"
         animate={{ width: isCollapsed ? 80 : 240 }}
         transition={{ duration: 0.3, ease: 'easeInOut' }}
         style={{ width: isCollapsed ? '80px' : '240px' }}
