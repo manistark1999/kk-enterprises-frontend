@@ -301,7 +301,10 @@ export function Sidebar({
   const sidebarContent = (
     <div
       className="h-full p-4 md:p-6 flex flex-col relative"
-      style={{ background: 'linear-gradient(to bottom, #1e3c72 0%, #2a5298 40%, #3f7ccf 75%, #5a9be6 100%)' }}
+      style={{ 
+        background: 'linear-gradient(180deg, #011638 0%, #003399 50%, #001529 100%)',
+        minHeight: '100vh'
+      }}
     >
     
 
@@ -315,7 +318,7 @@ export function Sidebar({
             {!isCollapsed && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center">
                 <h2 className="text-white font-bold text-base md:text-lg tracking-wide">KK Enterprises</h2>
-                <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-blue-200'}`}>Workshop Management</p>
+                <p className="text-xs mt-1 text-blue-200/80">Workshop Management</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -333,8 +336,8 @@ export function Sidebar({
               <div
                 className={`sidebar-item flex items-center gap-3 px-3 py-2.5 md:py-3 rounded-xl cursor-pointer group transition-all duration-200 ${
                   isMenuItemActive(item.label) || hasActiveChild(item)
-                    ? isDarkMode ? 'bg-blue-600/30 text-white border-l-4 border-blue-400' : 'bg-white/20 text-white border-l-4 border-white'
-                    : isDarkMode ? 'text-gray-300 hover:bg-white/10 hover:text-white' : 'text-blue-100 hover:bg-white/10 hover:text-white'
+                    ? 'bg-blue-500/20 text-white border-l-4 border-blue-400'
+                    : 'text-blue-100/70 hover:bg-blue-400/10 hover:text-white'
                 } ${isCollapsed ? 'justify-center' : ''}`}
                 onClick={() => {
                   if (isCollapsed && item.hasSubmenu) {
@@ -346,9 +349,9 @@ export function Sidebar({
                 }}
               >
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
-                  isMenuItemActive(item.label) || hasActiveChild(item) ? 'bg-white shadow-sm' : 'bg-white/10 group-hover:bg-white/20'
+                  isMenuItemActive(item.label) || hasActiveChild(item) ? 'bg-blue-500/30' : 'bg-blue-400/10 group-hover:bg-blue-400/20'
                 }`}>
-                  <item.icon className={`w-4 h-4 flex-shrink-0 ${isMenuItemActive(item.label) || hasActiveChild(item) ? 'text-blue-600' : 'text-white'}`} />
+                  <item.icon className={`w-4 h-4 flex-shrink-0 ${isMenuItemActive(item.label) || hasActiveChild(item) ? 'text-blue-300' : 'text-white/80'}`} />
                 </div>
                 <AnimatePresence>
                   {!isCollapsed && (
@@ -365,13 +368,13 @@ export function Sidebar({
               <Link to={`/${screenKeyMap[item.label] || ''}`} onClick={handleMobileNav}>
                 <div className={`sidebar-item flex items-center gap-3 px-3 py-2.5 md:py-3 rounded-xl cursor-pointer group relative transition-all duration-200 ${
                   isMenuItemActive(item.label) || hasActiveChild(item)
-                    ? isDarkMode ? 'bg-blue-600/30 text-white border-l-4 border-blue-400' : 'bg-white/20 text-white border-l-4 border-white'
-                    : isDarkMode ? 'text-gray-300 hover:bg-white/10 hover:text-white' : 'text-blue-100 hover:bg-white/10 hover:text-white'
+                    ? 'bg-blue-500/20 text-white border-l-4 border-blue-400'
+                    : 'text-blue-100/70 hover:bg-blue-400/10 hover:text-white'
                 } ${isCollapsed ? 'justify-center' : ''}`}>
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
-                    isMenuItemActive(item.label) ? 'bg-white shadow-sm' : 'bg-white/10 group-hover:bg-white/20'
+                    isMenuItemActive(item.label) ? 'bg-blue-500/30' : 'bg-blue-400/10 group-hover:bg-blue-400/20'
                   }`}>
-                    <item.icon className={`w-4 h-4 flex-shrink-0 ${isMenuItemActive(item.label) ? 'text-blue-600' : 'text-white'}`} />
+                    <item.icon className={`w-4 h-4 flex-shrink-0 ${isMenuItemActive(item.label) ? 'text-blue-300' : 'text-white/80'}`} />
                   </div>
                   <AnimatePresence>
                     {!isCollapsed && (
@@ -393,13 +396,13 @@ export function Sidebar({
             <AnimatePresence>
               {isCollapsed && item.hasSubmenu && clickedItem === item.label && item.submenu && (
                 <motion.div
-                  className={`popup-menu absolute left-full ml-2 top-0 min-w-[200px] rounded-xl shadow-2xl border z-[9980] overflow-hidden ${isDarkMode ? 'bg-gray-800/95 border-gray-700' : 'bg-white/95 border-gray-200'}`}
+                  className={`popup-menu absolute left-full ml-2 top-0 min-w-[200px] rounded-xl shadow-2xl border z-[9980] overflow-hidden ${isDarkMode ? 'bg-[#0f172a] border-blue-800/30' : 'bg-[#011638] border-blue-700/30'}`}
                   initial={{ opacity: 0, x: -10, scale: 0.95 }}
                   animate={{ opacity: 1, x: 0, scale: 1 }}
                   exit={{ opacity: 0, x: -10, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <div className={`px-4 py-3 border-b ${isDarkMode ? 'border-gray-700 bg-gray-700/50' : 'border-gray-100 bg-blue-50'}`}>
+                  <div className={`px-4 py-3 border-b ${isDarkMode ? 'border-blue-800/30 bg-blue-900/20' : 'border-blue-700/30 bg-blue-800/20'}`}>
                     <div className="flex items-center gap-2">
                       <item.icon className={`w-4 h-4 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
                       <span className={`font-semibold text-sm ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{item.label}</span>
@@ -409,7 +412,7 @@ export function Sidebar({
                     {item.submenu.map((subItem: any) => (
                       <Link to={`/${screenKeyMap[subItem.label]}`} key={subItem.label} onClick={handleMobileNav}>
                         <div
-                          className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-all ${isDarkMode ? 'text-gray-300 hover:bg-blue-600/20 hover:text-white' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-600'}`}
+                          className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-all ${isDarkMode ? 'text-gray-300 hover:bg-blue-600/20 hover:text-white' : 'text-blue-100 hover:bg-blue-700/30 hover:text-white'}`}
                           onClick={() => setClickedItem(null)}
                         >
                           <subItem.icon className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
@@ -436,10 +439,10 @@ export function Sidebar({
                     <Link to={`/${screenKeyMap[subItem.label]}`} key={subItem.label} onClick={handleMobileNav}>
                       <div className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all ${
                         isMenuItemActive(subItem.label)
-                          ? isDarkMode ? 'bg-blue-500/40 text-white font-semibold' : 'bg-white/30 text-white font-semibold'
-                          : isDarkMode ? 'text-gray-400 hover:bg-white/5 hover:text-gray-200' : 'text-blue-200 hover:bg-white/5 hover:text-white'
+                          ? 'bg-blue-500/30 text-white font-semibold'
+                          : 'text-blue-200/70 hover:bg-white/5 hover:text-white'
                       }`}>
-                        <subItem.icon className={`w-4 h-4 ${isMenuItemActive(subItem.label) ? 'text-white' : isDarkMode ? 'text-gray-400' : 'text-blue-200'}`} />
+                        <subItem.icon className={`w-4 h-4 ${isMenuItemActive(subItem.label) ? 'text-blue-300' : 'text-blue-200/60'}`} />
                         <span className="font-normal text-sm">{subItem.label}</span>
                       </div>
                     </Link>
@@ -454,7 +457,7 @@ export function Sidebar({
       {/* Dark Mode Toggle */}
       <div className="mt-4 md:mt-6 pt-4 md:pt-6">
         <div
-          className={`flex items-center gap-3 px-3 py-2.5 md:py-3 rounded-xl cursor-pointer ${isDarkMode ? 'text-gray-300 hover:bg-white/10' : 'text-blue-100 hover:bg-white/10'} ${isCollapsed ? 'justify-center' : ''}`}
+          className={`flex items-center gap-3 px-3 py-2.5 md:py-3 rounded-xl cursor-pointer text-blue-100/70 hover:bg-blue-400/10 hover:text-white ${isCollapsed ? 'justify-center' : ''}`}
           onClick={onToggleTheme}
         >
           {isDarkMode ? <Sun className="w-5 h-5 flex-shrink-0" /> : <Moon className="w-5 h-5 flex-shrink-0" />}
@@ -466,8 +469,8 @@ export function Sidebar({
             )}
           </AnimatePresence>
           {!isCollapsed && (
-            <div className={`w-10 h-6 rounded-full transition-colors ${isDarkMode ? 'bg-blue-500' : 'bg-white/20'} relative`}>
-              <div className={`absolute w-4 h-4 bg-white rounded-full top-1 transition-transform ${isDarkMode ? 'translate-x-5' : 'translate-x-1'}`} />
+            <div className={`w-10 h-6 rounded-full transition-colors ${isDarkMode ? 'bg-blue-500' : 'bg-blue-800/40'} relative`}>
+              <div className={`absolute w-4 h-4 bg-white/90 rounded-full top-1 transition-transform ${isDarkMode ? 'translate-x-5' : 'translate-x-1'} shadow-sm`} />
             </div>
           )}
         </div>
@@ -480,7 +483,7 @@ export function Sidebar({
           className={`flex items-center gap-3 ${isCollapsed ? '' : 'px-3 py-3'} rounded-xl cursor-pointer transition-all group overflow-hidden`}
         >
           <div className="relative flex-shrink-0">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#2563EB] to-[#60A5FA] rounded-full flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-800 to-blue-500 rounded-full flex items-center justify-center shadow-lg border border-white/10">
               <span className="text-white font-medium text-sm">{(user?.username || 'Admin').substring(0, 2).toUpperCase()}</span>
             </div>
             <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900" />

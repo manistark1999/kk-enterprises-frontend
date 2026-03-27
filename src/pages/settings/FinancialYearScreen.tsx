@@ -100,7 +100,7 @@ export function FinancialYearScreen({ isDarkMode }: FinancialYearScreenProps) {
 
     const updatedYears = financialYears.map(year =>
       year.id === selectedYear.id
-        ? { ...year, ...formData }
+        ? { ...year, ...formData, status: formData.status as FinancialYear['status'] }
         : year
     );
     setFinancialYears(updatedYears);
@@ -583,7 +583,7 @@ export function FinancialYearScreen({ isDarkMode }: FinancialYearScreenProps) {
                   onClick={selectedYear ? handleUpdateYear : handleAddYear}
                   className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
                 >
-                  {selectedYear ? 'Update' : 'Add'} Financial Year
+                  Save
                 </button>
               </div>
             </motion.div>

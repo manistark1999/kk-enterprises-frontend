@@ -211,20 +211,28 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
 
       if (vmRes && vmRes.data) {
         const rows = vmRes.data.data || vmRes.data;
-        setVehicleMakes(rows.map((r: any) => ({
-          id: r.id.toString(), 
-          name: r.make_name || r.name || '', 
-          make_name: r.make_name || r.name || '', 
-          country: r.country || '', 
-          status: r.status || 'Active', 
-          createdAt: r.created_at,
-          models: [] // Will be populated from vehicle_models table
-        })));
+        if (Array.isArray(rows)) {
+          setVehicleMakes(rows.map((r: any) => ({
+            id: r.id.toString(), 
+            name: r.make_name || r.name || '', 
+            make_name: r.make_name || r.name || '', 
+            country: r.country || '', 
+            status: r.status || 'Active', 
+            createdAt: r.created_at,
+            models: [] // Will be populated from vehicle_models table
+          })));
+        } else {
+          setVehicleMakes([]);
+        }
       }
 
       if (vmodRes && vmodRes.data) {
-        const rows = vmodRes.data.data || vmodRes.data;
-        setVehicleModels(rows.map((r: any) => ({
+        const rawData = Array.isArray(vmodRes.data?.data)
+          ? vmodRes.data.data
+          : Array.isArray(vmodRes.data)
+          ? vmodRes.data
+          : [];
+        setVehicleModels(rawData.map((r: any) => ({
           id: r.id.toString(),
           makeId: r.make_id?.toString() || '',
           modelName: r.model_name || '',
@@ -235,94 +243,118 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
 
       if (wtRes && wtRes.data) {
         const rows = wtRes.data.data || wtRes.data;
-        setWorkTypes(rows.map((r: any) => ({
-          id: r.id.toString(),
-          name: r.name || r.work_type_name || '',
-          workTypeName: r.work_type_name || r.name || '',
-          description: r.description || '',
-          category: r.category || '', 
-          duration: r.avg_duration || r.duration || '',
-          avgDuration: r.avg_duration || r.duration || '',
-          avgPrice: r.avg_price ? parseFloat(r.avg_price) : 0,
-          status: r.status || 'Active', 
-          createdAt: r.created_at
-        })));
+        if (Array.isArray(rows)) {
+          setWorkTypes(rows.map((r: any) => ({
+            id: r.id.toString(),
+            name: r.name || r.work_type_name || '',
+            workTypeName: r.work_type_name || r.name || '',
+            description: r.description || '',
+            category: r.category || '', 
+            duration: r.avg_duration || r.duration || '',
+            avgDuration: r.avg_duration || r.duration || '',
+            avgPrice: r.avg_price ? parseFloat(r.avg_price) : 0,
+            status: r.status || 'Active', 
+            createdAt: r.created_at
+          })));
+        } else {
+          setWorkTypes([]);
+        }
       }
       
       if (wgRes && wgRes.data) {
         const rows = wgRes.data.data || wgRes.data;
-        setWorkGroups(rows.map((r: any) => ({
-          id: r.id.toString(), 
-          name: r.name || r.group_name || '', 
-          description: r.description || '',
-          category: r.category || 'General',
-          workTypes: Array.isArray(r.work_types) ? r.work_types : JSON.parse(r.work_types || '[]'),
-          status: r.status || 'Active', 
-          createdAt: r.created_at
-        })));
+        if (Array.isArray(rows)) {
+          setWorkGroups(rows.map((r: any) => ({
+            id: r.id.toString(), 
+            name: r.name || r.group_name || '', 
+            description: r.description || '',
+            category: r.category || 'General',
+            workTypes: Array.isArray(r.work_types) ? r.work_types : JSON.parse(r.work_types || '[]'),
+            status: r.status || 'Active', 
+            createdAt: r.created_at
+          })));
+        } else {
+          setWorkGroups([]);
+        }
       }
       
       if (supRes && supRes.data) {
         const rows = supRes.data.data || supRes.data;
-        setSuppliers(rows.map((r: any) => ({
-          id: r.id.toString(), 
-          name: r.name || '', 
-          contactPerson: r.contact_person || r.company || '',
-          phone: r.mobile || '', 
-          email: r.email || '', 
-          address: r.address || '',
-          gst: r.gst_number || '', 
-          category: r.category || 'General', 
-          status: r.status || 'Active', 
-          createdAt: r.created_at
-        })));
+        if (Array.isArray(rows)) {
+          setSuppliers(rows.map((r: any) => ({
+            id: r.id.toString(), 
+            name: r.name || '', 
+            contactPerson: r.contact_person || r.company || '',
+            phone: r.mobile || '', 
+            email: r.email || '', 
+            address: r.address || '',
+            gst: r.gst_number || '', 
+            category: r.category || 'General', 
+            status: r.status || 'Active', 
+            createdAt: r.created_at
+          })));
+        } else {
+          setSuppliers([]);
+        }
       }
       
       if (trRes && trRes.data) {
         const rows = trRes.data.data || trRes.data;
-        setTransports(rows.map((r: any) => ({
-          id: r.id.toString(), 
-          name: r.name || '', 
-          contactPerson: r.contact_person || '',
-          mobile: r.phone || '', 
-          email: r.email || '', 
-          address: r.address || '',
-          gst: r.gst_no || '', 
-          status: r.status || 'Active', 
-          createdAt: r.created_at
-        })));
+        if (Array.isArray(rows)) {
+          setTransports(rows.map((r: any) => ({
+            id: r.id.toString(), 
+            name: r.name || '', 
+            contactPerson: r.contact_person || '',
+            mobile: r.phone || '', 
+            email: r.email || '', 
+            address: r.address || '',
+            gst: r.gst_no || '', 
+            status: r.status || 'Active', 
+            createdAt: r.created_at
+          })));
+        } else {
+          setTransports([]);
+        }
       }
       
       if (stRes && stRes.data) {
         const rows = stRes.data.data || stRes.data;
-        setStaff(rows.map((r: any) => ({
-          id: r.id.toString(), 
-          name: r.name || '', 
-          designation: r.designation || '',
-          mobile: r.mobile || '', 
-          email: r.email || '',
-          joiningDate: r.joining_date ? new Date(r.joining_date).toISOString().split('T')[0] : '',
-          salary: r.salary ? parseFloat(r.salary) : 0, 
-          address: r.address || '',
-          bankAccount: r.bank_account || '', 
-          ifscCode: r.ifsc_code || '',
-          status: r.status || 'Active', 
-          createdAt: r.created_at
-        })));
+        if (Array.isArray(rows)) {
+          setStaff(rows.map((r: any) => ({
+            id: r.id.toString(), 
+            name: r.name || '', 
+            designation: r.designation || '',
+            mobile: r.mobile || '', 
+            email: r.email || '',
+            joiningDate: r.joining_date ? new Date(r.joining_date).toISOString().split('T')[0] : '',
+            salary: r.salary ? parseFloat(r.salary) : 0, 
+            address: r.address || '',
+            bankAccount: r.bank_account || '', 
+            ifscCode: r.ifsc_code || '',
+            status: r.status || 'Active', 
+            createdAt: r.created_at
+          })));
+        } else {
+          setStaff([]);
+        }
       }
       
       if (brRes && brRes.data) {
         const rows = brRes.data.data || brRes.data;
-        setBrands(rows.map((r: any) => ({
-          id: r.id.toString(), 
-          name: r.name || '', 
-          manufacturer: r.manufacturer || '',
-          category: r.category || '', 
-          origin: r.country || '',
-          description: r.description || '',
-          status: r.status || 'Active', 
-          createdAt: r.created_at
-        })));
+        if (Array.isArray(rows)) {
+          setBrands(rows.map((r: any) => ({
+            id: r.id.toString(), 
+            name: r.name || '', 
+            manufacturer: r.manufacturer || '',
+            category: r.category || '', 
+            origin: r.country || '',
+            description: r.description || '',
+            status: r.status || 'Active', 
+            createdAt: r.created_at
+          })));
+        } else {
+          setBrands([]);
+        }
       }
       
       await refreshVehicleMakeHistory();
@@ -501,19 +533,20 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
     await fetchAll();
   };
 
-  const getActiveVehicleMakes = () => vehicleMakes.filter(m => m.status.toLowerCase() === 'active');
-  const getActiveWorkTypes = () => workTypes.filter(wt => wt.status?.toLowerCase() === 'active');
-  const getActiveWorkGroups = () => workGroups.filter(wg => wg.status?.toLowerCase() === 'active');
-  const getActiveSuppliers = () => suppliers.filter(s => s.status?.toLowerCase() === 'active');
-  const getActiveTransports = () => transports.filter(t => t.status?.toLowerCase() === 'active');
-  const getActiveStaff = () => staff.filter(s => s.status?.toLowerCase() === 'active');
-  const getActiveBrands = () => brands.filter(b => b.status?.toLowerCase() === 'active');
+  const getActiveVehicleMakes = () => (Array.isArray(vehicleMakes) ? vehicleMakes : []).filter(m => m.status?.toLowerCase() === 'active');
+  const getActiveWorkTypes = () => (Array.isArray(workTypes) ? workTypes : []).filter(wt => wt.status?.toLowerCase() === 'active');
+  const getActiveWorkGroups = () => (Array.isArray(workGroups) ? workGroups : []).filter(wg => wg.status?.toLowerCase() === 'active');
+  const getActiveSuppliers = () => (Array.isArray(suppliers) ? suppliers : []).filter(s => s.status?.toLowerCase() === 'active');
+  const getActiveTransports = () => (Array.isArray(transports) ? transports : []).filter(t => t.status?.toLowerCase() === 'active');
+  const getActiveStaff = () => (Array.isArray(staff) ? staff : []).filter(s => s.status?.toLowerCase() === 'active');
+  const getActiveBrands = () => (Array.isArray(brands) ? brands : []).filter(b => b.status?.toLowerCase() === 'active');
 
   const refreshVehicleMakeHistory = async () => {
     try {
       const res = await api.get('/vehicle-makes/history');
       if (res.success && res.data) {
-        setVehicleMakeHistory(res.data.data || res.data);
+        const rows = res.data.data || res.data;
+        setVehicleMakeHistory(Array.isArray(rows) ? rows : []);
       }
     } catch (err) {
     }
@@ -523,7 +556,12 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
     try {
       const res = await api.get('/audit?module_name=Masters');
       if (res.success && res.data) {
-        setMastersHistory(res.data.data || res.data);
+        const rawData = Array.isArray(res.data?.data)
+          ? res.data.data
+          : Array.isArray(res.data)
+          ? res.data
+          : [];
+        setMastersHistory(rawData);
       }
     } catch (err) {
     }
@@ -533,12 +571,12 @@ export const MastersProvider = ({ children }: { children: ReactNode }) => {
 
   const getModelsByMake = (makeName: string) => {
     // Find the make by name
-    const make = vehicleMakes.find(vm => vm.name === makeName);
+    const make = (Array.isArray(vehicleMakes) ? vehicleMakes : []).find(vm => vm.name === makeName);
     if (!make) return [];
     
     // Return models for this make
-    return vehicleModels
-      .filter(vm => vm.makeId === make.id && vm.status.toLowerCase() === 'active')
+    return (Array.isArray(vehicleModels) ? vehicleModels : [])
+      .filter(vm => vm.makeId === make.id && vm.status?.toLowerCase() === 'active')
       .map(vm => vm.modelName);
   };
 

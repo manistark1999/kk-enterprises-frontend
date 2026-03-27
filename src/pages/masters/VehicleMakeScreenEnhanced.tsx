@@ -55,7 +55,8 @@ export function VehicleMakeScreenEnhanced({ isDarkMode }: VehicleMakeScreenProps
   const cardClass = getCardClass(isDarkMode);
 
   // --- UTILS ---
-  const formatVMId = (id: string | number) => {
+  const formatVMId = (id: any) => {
+    if (!id) return 'N/A';
     const numericId = id.toString().replace(/\D/g, '');
     return `VM-${numericId.padStart(4, '0')}`;
   };
@@ -101,8 +102,9 @@ export function VehicleMakeScreenEnhanced({ isDarkMode }: VehicleMakeScreenProps
     [vehicleMakeHistory, searchTerm, filterStatus]
   );
 
-  const findMakeByHistoryId = (historyDataId: string | number) => {
-    return vehicleMakes.find(m => m.id.toString() === historyDataId.toString());
+  const findMakeByHistoryId = (historyDataId: any) => {
+    if (!historyDataId) return null;
+    return vehicleMakes.find(m => m.id?.toString() === historyDataId.toString());
   };
 
   // --- HANDLERS ---
@@ -172,6 +174,26 @@ export function VehicleMakeScreenEnhanced({ isDarkMode }: VehicleMakeScreenProps
   const manualRefresh = async () => {
     await Promise.all([refreshAllMasters(), refreshVehicleMakeHistory()]);
     toast.info('Datastreams synced');
+  };
+
+  const handleStatusUpdate = async (make: VehicleMake, newStatus: string) => {
+    if (!canEdit('Vehicle Make')) {
+      toast.error('Access Denied: Insufficient permissions for registry mutation');
+      return;
+    }
+
+    try {
+      await updateVehicleMake(make.id, {
+        ...make,
+        status: newStatus
+      });
+      toast.success(`Identity status synchronized: ${newStatus.toUpperCase()}`);
+      await refreshAllMasters();
+      await refreshVehicleMakeHistory();
+    } catch (error: any) {
+      const errMsg = error.response?.data?.message || error.message || 'Status synchronization failed';
+      toast.error(`Transaction failed: ${errMsg}`);
+    }
   };
 
   // --- TYPOGRAPHY CONSTANTS ---
@@ -278,45 +300,41 @@ export function VehicleMakeScreenEnhanced({ isDarkMode }: VehicleMakeScreenProps
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100/5 dark:divide-gray-800/5">
-                  {filteredHistory.length > 0 ? (
-                    filteredHistory.map((entry, idx) => {
-                      const data = entry.changed_data || {};
-                      const source = findMakeByHistoryId(data.id);
+                  {filteredMakes.length > 0 ? (
+                    filteredMakes.map((make, idx) => {
                       return (
-                        <tr key={idx} className="hover:bg-blue-500/5 transition-all group">
-                          <td className={ROW_TEXT_STYLE + " !text-gray-400 font-mono"}>{filteredHistory.length - idx}</td>
+                        <tr key={make.id || idx} className="hover:bg-blue-500/5 transition-all group">
+                          <td className={ROW_TEXT_STYLE + " !text-gray-400 font-mono"}>{idx + 1}</td>
                           <td className={ROW_TEXT_STYLE}>
-                            <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100 dark:bg-blue-500/5 dark:border-blue-500/20 text-xs">
-                              {data.id ? formatVMId(data.id) : 'N/A'}
+                            <span className="text-blue-600 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100 dark:bg-blue-500/5 dark:border-blue-500/20 text-xs text-center inline-block w-full">
+                              {formatVMId(make.id)}
                             </span>
                           </td>
-                          <td className={ROW_TEXT_STYLE}>{data.make_name || data.name || 'N/A'}</td>
-                          <td className={ROW_TEXT_STYLE + " !text-gray-500 font-medium"}>{data.country || 'Global'}</td>
+                          <td className={ROW_TEXT_STYLE}>{make.make_name || make.name || 'N/A'}</td>
+                          <td className={ROW_TEXT_STYLE + " !text-gray-500 font-medium"}>{make.country || 'Global'}</td>
                           <td className={ROW_TEXT_STYLE}>
-                            <span className={`${data.status?.toLowerCase() === 'active' ? 'bg-blue-600/10 text-blue-600' : 'bg-blue-700/10 text-blue-700'} px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest`}>
-                              {data.status || 'Active'}
-                            </span>
-                          </td>
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest inline-block ${
+                            make.status?.toLowerCase() === 'active'
+                              ? 'bg-blue-600/10 text-blue-600'
+                              : 'bg-blue-700/10 text-blue-700'
+                          }`}>
+                            {make.status || 'Active'}
+                          </span>
+                        </td>
                           <td className={ROW_TEXT_STYLE + " !text-gray-400 text-xs"}>
                             <div className="flex items-center gap-2">
                               <Clock size={12} className="text-blue-500/50" />
-                              {new Date(entry.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                              {make.createdAt ? new Date(make.createdAt).toLocaleDateString() : 'N/A'}
                             </div>
                           </td>
-                          <td className="px-6 py-3">
+                          <td className="px-6 py-4">
                             <div className="flex items-center justify-center gap-2">
-                              {source ? (
-                                <>
-                                  <button onClick={() => handleOpenViewModal(source)} className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all dark:bg-blue-500/5"><Eye size={14} /></button>
-                                  {canEdit('Vehicle Make') && (
-                                    <button onClick={() => handleOpenModal(source)} className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all dark:bg-blue-500/5"><Edit2 size={14} /></button>
-                                  )}
-                                  {canDelete('Vehicle Make') && (
-                                    <button onClick={() => handleDelete(source.id)} className="p-2 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-700 hover:text-white transition-all dark:bg-blue-700/5"><Trash2 size={14} /></button>
-                                  )}
-                                </>
-                              ) : (
-                                <span className="text-[9px] font-bold uppercase tracking-widest text-gray-400 bg-gray-100 px-3 py-1 rounded-lg dark:bg-gray-800">Archive Only</span>
+                              <button onClick={() => handleOpenViewModal(make)} className="p-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all dark:bg-blue-500/5"><Eye size={14} /></button>
+                              {canEdit('Vehicle Make') && (
+                                <button onClick={() => handleOpenModal(make)} className="p-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all dark:bg-blue-500/5"><Edit2 size={14} /></button>
+                              )}
+                              {canDelete('Vehicle Make') && (
+                                <button onClick={() => handleDelete(make.id)} className="p-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-700 hover:text-white transition-all dark:bg-blue-700/5"><Trash2 size={14} /></button>
                               )}
                             </div>
                           </td>
@@ -461,14 +479,14 @@ export function VehicleMakeScreenEnhanced({ isDarkMode }: VehicleMakeScreenProps
                     onClick={() => setIsModalOpen(false)}
                     className="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900 transition-colors px-4 py-2"
                   >
-                    Cancel Registry
+                    Cancel
                   </button>
                   {(editingMake ? canEdit('Vehicle Make') : canCreate('Vehicle Make')) && (
                     <button
                       onClick={handleSave}
                       className="px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold uppercase tracking-widest text-[10px] shadow-xl shadow-blue-600/20 active:scale-95 transition-all"
                     >
-                      {editingMake ? "Confirm Mutation" : "Commit Registry"}
+                      Save
                     </button>
                   )}
                 </div>

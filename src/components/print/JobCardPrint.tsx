@@ -8,7 +8,7 @@ import {
   SignatureBlock,
   PrintFooter
 } from './PrintSystem';
-import logo from '../../assets/images/kk-groups-logo-header-print.png';
+const logo = '/kk-groups-logo-header-print.png';
 
 export interface ServiceItem {
   id: string;

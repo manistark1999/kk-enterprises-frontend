@@ -411,11 +411,11 @@ export function ExpenseScreen({ isDarkMode }: ExpenseScreenProps) {
             {/* Action Buttons */}
             <div className="flex items-center justify-end gap-3">
               <button className={getSecondaryButtonClass(isDarkMode)} onClick={handleClear}>
-                <span className="text-sm font-medium">Clear</span>
+                <span className="text-sm font-medium">Cancel</span>
               </button>
               <button className={getPrimaryButtonClass()} onClick={handleSave}>
                 <Save className="w-4 h-4" />
-                <span>Save Expense</span>
+                <span>Save</span>
               </button>
             </div>
           </div>

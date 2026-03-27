@@ -185,7 +185,7 @@ export function BankLedgerScreen({ isDarkMode }: BankLedgerScreenProps) {
             <label className="block text-xs font-medium mb-1 text-gray-500 uppercase">Bank Name *</label>
             <select name="bankName" value={formData.bankName} onChange={handleInputChange} className={`w-full h-10 px-3 rounded-lg border text-sm ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
               <option value="">Select Bank</option>
-              {bankAccounts.map(acc => (
+              {Array.isArray(bankAccounts) && bankAccounts.map(acc => (
                 <option key={acc.id} value={acc.bankName}>{acc.bankName} ({acc.accountName})</option>
               ))}
             </select>
@@ -194,7 +194,7 @@ export function BankLedgerScreen({ isDarkMode }: BankLedgerScreenProps) {
             <label className="block text-xs font-medium mb-1 text-gray-500 uppercase">Account No *</label>
             <select name="accountNo" value={formData.accountNo} onChange={handleInputChange} className={`w-full h-10 px-3 rounded-lg border text-sm ${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}>
               <option value="">Select Account</option>
-              {bankAccounts.filter(acc => acc.bankName === formData.bankName).map(acc => (
+              {(Array.isArray(bankAccounts) ? bankAccounts : []).filter(acc => acc.bankName === formData.bankName).map(acc => (
                 <option key={acc.id} value={acc.accountNumber}>{acc.accountNumber}</option>
               ))}
             </select>
@@ -235,7 +235,7 @@ export function BankLedgerScreen({ isDarkMode }: BankLedgerScreenProps) {
         </div>
         <div className="mt-4 flex justify-end">
           <button onClick={handleSaveTransaction} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 shadow-md">
-            <Save className="w-4 h-4" /> Save Transaction
+            <Save className="w-4 h-4" /> Save
           </button>
         </div>
       </div>

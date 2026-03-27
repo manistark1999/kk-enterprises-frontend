@@ -186,6 +186,21 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
     }
   };
 
+  // Status Change function
+  const handleStatusUpdate = async (customer: Customer, newStatus: boolean) => {
+    if (!canEdit('Customer')) {
+      toast.error('You do not have permission to edit customers');
+      return;
+    }
+
+    try {
+      await updateCustomer(customer.id, { ...customer, isActive: newStatus });
+      // Toast is handled by context
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update status');
+    }
+  };
+
   // Print function
   const handlePrint = (customer: Customer) => {
     setPrintData(customer);
@@ -518,13 +533,17 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
                         )}
                       </td>
                       <td className="py-3 px-4">
-                        <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                          customer.isActive
-                            ? 'bg-blue-600/20 text-blue-600'
-                            : 'bg-blue-700/20 text-blue-700'
-                        }`}>
-                          {customer.isActive ? 'Active' : 'Inactive'}
-                        </span>
+                        <select
+                          value={customer.isActive ? 'Active' : 'Inactive'}
+                          onChange={(e) => handleStatusUpdate(customer, e.target.value === 'Active')}
+                          disabled={!canEdit('Customer')}
+                          className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border-none transition-all cursor-pointer outline-none appearance-none text-center block mx-auto min-w-[85px] ${
+                            customer.isActive ? 'bg-blue-600/10 text-blue-600' : 'bg-blue-700/10 text-blue-700'
+                          } ${!canEdit('Customer') ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'}`}
+                        >
+                          <option value="Active">Active</option>
+                          <option value="Inactive">Inactive</option>
+                        </select>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center justify-center gap-2">
@@ -802,18 +821,38 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
                   </div>
                 </div>
 
-                <div>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formData.isActive}
-                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className={`text-sm font-medium ${
-                      isDarkMode ? 'text-white' : 'text-gray-900'
-                    }`}>Active Customer</span>
-                  </label>
+                <div className="pt-4 border-t border-gray-100/10">
+                  {renderLabel('Account Status', false, isDarkMode)}
+                  <div className="flex gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, isActive: true })}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 transition-all ${
+                        formData.isActive 
+                          ? 'bg-blue-600 border-blue-600 text-white shadow-lg' 
+                          : isDarkMode
+                            ? 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600'
+                            : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className={`w-2 h-2 rounded-full ${formData.isActive ? 'bg-white' : 'bg-blue-400'}`} />
+                      Active
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, isActive: false })}
+                      className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 transition-all ${
+                        !formData.isActive 
+                          ? 'bg-blue-700 border-blue-700 text-white shadow-lg' 
+                          : isDarkMode
+                            ? 'bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600'
+                            : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className={`w-2 h-2 rounded-full ${!formData.isActive ? 'bg-white' : 'bg-blue-700'}`} />
+                      Inactive
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -843,7 +882,7 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
                       ) : (
                         <Save className="w-4 h-4" />
                       )}
-                      {isSubmitting ? 'Saving...' : editingCustomer ? 'Update Customer' : 'Save Customer'}
+                      {isSubmitting ? 'Saving...' : 'Save'}
                     </button>
                   )}
                 </div>

@@ -95,8 +95,8 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
     }
     try {
       const response = await api.get(endpoints.inventory.stock.list);
-      const rows = (response.data as any)?.data || [];
-      setStockRows(rows);
+      const rows = response.data || [];
+      setStockRows(Array.isArray(rows) ? rows : []);
     } catch (error) {
       // Background fetch error - silented
     }
@@ -109,8 +109,8 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
     }
     try {
       const response = await api.get('/inventory/adjustments');
-      const rows = (response.data as any)?.data || [];
-      setAdjustmentRows(rows);
+      const rows = response.data || [];
+      setAdjustmentRows(Array.isArray(rows) ? rows : []);
     } catch (error) {
       // Background fetch error - silented
     }
@@ -141,9 +141,9 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
       const unitPrice = toNumber(row.selling_price ?? row.purchase_price, 0);
 
       return {
-        id: String(row.id),
-        itemCode: row.item_code || row.part_number || `ITM-${String(row.id).padStart(3, '0')}`,
-        itemName: row.item_name || '',
+        id: String(row.id || row.itemId || row.item_id || ''),
+        itemCode: row.item_code || row.itemCode || row.part_number || `ITM-${String(row.id).padStart(3, '0')}`,
+        itemName: row.item_name || row.itemName || row.name || '',
         category: row.category || '',
         brand: row.brand || '',
         unit: row.unit || 'Nos',
@@ -210,16 +210,21 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
         status: 'Active',
       };
 
+      console.log('[INV-CTX] Sending creation payload to backend:', JSON.stringify(payload, null, 2));
       const response = await api.post('/inventory/stock', payload);
+      console.log('[INV-CTX] Backend response received:', response);
       if (response.success) {
         await refreshAll();
         triggerDashboardRefresh();
-        toast.success('Stock item added successfully');
+        toast.success(response.message || 'Stock item added successfully');
       } else {
-        throw new Error(response.message || 'Failed to add stock item');
+        const errorMsg = response.message || 'Failed to add stock item';
+        console.error('[INV-CTX] Save action returned success false:', errorMsg);
+        throw new Error(errorMsg);
       }
     } catch (error: any) {
-      toast.error(error.message || 'Failed to add stock item');
+      console.error('[INV-CTX] EXCEPTION during save:', error);
+      toast.error(error.message || 'Error occurred while saving stock item');
       throw error;
     }
   };
@@ -346,7 +351,7 @@ export const StockProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await api.get('/inventory/stock/next-number');
       if (response.success && response.data) {
-        return (response.data as any).data || response.data;
+        return response.data;
       }
       return null;
     } catch (error) {

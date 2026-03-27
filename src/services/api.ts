@@ -1,7 +1,7 @@
 // API Configuration
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore – Vite injects import.meta.env at build time
-const API_BASE_URL: string = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5001/api';
+const API_BASE_URL: string = '/api';
 
 
 // API Response Type
@@ -25,10 +25,14 @@ async function apiRequest<T = any>(
   // For mutating requests, use a dedup key to prevent double-click issues
   const dedupKey = `${method}:${endpoint}:${options.body || ''}`;
   if ((method === 'POST' || method === 'PUT') && inFlightRequests.has(dedupKey)) {
+    console.warn(`[API] Deduplicating active ${method} request to ${endpoint}`);
     return inFlightRequests.get(dedupKey)!;
   }
 
   const requestPromise = (async () => {
+    const fullUrl = `${API_BASE_URL}${endpoint}`;
+    console.log(`[API] ${method} ${fullUrl}`, options.body ? JSON.parse(options.body as string) : '');
+
     try {
       const token = localStorage.getItem('kk_auth_token');
       
@@ -41,37 +45,48 @@ async function apiRequest<T = any>(
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      const response = await fetch(fullUrl, {
         ...options,
         headers,
       });
 
       // GET ALL RAW CONTENT FIRST FOR LOGGING & TO PREVENT .json() CRASHES
       const rawResponseText = await response.text();
+      console.log(`[API] ${response.status} ${endpoint}`, rawResponseText ? 'Response body received' : 'Empty response');
       
       let data: any = {};
       if (rawResponseText) {
         try {
           data = JSON.parse(rawResponseText);
         } catch (e) {
+          console.error(`[API] Failed to parse JSON:`, rawResponseText);
           throw new Error(`Invalid JSON response from server: ${rawResponseText.substring(0, 100)}...`);
         }
       }
 
       if (!response.ok) {
-        // CRITICAL FIX: Throw so callers properly catch this as an error
-        const errorMsg = data.message || data.error || `Server error ${response.status}`;
+        // Detailed logging for debugging
+        console.error(`[API] Server returned ${response.status} for ${endpoint}:`, data);
+        
+        // Priority for error message: data.message -> data.error -> data.stack -> generic
+        const errorMsg = data.message || data.error || (typeof data === 'string' ? data : null) || `Server error ${response.status}`;
         throw new Error(errorMsg);
       }
 
       return {
         success: data.success ?? response.ok,
-        data: data,
+        data: data.data !== undefined ? data.data : data,
         message: data.message || (response.ok ? 'Success' : 'Error'),
       } as ApiResponse<T>;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Network error occurred';
-      // Re-throw so calling code (context functions) can catch and show proper error toast
+      console.error(`[API] Request Failed for ${endpoint}:`, errorMsg, error);
+      
+      // Enhance 'Failed to fetch' error for the user
+      if (errorMsg === 'Failed to fetch' || errorMsg.includes('Connection failed')) {
+        throw new Error('Backend connection failed. Is the server running on port 5001?');
+      }
+      
       throw error;
     } finally {
       inFlightRequests.delete(dedupKey);
@@ -186,7 +201,7 @@ export const endpoints = {
     },
     stock: {
       list: '/inventory/stock',
-      adjustment: '/inventory/stock/adjustment',
+      adjustment: '/inventory/adjustments',
       getById: (id: string) => `/inventory/stock/${id}`,
     },
   },
@@ -322,6 +337,7 @@ export const endpoints = {
     stats: '/dashboard/stats',
     recentActivity: '/dashboard/recent-activity',
     stockAlerts: '/dashboard/stock-alerts',
+    inventoryOverview: '/dashboard/inventory-overview',
   },
 
   // Audit Logs

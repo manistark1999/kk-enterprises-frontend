@@ -690,7 +690,7 @@ export function BankAccountsScreen({ isDarkMode }: BankAccountsScreenProps) {
                       className="flex-[2] py-4 bg-primary text-white rounded-2xl font-black shadow-xl shadow-primary/30 hover:bg-primary/90 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
                       <Check className="w-6 h-6" />
-                      {editingAccount ? 'Update Changes' : 'Create Account'}
+                      Save
                     </button>
                   )}
                 </div>

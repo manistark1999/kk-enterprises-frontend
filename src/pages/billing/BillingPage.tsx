@@ -1231,7 +1231,7 @@ const handleVehicleSelect = (vehicleData: any) => {
                 }`}
             >
               <RefreshCw className="w-4 h-4 inline mr-2" />
-              Reset
+              Cancel
             </button>
             <div className="flex items-center gap-4">
               {canPrint(billType === 'sales' ? 'Sales' : billType === 'purchase' ? 'Purchase' : billType === 'labour' ? 'Labour Bill' : 'Estimation') && (
@@ -1253,7 +1253,7 @@ const handleVehicleSelect = (vehicleData: any) => {
                   className="px-6 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg"
                 >
                   <Save className="w-4 h-4 inline mr-2" />
-                  {isEditMode ? 'Update Bill' : 'Save Bill'}
+                  Save
                 </button>
               )}
             </div>

@@ -419,7 +419,7 @@ export function RestorePanel({ isOpen, onClose, isDarkMode }: RestorePanelProps)
                   ) : (
                     <>
                       <Upload className="w-5 h-5" />
-                      Restore Database
+                      Save
                     </>
                   )}
                 </button>

@@ -55,22 +55,27 @@ export function SalesProvider({ children }: { children: ReactNode }) {
     try {
       const response = await api.get(endpoints.inventory.sales.list);
       if (response.success && response.data) {
-        const mapped = (response.data.data || []).map((row: any) => ({
-          id: row.id.toString(),
-          billNo: row.sale_no,
-          date: row.sale_date,
-          customerName: row.customer_name,
-          customerPhone: row.customer_phone,
-          items: typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []),
-          subtotal: Number(row.subtotal),
-          totalGST: Number(row.total_gst),
-          discount: Number(row.discount),
-          grandTotal: Number(row.grand_total),
-          paymentMode: row.payment_mode,
-          status: row.status,
-          createdAt: row.created_at
-        }));
-        setSales(mapped);
+        const rawData = response.data.data || response.data;
+        if (Array.isArray(rawData)) {
+          const mapped = rawData.map((row: any) => ({
+            id: row.id.toString(),
+            billNo: row.sale_no,
+            date: row.sale_date,
+            customerName: row.customer_name,
+            customerPhone: row.customer_phone,
+            items: typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []),
+            subtotal: Number(row.subtotal),
+            totalGST: Number(row.total_gst),
+            discount: Number(row.discount),
+            grandTotal: Number(row.grand_total),
+            paymentMode: row.payment_mode,
+            status: row.status,
+            createdAt: row.created_at
+          }));
+          setSales(mapped);
+        } else {
+          setSales([]);
+        }
       }
     } catch (error) {
     } finally {

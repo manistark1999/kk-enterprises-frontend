@@ -64,6 +64,7 @@ export function DashboardPage({ isDarkMode, onNavigate }: DashboardContentProps)
   const [stats, setStats] = useState<any>(null);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
+  const [inventoryOverview, setInventoryOverview] = useState<any>(null);
   const [stockAlerts, setStockAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -95,10 +96,11 @@ export function DashboardPage({ isDarkMode, onNavigate }: DashboardContentProps)
       let url = `${endpoints.dashboard.stats}?period=${period}`;
       if (custom && dr.from && dr.to) url += `&from=${dr.from}&to=${dr.to}`;
 
-      const [statsRes, activityRes, stockRes] = await Promise.all([
+      const [statsRes, activityRes, stockRes, invOverviewRes] = await Promise.all([
         api.get(url),
         api.get(endpoints.dashboard.recentActivity),
         api.get(endpoints.dashboard.stockAlerts),
+        api.get(endpoints.dashboard.inventoryOverview),
       ]);
 
       if (statsRes.success) {
@@ -115,6 +117,11 @@ export function DashboardPage({ isDarkMode, onNavigate }: DashboardContentProps)
       if (stockRes.success) {
         const d = stockRes.data?.data || stockRes.data;
         setStockAlerts(Array.isArray(d) ? d : []);
+      }
+
+      if (invOverviewRes.success) {
+        const d = invOverviewRes.data?.data || invOverviewRes.data;
+        setInventoryOverview(d);
       }
     } catch (_) {
       // Errors are handled gracefully – we keep showing previous data
@@ -170,6 +177,8 @@ export function DashboardPage({ isDarkMode, onNavigate }: DashboardContentProps)
       sales: { value: '₹0', change: '0 sales' },
       jobs: { value: '0', change: 'Active jobs' },
       expenses: { value: '₹0', change: '+0%' },
+      inventoryValue: { value: '₹0', change: '0 items' },
+      stockQty: { value: '0', change: 'Total units' },
     };
     if (!stats || typeof stats !== 'object' || Object.keys(stats).length === 0) return fallback;
 
@@ -193,21 +202,70 @@ export function DashboardPage({ isDarkMode, onNavigate }: DashboardContentProps)
         value: formatCurrency(payload.totalExpenses),
         change: `${payload.totalVehicles || 0} vehicles`,
       },
+      inventoryValue: {
+        value: formatCurrency(inventoryOverview?.summary?.total_value),
+        change: `${inventoryOverview?.summary?.total_items || 0} items`,
+      },
+      stockQty: {
+        value: String(inventoryOverview?.summary?.total_quantity || 0),
+        change: 'Total units',
+      },
     };
-  }, [stats]);
+  }, [stats, inventoryOverview]);
 
   const lowStockItems = useMemo(() => {
-    if (stockAlerts.length > 0) return stockAlerts;
-    return (stockItems || [])
-      .filter(item => (item?.currentStock ?? 0) <= (item?.minStock ?? 0))
-      .slice(0, 5)
-      .map(item => ({
-        name: item?.itemName || 'Unknown',
-        current: item?.currentStock ?? 0,
-        minimum: item?.minStock ?? 0,
-        status: (item?.currentStock ?? 0) <= ((item?.minStock ?? 0) / 2) ? 'Critical' : 'Warning',
-      }));
+    // Requirements: final_stock = opening_stock + stock_in - stock_out + adjustments
+    // We already have currentStock which is the ground truth (opening + movements) in backend.
+    
+    let rawItems = [];
+    if (Array.isArray(stockAlerts) && stockAlerts.length > 0) {
+      rawItems = stockAlerts;
+    } else {
+      // Fallback to stockItems from context if API alerts are empty
+      rawItems = (Array.isArray(stockItems) ? stockItems : [])
+        .filter(item => {
+           const currentStock = parseFloat(String(item?.currentStock ?? 0));
+           const minStock = parseFloat(String(item?.minStock ?? 0));
+           // Req 4: Show all low-stock items where finalStock <= minStock
+           return currentStock <= minStock;
+        })
+        .slice(0, 10);
+    }
+
+    const final = rawItems.map(item => {
+      const current = parseFloat(String(item?.current ?? item?.currentStock ?? 0));
+      const minimum = parseFloat(String(item?.minimum ?? item?.minStock ?? 0));
+      const status = item?.status || (current <= (minimum / 2) ? 'Critical' : 'Warning');
+      
+      return {
+        name: item?.name || item?.itemName || 'Unknown',
+        itemCode: item?.itemCode || item?.item_code || '',
+        current,
+        minimum,
+        status,
+        adjustmentTotal: parseFloat(String(item?.adjustmentTotal || 0)),
+        color: status === 'Critical' ? 'text-red-500' : 'text-orange-500'
+      };
+    });
+
+    console.log('Dashboard Derived Low Stock Items:', final);
+    return final;
   }, [stockItems, stockAlerts]);
+
+  const overStockItems = useMemo(() => {
+    return (inventoryOverview?.overStock || []).map((item: any) => ({
+      ...item,
+      color: 'text-blue-900'
+    }));
+  }, [inventoryOverview]);
+
+  const recentlyIncreasedItems = useMemo(() => {
+    return (inventoryOverview?.recentlyIncreased || []);
+  }, [inventoryOverview]);
+
+  const recentlyDecreasedItems = useMemo(() => {
+    return (inventoryOverview?.recentlyDecreased || []);
+  }, [inventoryOverview]);
 
   const recentJobs = useMemo(() =>
     (labourBills || []).slice(0, 5).map(bill => ({
@@ -259,26 +317,26 @@ export function DashboardPage({ isDarkMode, onNavigate }: DashboardContentProps)
       module: 'Sales',
     },
     {
-      title: 'Expenses',
-      value: currentData.expenses.value,
-      change: currentData.expenses.change,
-      isPositive: false,
-      icon: Wallet,
+      title: 'Stock Value',
+      value: currentData.inventoryValue.value,
+      change: currentData.inventoryValue.change,
+      isPositive: true,
+      icon: DollarSign,
       color: 'from-blue-600 to-blue-800',
-      target: 'expense-register',
-      module: 'Expense Entry',
+      target: 'inventory',
+      module: 'Stock List',
     },
     {
-      title: 'Pending Jobs',
-      value: currentData.jobs.value,
-      change: currentData.jobs.change,
+      title: 'Current Stock',
+      value: currentData.stockQty.value,
+      change: 'Total Units',
       isPositive: true,
-      icon: Wrench,
+      icon: Package,
       color: 'from-blue-400 to-blue-500',
-      target: 'job-card',
-      module: 'Job Card',
+      target: 'inventory',
+      module: 'Stock List',
     },
-  ].filter(c => hasPermission(c.module));
+  ].filter(c => typeof hasPermission === 'function' && hasPermission(c.module));
 
   const timeButtons: { label: string; value: TimePeriod }[] = [
     { label: 'Today', value: 'today' },
@@ -386,35 +444,36 @@ export function DashboardPage({ isDarkMode, onNavigate }: DashboardContentProps)
         </div>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Main Dashboard Layout: Left (Revenue) & Right (Inventory Insights) */}
+      {/* Top Summary Row (Stat Cards) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat, index) => (
           <motion.div
             key={stat.title}
-            className={`${cardClass} cursor-pointer hover:scale-[1.02] active:scale-[0.98]`}
-            initial={{ opacity: 0, y: 20 }}
+            className={`${cardClass} cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-transform`}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.08 }}
+            transition={{ delay: index * 0.05 }}
             onClick={() => onNavigate(stat.target)}
           >
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className={`w-12 h-12 rounded-xl ${isDarkMode ? 'bg-blue-500/20' : 'bg-blue-50'} flex items-center justify-center shadow-sm border ${isDarkMode ? 'border-blue-500/20' : 'border-blue-100'} transition-all group-hover:bg-blue-600 group-hover:shadow-blue-500/20`}>
-                  <stat.icon className={`w-6 h-6 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'} transition-colors group-hover:text-white`} />
+            <div className="p-5">
+              <div className="flex items-start justify-between mb-3">
+                <div className={`w-10 h-10 rounded-xl ${isDarkMode ? 'bg-blue-500/20' : 'bg-blue-50'} flex items-center justify-center border ${isDarkMode ? 'border-blue-500/20' : 'border-blue-100'}`}>
+                  <stat.icon className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
                 </div>
                 {stat.isPositive ? (
-                  <div className="flex items-center gap-1 text-blue-500 text-xs font-semibold bg-blue-500/10 px-2 py-1 rounded-full border border-blue-500/10">
-                    <ArrowUp className="w-3 h-3" />
+                  <div className="flex items-center gap-1 text-blue-500 text-[10px] font-bold bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/10">
+                    <ArrowUp className="w-2.5 h-2.5" />
                     {stat.change}
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1 text-blue-600 text-xs font-semibold bg-blue-100 px-2 py-1 rounded-full border border-blue-200">
-                    <AlertCircle className="w-3 h-3" />
+                  <div className="flex items-center gap-1 text-blue-600 text-[10px] font-bold bg-blue-100 px-2 py-0.5 rounded-full border border-blue-200">
+                    <AlertCircle className="w-2.5 h-2.5" />
                     {stat.change}
                   </div>
                 )}
               </div>
-              <h3 className={`text-sm font-medium mb-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              <h3 className={`text-xs font-semibold mb-1 uppercase tracking-wider ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                 {stat.title}
               </h3>
               <p className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -425,147 +484,158 @@ export function DashboardPage({ isDarkMode, onNavigate }: DashboardContentProps)
         ))}
       </div>
 
-      {/* Chart + Stock Alerts */}
+      {/* Main Analytics Row: Revenue Chart (Left) & Inventory Insights (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Revenue Chart */}
-        <motion.div
-          className={`${cardClass} lg:col-span-2`}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          key={selectedPeriod}
-        >
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Revenue Overview
-                </h2>
-                <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Labour billing revenue — live from database
-                </p>
-              </div>
-
-              {/* Chart type switcher */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowAnalyticsMenu(v => !v)}
-                  className={`p-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-300' : 'bg-white border-gray-200 text-gray-700'} hover:opacity-80`}
-                >
-                  <MoreVertical className="w-4 h-4" />
-                </button>
-                {showAnalyticsMenu && (
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowAnalyticsMenu(false)}
-                  />
-                )}
-                <AnimatePresence>
-                  {showAnalyticsMenu && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                      className={`absolute right-0 mt-2 w-52 rounded-xl shadow-2xl border z-50 overflow-hidden ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
-                    >
-                      <div className="py-1">
-                        <p className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Chart Type</p>
-                        {([['bar', BarChart3, 'Bar Chart'], ['line', LineChart, 'Line Graph'], ['pie', PieChart, 'Pie Chart']] as const).map(([type, Icon, label]) => (
-                          <button
-                            key={type}
-                            onClick={() => { setSelectedChartType(type); setChartRenderKey(k => k + 1); setShowAnalyticsMenu(false); }}
-                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
-                              selectedChartType === type
-                                ? isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-50 text-blue-600'
-                                : isDarkMode ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'
-                            }`}
-                          >
-                            <Icon className="w-4 h-4" />
-                            {label}
-                          </button>
-                        ))}
-                        <div className={`my-1 mx-3 h-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`} />
-                        <p className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Export</p>
-                        {([['Download', Download], ['Print', Printer], ['Share', Share2]] as const).map(([label, Icon]) => (
-                          <button key={label} className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm ${isDarkMode ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                            <Icon className="w-4 h-4" />
-                            {label} Data
-                          </button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-
-            <div className="h-[340px] w-full">
-              {chartData.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center gap-3">
-                  <BarChart3 className={`w-16 h-16 ${isDarkMode ? 'text-gray-600' : 'text-gray-200'}`} />
-                  <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                    No billing data for this period
-                  </p>
-                </div>
-              ) : (
-                <RevenueChart
-                  key={`${selectedChartType}-${chartRenderKey}`}
-                  chartType={selectedChartType}
-                  isDarkMode={isDarkMode}
-                  data={chartData}
-                  colors={COLORS}
-                />
-              )}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Low Stock Alerts (Requires Item view) */}
-        {hasPermission('Item', 'view') && (
+        
+        {/* LEFT COLUMN: Revenue Overview */}
+        <div className="lg:col-span-2">
           <motion.div
             className={cardClass}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.45 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            key={selectedPeriod}
           >
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className={`font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Low Stock Alerts
-                </h2>
-                <Package className="w-5 h-5 text-blue-500" />
+                <div>
+                  <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Revenue Overview
+                  </h2>
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Labour billing revenue — live from database
+                  </p>
+                </div>
+
+                {/* Chart type switcher */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowAnalyticsMenu(v => !v)}
+                    className={`p-2 rounded-lg border ${isDarkMode ? 'bg-gray-700 border-gray-600 text-gray-300' : 'bg-white border-gray-200 text-gray-700'} hover:opacity-80`}
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                  {showAnalyticsMenu && (
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowAnalyticsMenu(false)}
+                    />
+                  )}
+                  <AnimatePresence>
+                    {showAnalyticsMenu && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                        className={`absolute right-0 mt-2 w-52 rounded-xl shadow-2xl border z-50 overflow-hidden ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}
+                      >
+                        <div className="py-1">
+                          <p className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Chart Type</p>
+                          {([['bar', BarChart3, 'Bar Chart'], ['line', LineChart, 'Line Graph'], ['pie', PieChart, 'Pie Chart']] as const).map(([type, Icon, label]) => (
+                            <button
+                              key={type}
+                              onClick={() => { setSelectedChartType(type); setChartRenderKey(k => k + 1); setShowAnalyticsMenu(false); }}
+                              className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                                selectedChartType === type
+                                  ? isDarkMode ? 'bg-blue-600/20 text-blue-400' : 'bg-blue-50 text-blue-600'
+                                  : isDarkMode ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'
+                              }`}
+                            >
+                              <Icon className="w-4 h-4" />
+                              {label}
+                            </button>
+                          ))}
+                          <div className={`my-1 mx-3 h-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`} />
+                          <p className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Export</p>
+                          {([['Download', Download], ['Print', Printer], ['Share', Share2]] as const).map(([label, Icon]) => (
+                            <button key={label} className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm ${isDarkMode ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                              <Icon className="w-4 h-4" />
+                              {label} Data
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
 
-              <div className="space-y-3">
-                {lowStockItems.length > 0 ? (
-                  lowStockItems.map((item, idx) => (
-                    <div key={idx} className={`p-3 rounded-xl border ${isDarkMode ? 'bg-gray-800/40 border-gray-700/50' : 'bg-gray-50 border-gray-100'}`}>
-                      <div className="flex justify-between items-start mb-1.5">
-                        <p className={`text-sm font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{item.name}</p>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.status === 'Critical' ? 'bg-blue-600 text-white' : 'bg-blue-400 text-white'}`}>
-                          {item.status}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-xs text-gray-500">
-                        <span>Stock: <strong>{item.current}</strong></span>
-                        <span>Min: {item.minimum}</span>
-                      </div>
-                      <div className="mt-2 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${item.status === 'Critical' ? 'bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.4)]' : 'bg-blue-400'}`}
-                          style={{ width: `${Math.min(100, item.minimum > 0 ? (item.current / item.minimum) * 100 : 0)}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="py-12 text-center">
-                    <Package className="w-12 h-12 text-blue-400 mx-auto mb-3 opacity-30" />
-                    <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      All inventory levels healthy
+              <div className="h-[340px] w-full">
+                {chartData.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center gap-3">
+                    <BarChart3 className={`w-16 h-16 ${isDarkMode ? 'text-gray-600' : 'text-gray-200'}`} />
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                      No billing data for this period
                     </p>
                   </div>
+                ) : (
+                  <RevenueChart
+                    key={`${selectedChartType}-${chartRenderKey}`}
+                    chartType={selectedChartType}
+                    isDarkMode={isDarkMode}
+                    data={chartData}
+                    colors={COLORS}
+                  />
                 )}
+              </div>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* RIGHT COLUMN: Inventory Insights */}
+        {hasPermission('Stock List', 'view') && (
+          <motion.div
+            className={`lg:col-span-1 ${cardClass} h-full overflow-hidden`}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <div className="p-6 h-full flex flex-col">
+              <div className="flex items-center justify-between mb-6 border-b pb-4 border-gray-100/10">
+                <div className="flex items-center gap-3">
+                  <Package className="w-5 h-5 text-blue-500" />
+                  <div>
+                    <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Inventory Insights</h2>
+                    <p className={`text-[10px] ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Stock monitoring</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => onNavigate('inventory')}
+                  className="text-[10px] font-bold text-blue-500 hover:text-blue-600 uppercase tracking-widest"
+                >
+                  Full Stock →
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                <div className="space-y-4">
+                  <h3 className={`text-sm font-bold uppercase tracking-widest mb-4 flex items-center gap-2 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>
+                    <AlertCircle className="w-3.5 h-3.5" /> Low Stock Alerts
+                  </h3>
+                  <div className="space-y-3">
+                    {lowStockItems.length > 0 ? lowStockItems.map((item: any, idx: number) => (
+                      <div key={idx} className={`p-4 rounded-xl border ${isDarkMode ? 'bg-gray-800/40 border-gray-700/50' : 'bg-red-50 border-red-100 shadow-sm'}`}>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className={`text-sm font-bold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{item.name}</p>
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${item.status === 'Critical' ? 'bg-red-500/20 text-red-500' : 'bg-orange-500/20 text-orange-500'}`}>
+                              {item.status}
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-sm font-bold ${(item.status === 'Critical' || item.current <= 0) ? 'text-red-500' : 'text-orange-500'}`}>{item.current}</p>
+                            <p className="text-[10px] text-gray-500">Min: {item.minimum}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )) : (
+                      <div className="py-10 text-center bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
+                        <Package className="w-8 h-8 text-gray-300 mx-auto mb-2 opacity-20" />
+                        <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>No low stock items</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -594,7 +664,7 @@ export function DashboardPage({ isDarkMode, onNavigate }: DashboardContentProps)
               </div>
 
               <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-                {recentActivity.length > 0 ? (
+                {Array.isArray(recentActivity) && recentActivity.length > 0 ? (
                   recentActivity.map((activity, idx) => (
                     <div key={idx} className={`flex items-start gap-3 p-3 rounded-xl ${isDarkMode ? 'bg-gray-800/40' : 'bg-gray-50'}`}>
                       <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-blue-500/10 border border-blue-500/10`}>

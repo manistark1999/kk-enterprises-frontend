@@ -77,8 +77,12 @@ export function ItemsServicesProvider({ children }: { children: ReactNode }) {
     try {
       const res = await api.get('/items');
       if (res.success && res.data) {
-        const rows = res.data.data || res.data;
-        setItemsServices(rows.map(mapRow));
+        const rawData = Array.isArray(res?.data?.data)
+          ? res.data.data
+          : Array.isArray(res?.data)
+          ? res.data
+          : [];
+        setItemsServices(rawData.map(mapRow));
       }
     } catch (err) {
     } finally {

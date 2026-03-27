@@ -68,7 +68,12 @@ export function SupplierProvider({ children }: { children: ReactNode }) {
     try {
       const res = await api.get('/suppliers');
       if (res.success && res.data) {
-        setSuppliers((res.data.data || res.data).map(mapRow));
+        const rawData = Array.isArray(res?.data?.data)
+          ? res.data.data
+          : Array.isArray(res?.data)
+          ? res.data
+          : [];
+        setSuppliers(rawData.map(mapRow));
       }
     } catch (err) {
     } finally {

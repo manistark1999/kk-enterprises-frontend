@@ -142,7 +142,7 @@ export const PrintActionModal: React.FC<PrintActionModalProps> = ({
 
   return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-[10000] flex items-center justify-center p-0 md:p-4 bg-black/80 backdrop-blur-md shadow-none border-none print:p-0 print:bg-transparent print:backdrop-blur-none print-modal-wrapper modal-overlay">
+      <div className="fixed inset-0 z-[10000] flex items-center justify-center p-0 md:p-4 bg-gray-200/90 backdrop-blur-md shadow-none border-none print:p-0 print:bg-transparent print:backdrop-blur-none print-modal-wrapper modal-overlay">
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -193,8 +193,8 @@ export const PrintActionModal: React.FC<PrintActionModalProps> = ({
             </div>
           </div>
 
-          {/* Modal Content (The Preview Area) - The wrapper needs to NOT be hidden during print but transparent */}
-          <div className="flex-1 overflow-auto bg-gray-200 dark:bg-black/40 p-4 sm:p-10 flex justify-center print-body-preview print:p-0 print:bg-transparent print:overflow-visible">
+          {/* Modal Content (The Preview Area) - Centered A4 on neutral background */}
+          <div className="flex-1 overflow-auto bg-gray-300/40 dark:bg-gray-800/40 p-4 sm:p-10 flex justify-center print-body-preview print:p-0 print:bg-transparent print:overflow-visible">
             {/* 
                IMPORTANT: id="print-area" is used by our global CSS /media print
                to ensure only this content is shown during browser printing.

@@ -61,7 +61,12 @@ export function VehicleRegistryProvider({ children }: { children: ReactNode }) {
     try {
       const res = await api.get('/vehicle-registry');
       if (res.success && res.data) {
-        setVehicles((res.data.data || res.data).map(mapRowToVehicle));
+        const rawData = Array.isArray(res?.data?.data)
+          ? res.data.data
+          : Array.isArray(res?.data)
+          ? res.data
+          : [];
+        setVehicles(rawData.map(mapRowToVehicle));
       }
     } catch (err) {
     } finally {

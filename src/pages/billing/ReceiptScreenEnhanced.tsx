@@ -871,7 +871,7 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
                         className={primaryButtonClass}
                       >
                         <Save className="w-4 h-4" />
-                        {editingReceipt ? 'Update Receipt' : 'Save Receipt'}
+                        Save
                       </button>
                     )}
                   </div>

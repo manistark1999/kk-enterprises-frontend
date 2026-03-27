@@ -60,7 +60,12 @@ export function StaffProvider({ children }: { children: ReactNode }) {
     try {
       const res = await api.get('/staff');
       if (res.success && res.data) {
-        setStaff((res.data.data || res.data).map(mapRow));
+        const rawData = Array.isArray(res?.data?.data)
+          ? res.data.data
+          : Array.isArray(res?.data)
+          ? res.data
+          : [];
+        setStaff(rawData.map(mapRow));
       }
     } catch (err) {
     } finally {

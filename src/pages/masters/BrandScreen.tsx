@@ -950,7 +950,7 @@ export function BrandScreen({ isDarkMode }: BrandScreenProps) {
                         className={getPrimaryButtonClass()}
                       >
                         <Check className="w-4 h-4" />
-                        <span>{editingBrand ? 'Update Brand' : 'Add Brand'}</span>
+                        <span>Save</span>
                       </button>
                     )}
                   </div>

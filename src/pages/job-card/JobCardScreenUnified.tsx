@@ -145,7 +145,8 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
   const { canCreate, canEdit, canDelete, canPrint, user } = useAuth();
   
   // Find current user's name from staff, with fallbacks to username or email
-  const currentStaffEntry = staff.find(s => (s.email && s.email === user?.email) || (s.name && s.name === user?.username));
+  const safeStaff = Array.isArray(staff) ? staff : [];
+  const currentStaffEntry = safeStaff.find(s => (s.email && s.email === user?.email) || (s.name && s.name === user?.username));
   const currentUserName = currentStaffEntry?.name || user?.username || user?.email?.split('@')[0] || 'Admin';
   const currentStaffId = currentStaffEntry?.id?.toString() || '';
 
@@ -325,16 +326,12 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
   };
 
   const fetchNextJobCardNo = async () => {
-    try {
-      const response = await api.get(endpoints.billing.jobcard.nextNumber);
-      const payload: any = response.data;
-      if (payload?.success && payload.data) {
-        setFormData(prev => ({
-          ...prev,
-          jobCardNo: payload.data
-        }));
-      }
-    } catch (err) {
+    const nextNo = await fetchNextJobCardNumber();
+    if (nextNo) {
+      setFormData(prev => ({
+        ...prev,
+        jobCardNo: nextNo
+      }));
     }
   };
 
@@ -355,14 +352,14 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
 
   // Auto-fill customer phone when customer is selected
   useEffect(() => {
-    if (formData.customerName) {
+    if (formData.customerName && Array.isArray(customers)) {
       const selectedCustomer = customers.find(
-        (c: any) => `${c.customerName} - ${c.phoneNumber}` === formData.customerName
+        (c: any) => `${c.customerName || c.name} - ${c.phoneNumber || c.phone}` === formData.customerName
       );
       if (selectedCustomer) {
         setFormData(prev => ({
           ...prev,
-          customerPhone: selectedCustomer.phoneNumber,
+          customerPhone: selectedCustomer.phoneNumber || selectedCustomer.phone,
           customerAddress: selectedCustomer.address || '',
           customerId: selectedCustomer.id
         }));
@@ -384,7 +381,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
 
   // Auto-fill staff ID when technician is selected
   useEffect(() => {
-    if (formData.technicianName) {
+    if (formData.technicianName && Array.isArray(staff)) {
       const selectedStaff = staff.find((s: Staff) => s.name === formData.technicianName && s.status === 'Active');
       if (selectedStaff) {
         setFormData((prev: any) => ({
@@ -405,11 +402,12 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
   // Check if form is valid (required fields)
   const isFormValid = () => {
     return (
-      formData.customerName &&
-      formData.vehicleNumber &&
-      formData.vehicleMake &&
-      formData.serviceType &&
-      formData.technicianName
+      (formData.jobCardNo || '').trim() !== '' &&
+      (formData.customerName || '').trim() !== '' &&
+      (formData.vehicleNumber || '').trim() !== '' &&
+      (formData.vehicleMake || '').trim() !== '' &&
+      (formData.serviceType || '').trim() !== '' &&
+      (formData.technicianName || '').trim() !== ''
     );
   };
 
@@ -434,7 +432,8 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
 
   // Handle customer selection with auto-fill
   const handleCustomerSelect = (customerId: string) => {
-    const selectedCustomer = customers.find(c => c.id === customerId);
+    const safeCustomers = Array.isArray(customers) ? customers : [];
+    const selectedCustomer = safeCustomers.find(c => c.id === customerId);
     if (selectedCustomer) {
       setFormData(prev => ({
         ...prev,
@@ -622,24 +621,23 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
     }
 
     const payload = {
-      jobcard_no: formData.jobCardNo,
-      customer_id: formData.customerId,
-      customer_name: formData.customerName,
-      phone: formData.customerPhone,
-      address: formData.customerAddress,
-      vehicle_id: formData.vehicleId,
-      vehicle_no: formData.vehicleNumber,
-      vehicle_type: formData.vehicleType,
-      brand: formData.vehicleMake,
-      model: formData.vehicleModel,
-      transport_name: formData.transportName,
-      km_reading: formData.kmReading,
-      fuel_level: formData.fuelLevel,
-      vehicle_status: formData.status,
-      service_type: formData.serviceType,
-      work_type: formData.workType,
-      technician_id: formData.technicianId,
-      technician_name: formData.technicianName,
+      jobCardNo: formData.jobCardNo,
+      customerId: formData.customerId,
+      customerName: formData.customerName,
+      customerPhone: formData.customerPhone,
+      customerAddress: formData.customerAddress,
+      vehicleId: formData.vehicleId,
+      vehicleNumber: formData.vehicleNumber,
+      vehicleType: formData.vehicleType,
+      vehicleMake: formData.vehicleMake,
+      vehicleModel: formData.vehicleModel,
+      transportName: formData.transportName,
+      kmReading: formData.kmReading,
+      fuelLevel: formData.fuelLevel,
+      serviceType: formData.serviceType,
+      workType: formData.workType,
+      technicianId: formData.technicianId,
+      technicianName: formData.technicianName,
       before_front_camber: formData.beforeFrontCamber,
       before_front_caster: formData.beforeFrontCaster,
       before_front_toe: formData.beforeFrontToe,
@@ -666,6 +664,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
       processedById: user?.id
     };
 
+    console.log('[DEBUG] handleSaveJobCard payload:', payload);
     setIsSavingJobCard(true);
 
     try {
@@ -674,6 +673,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
         ? await updateJobCard(editingCardId, payload as any)
         : await addJobCard(payload as any);
 
+      console.log('[DEBUG] handleSaveJobCard result:', savedCard);
       if (savedCard) {
         await refreshJobCards();
 
@@ -681,8 +681,14 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
         resetForm();
         await fetchNextJobCardNo();
 
-        setIsFormExpanded(true);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setIsFormExpanded(false);
+        // Scroll to the history section after a short delay to allow re-render
+        setTimeout(() => {
+          const historySection = document.getElementById('job-card-history');
+          if (historySection) {
+            historySection.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 300);
       } else {
       }
     } catch (error: any) {
@@ -783,11 +789,11 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
   };
 
   // Filter and search job cards
-  const filteredJobCards = jobCards.filter(card => {
+  const filteredJobCards = (Array.isArray(jobCards) ? jobCards : []).filter(card => {
     const matchesSearch =
-      card.jobCardNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      card.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      card.vehicleNumber.toLowerCase().includes(searchTerm.toLowerCase());
+      (card.jobCardNo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (card.customerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (card.vehicleNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesFilter = filterStatus === 'All' || card.status === filterStatus;
 
@@ -796,14 +802,15 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
 
 
   // Get vehicle options for dropdown from registeredVehicles
-  const vehicleOptions = registeredVehicles.map(v => ({
+  const vehicleOptions = (Array.isArray(registeredVehicles) ? registeredVehicles : []).map(v => ({
     value: v.vehicle_number,
     label: `${v.vehicle_number} (${v.owner_name})`
   }));
 
   // Get customer options
   const customerOptions = React.useMemo(() => {
-    const options = customers
+    const safeCustomers = Array.isArray(customers) ? customers : [];
+    const options = safeCustomers
       .filter(c => c.isActive)
       .map(c => ({
         value: c.id,
@@ -814,8 +821,10 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
 
   // Get vehicle make options
   const vehicleMakeOptions = React.useMemo(() => {
-    return getActiveVehicleMakes()
-      .map(vm => vm.name);
+    const safeMakes = typeof getActiveVehicleMakes === 'function' ? getActiveVehicleMakes() : [];
+    return Array.isArray(safeMakes) 
+      ? safeMakes.map(vm => vm.name)
+      : [];
   }, [vehicleMakes]);
 
   // Get vehicle model options
@@ -827,20 +836,25 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
 
   // Get transport options
   const transportOptions = React.useMemo(() => {
-    const options = transports
+    const safeTransports = Array.isArray(transports) ? transports : [];
+    const options = safeTransports
       .filter(t => t.status === 'Active')
       .map(t => t.name);
     return options;
   }, [transports]);
 
   // Get work type options
-  const workTypeOptions = workTypes
-    .filter(wt => wt.status === 'Active')
-    .map(wt => wt.workTypeName);
+  const workTypeOptions = React.useMemo(() => {
+    const safeWorkTypes = Array.isArray(workTypes) ? workTypes : [];
+    return safeWorkTypes
+      .filter(wt => wt.status === 'Active')
+      .map(wt => wt.workTypeName || wt.name);
+  }, [workTypes]);
 
   // Get technician options
   const technicianOptions = React.useMemo(() => {
-    const options = staff
+    const safeStaff = Array.isArray(staff) ? staff : [];
+    const options = safeStaff
       .filter(s => s.status === 'Active')
       .map(s => s.name);
     
@@ -848,7 +862,6 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
     if (currentUserName && !options.includes(currentUserName)) {
       options.unshift(currentUserName);
     }
-    
     return options;
   }, [staff, currentUserName]);
 
@@ -1525,20 +1538,25 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
                   </button>
                   {(isEditing ? canEdit('Job Card') : canCreate('Job Card')) && (
                     <button
+                      id="save-job-card-btn"
                       onClick={handleSaveJobCard}
                       disabled={!isFormValid() || isSavingJobCard}
-                      className={`${primaryButtonClass} ${(!isFormValid() || isSavingJobCard) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all duration-300 shadow-lg hover:shadow-xl active:scale-95 ${
+                        (!isFormValid() || isSavingJobCard) 
+                          ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed shadow-none' 
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      }`}
                     >
                       {isSavingJobCard ? (
-                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <RefreshCw className="w-5 h-5 animate-spin" />
                       ) : (
-                        <Save className="w-4 h-4" />
+                        <Save className="w-5 h-5" />
                       )}
-                      {isSavingJobCard
-                        ? 'Saving...'
-                        : isEditing
-                          ? 'Update Job Card'
-                          : 'Save Job Card'}
+                      <span>
+                        {isSavingJobCard
+                          ? 'Saving...'
+                          : 'Save'}
+                      </span>
                     </button>
                   )}
                 </div>
@@ -1550,6 +1568,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
 
       {/* Job Card History Section */}
       <motion.div
+        id="job-card-history"
         className={cardClass}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

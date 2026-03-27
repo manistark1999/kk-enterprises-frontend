@@ -1008,7 +1008,7 @@ export function ItemsServicesScreen({ isDarkMode }: ItemsServicesScreenProps) {
                         className={primaryButtonClass}
                       >
                         <Save className="w-4 h-4" />
-                        {editingItem ? 'Update' : 'Save'}
+                        Save
                       </button>
                     )}
                   </div>

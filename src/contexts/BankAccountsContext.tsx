@@ -61,7 +61,12 @@ export function BankAccountsProvider({ children }: { children: ReactNode }) {
     try {
       const res = await api.get('/bank-accounts');
       if (res.success && res.data) {
-        setBankAccounts((res.data.data || res.data).map(mapRow));
+        const rawData = Array.isArray(res?.data?.data)
+          ? res.data.data
+          : Array.isArray(res?.data)
+          ? res.data
+          : [];
+        setBankAccounts(rawData.map(mapRow));
       }
     } catch (err) {
     } finally {

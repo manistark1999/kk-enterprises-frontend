@@ -443,14 +443,14 @@ export function RolesScreen({ isDarkMode }: { isDarkMode: boolean }) {
                   onClick={() => setIsModalOpen(false)}
                   className="text-[12px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900 transition-colors"
                 >
-                   Discard Changes
+                   Cancel
                 </button>
                 <button 
                   onClick={handleSave}
                   className="px-16 py-6 bg-blue-600 hover:bg-blue-700 text-white rounded-3xl font-bold uppercase tracking-[0.2em] text-xs shadow-2xl shadow-blue-600/20 active:scale-95 transition-all flex items-center gap-4"
                 >
                   <Unlock className="w-5 h-5" />
-                  Apply Matrix
+                  Save
                 </button>
               </div>
             </motion.div>

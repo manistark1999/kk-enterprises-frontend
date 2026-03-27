@@ -87,10 +87,16 @@ export function ReceiptsPaymentsProvider({ children }: { children: ReactNode }) 
     try {
       const response = await api.get('/receipts');
       if (response.success && response.data) {
-        setReceipts(response.data.data);
+        const rawData = response.data.data || response.data;
+        if (Array.isArray(rawData)) {
+          setReceipts(rawData);
+        } else {
+          setReceipts([]);
+        }
       }
     } catch (error: any) {
-      toast.error('Failed to fetch receipts');
+      console.error('[ACC-RECEIPT] fetchReceipts error:', error);
+      toast.error(error.message || 'Failed to fetch receipts');
     } finally {
       setIsLoading(false);
     }
@@ -118,7 +124,8 @@ export function ReceiptsPaymentsProvider({ children }: { children: ReactNode }) 
         }
       }
     } catch (error: any) {
-      toast.error('Failed to fetch payments');
+      console.error('[ACC-PAYMENT] fetchPayments error:', error);
+      toast.error(error.message || 'Failed to fetch payments');
     } finally {
       setIsLoading(false);
     }

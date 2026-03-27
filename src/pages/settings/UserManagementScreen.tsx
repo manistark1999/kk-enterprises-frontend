@@ -580,7 +580,7 @@ export function UserManagementScreen({ isDarkMode }: { isDarkMode: boolean }) {
                   onClick={handleSaveUser}
                   className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm uppercase tracking-wider shadow-lg shadow-blue-600/20 active:scale-95 transition-all"
                 >
-                  {editingUser ? (isResetMode ? 'Reset Password' : 'Save Changes') : 'Create User'}
+                  Save
                 </button>
               </div>
             </motion.div>
@@ -744,7 +744,7 @@ export function UserManagementScreen({ isDarkMode }: { isDarkMode: boolean }) {
                     className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-xl font-bold text-sm uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-blue-600/20 active:scale-95 transition-all"
                   >
                     {permSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Unlock className="w-4 h-4" />}
-                    {permSaving ? 'Saving...' : 'Save Permissions'}
+                    {permSaving ? 'Saving...' : 'Save'}
                   </button>
                 </div>
               </div>

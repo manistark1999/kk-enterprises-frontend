@@ -326,45 +326,6 @@ export function SupplierScreen({ isDarkMode }: SupplierScreenProps) {
           </div>
         </div>
 
-        {/* AUDIT TRAIL */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-4 px-4 pt-12">
-            <History className="w-4 h-4 text-blue-500" />
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.25em] text-gray-500">Registry Operational History</h2>
-            <div className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent dark:from-gray-800" />
-          </div>
-
-          <div className={`rounded-2xl border overflow-hidden ${isDarkMode ? 'bg-gray-900/40 border-gray-800' : 'bg-white shadow-sm border-gray-100'}`}>
-            <div className="max-h-[300px] overflow-y-auto">
-              <table className="w-full text-left">
-                <tbody className="divide-y divide-gray-100/5 dark:divide-gray-800/10">
-                  {filteredHistory.map((entry, idx) => (
-                    <tr key={idx} className="hover:bg-blue-500/5 transition-all">
-                      <td className="p-4">
-                        <div className="flex items-start gap-4">
-                          <Activity className={`shrink-0 w-8 h-8 p-2 rounded-lg ${
-                            entry.action_type === 'CREATE' ? 'bg-blue-600/10 text-blue-600' : 'bg-blue-500/10 text-blue-500'
-                          }`} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-bold text-gray-700 dark:text-gray-300 truncate">{entry.title}</p>
-                            <p className="text-[11px] text-gray-400 mt-0.5">{entry.description}</p>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <div className="flex items-center gap-2 justify-end text-[11px] font-mono text-gray-400">
-                              <span className="text-blue-500/40 font-bold uppercase tracking-widest text-[9px]">{entry.user_name}</span>
-                              <span className="w-1 h-1 bg-gray-300 rounded-full" />
-                              {new Date(entry.created_at).toLocaleString([], { hour: '2-digit', minute: '2-digit', hour12: true, month: 'short', day: 'numeric' })}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
 
         {/* MUTATION MODAL */}
         <AnimatePresence>
@@ -503,14 +464,14 @@ export function SupplierScreen({ isDarkMode }: SupplierScreenProps) {
                 </div>
 
                 <div className="p-6 bg-gray-500/5 flex items-center justify-between gap-4 border-t dark:border-gray-800">
-                  <button onClick={() => setIsModalOpen(false)} className="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-4">Void Entry</button>
+                  <button onClick={() => setIsModalOpen(false)} className="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-4">Cancel</button>
                   {(editingSupplier ? canEdit('Suppliers') : canCreate('Suppliers')) && (
                     <button
                       onClick={handleSave}
                       disabled={isSaving}
                       className="px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold uppercase tracking-widest text-[10px] shadow-xl disabled:opacity-50 transition-all active:scale-95"
                     >
-                      {isSaving ? 'Processing...' : editingSupplier ? 'Commit Mutation' : 'Register Vendor'}
+                      {isSaving ? 'Saving...' : 'Save'}
                     </button>
                   )}
                 </div>

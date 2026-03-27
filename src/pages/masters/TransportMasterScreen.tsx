@@ -527,7 +527,7 @@ export function TransportMasterScreen({ isDarkMode }: TransportMasterScreenProps
                         ) : (
                           <Save className="w-4 h-4" />
                         )}
-                        <span>{isSubmitting ? 'Saving...' : isNewTransport ? 'Add Transport' : 'Save Changes'}</span>
+                        <span>{isSubmitting ? 'Saving...' : 'Save'}</span>
                       </button>
                     )}
                   </div>

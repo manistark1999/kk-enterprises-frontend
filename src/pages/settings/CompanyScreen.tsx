@@ -569,7 +569,7 @@ export function CompanyScreen({ isDarkMode }: CompanyScreenProps) {
               className={getSecondaryButtonClass(isDarkMode)}
             >
               <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Reset
+              Cancel
             </button>
             <button
               onClick={handleSave}
@@ -577,7 +577,7 @@ export function CompanyScreen({ isDarkMode }: CompanyScreenProps) {
               className={getPrimaryButtonClass()}
             >
               <Save className="w-4 h-4" />
-              {isLoading ? 'Saving...' : 'Save Company Information'}
+              {isLoading ? 'Saving...' : 'Save'}
             </button>
           </div>
         </div>

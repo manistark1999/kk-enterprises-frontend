@@ -57,24 +57,29 @@ export function PurchaseProvider({ children }: { children: ReactNode }) {
     try {
       const response = await api.get(endpoints.inventory.purchase.list);
       if (response.success && response.data) {
-        const mapped = (response.data.data || []).map((row: any) => ({
-          id: row.id.toString(),
-          billNo: row.purchase_no,
-          date: row.purchase_date,
-          supplierId: row.supplier_id,
-          supplierName: row.supplier_name,
-          items: typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []),
-          subtotal: Number(row.subtotal),
-          totalGST: Number(row.total_gst),
-          discount: Number(row.discount),
-          grandTotal: Number(row.grand_total),
-          paymentMode: row.payment_mode,
-          status: row.status,
-          notes: row.notes,
-          invoiceNo: row.invoice_no,
-          createdAt: row.created_at
-        }));
-        setPurchases(mapped);
+        const rawData = response.data.data || response.data;
+        if (Array.isArray(rawData)) {
+          const mapped = rawData.map((row: any) => ({
+            id: row.id.toString(),
+            billNo: row.purchase_no,
+            date: row.purchase_date,
+            supplierId: row.supplier_id,
+            supplierName: row.supplier_name,
+            items: typeof row.items === 'string' ? JSON.parse(row.items) : (row.items || []),
+            subtotal: Number(row.subtotal),
+            totalGST: Number(row.total_gst),
+            discount: Number(row.discount),
+            grandTotal: Number(row.grand_total),
+            paymentMode: row.payment_mode,
+            status: row.status,
+            notes: row.notes,
+            invoiceNo: row.invoice_no,
+            createdAt: row.created_at
+          }));
+          setPurchases(mapped);
+        } else {
+          setPurchases([]);
+        }
       }
     } catch (error) {
     } finally {

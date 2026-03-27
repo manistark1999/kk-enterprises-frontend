@@ -406,7 +406,7 @@ export function StockAdjustmentScreen({ isDarkMode }: StockAdjustmentScreenProps
                 className="ml-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all"
               >
                 <Save className="w-4 h-4 inline mr-2" />
-                {editingId ? 'Update Adjustment' : 'Save Adjustment'}
+                Save
               </button>
             </div>
           </form>

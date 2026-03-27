@@ -422,14 +422,14 @@ export function CashRegisterScreen({ isDarkMode }: CashRegisterScreenProps) {
                     : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
                 }`}
               >
-                Clear
+                Cancel
               </button>
               <button
                 type="submit"
                 className="flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium hover:from-blue-700 hover:to-blue-600 shadow-lg shadow-blue-500/30 transition-all"
               >
                 <Save className="w-5 h-5" />
-                {editingId ? 'Update Entry' : 'Save Entry'}
+                Save
               </button>
             </div>
           </form>

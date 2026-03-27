@@ -970,7 +970,7 @@ export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
                 ) : (
                   <CheckCircle className="w-5 h-5" />
                 )}
-                Confirm & Process All
+                Save
               </button>
             </div>
           </motion.div>
@@ -1045,13 +1045,13 @@ export function SalaryScreen({ isDarkMode }: SalaryScreenProps) {
                 onClick={() => setEditModalOpen(false)}
                 className={`px-6 py-2.5 rounded-xl font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}
               >
-                Discard
+                Cancel
               </button>
               <button
                 onClick={() => handleUpdateSalary(editingSalary)}
                 className="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-black shadow-lg shadow-blue-500/25"
               >
-                Apply Changes
+                Save
               </button>
             </div>
           </motion.div>

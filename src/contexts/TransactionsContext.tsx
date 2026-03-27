@@ -265,12 +265,12 @@ export const TransactionsProvider = ({ children }: { children: ReactNode }) => {
 
       const [lbRes, estRes, recRes, payRes, purRes, salRes] = await Promise.all(tasks);
 
-      if (lbRes.success) setLabourBills(lbRes.data.data || lbRes.data || []);
-      if (estRes.success) setEstimations(estRes.data.data || estRes.data || []);
-      if (recRes.success) setReceipts(recRes.data.data || recRes.data || []);
-      if (payRes.success) setPayments(payRes.data.data || payRes.data || []);
-      if (purRes.success) setPurchases(purRes.data.data || purRes.data || []);
-      if (salRes.success) setSales(salRes.data.data || salRes.data || []);
+      if (lbRes.success) setLabourBills(Array.isArray(lbRes.data?.data) ? lbRes.data.data : (Array.isArray(lbRes.data) ? lbRes.data : []));
+      if (estRes.success) setEstimations(Array.isArray(estRes.data?.data) ? estRes.data.data : (Array.isArray(estRes.data) ? estRes.data : []));
+      if (recRes.success) setReceipts(Array.isArray(recRes.data?.data) ? recRes.data.data : (Array.isArray(recRes.data) ? recRes.data : []));
+      if (payRes.success) setPayments(Array.isArray(payRes.data?.data) ? payRes.data.data : (Array.isArray(payRes.data) ? payRes.data : []));
+      if (purRes.success) setPurchases(Array.isArray(purRes.data?.data) ? purRes.data.data : (Array.isArray(purRes.data) ? purRes.data : []));
+      if (salRes.success) setSales(Array.isArray(salRes.data?.data) ? salRes.data.data : (Array.isArray(salRes.data) ? salRes.data : []));
     } catch (error) {
     }
   }, [isAuthenticated, hasPermission]);

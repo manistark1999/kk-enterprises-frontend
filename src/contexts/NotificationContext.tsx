@@ -54,7 +54,11 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        setNotifications(parsed);
+        if (Array.isArray(parsed)) {
+          setNotifications(parsed);
+        } else {
+          setNotifications([]);
+        }
       }
     } catch (error) {
     }

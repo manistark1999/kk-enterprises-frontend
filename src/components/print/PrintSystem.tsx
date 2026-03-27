@@ -1,6 +1,7 @@
 import React, { ReactNode } from 'react';
 import './print-system.css';
-import kkPrintLogo from '../../assets/images/kk-groups-logo-header-print.png';
+// Root-absolute path from public/ for cross-context reliability (Print, PDF)
+const kkPrintLogo = '/kk-groups-logo-header-print.png';
 
 // Master Print Layout Component
 export interface PrintLayoutProps {

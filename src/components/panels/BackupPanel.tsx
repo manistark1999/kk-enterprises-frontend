@@ -420,7 +420,7 @@ export function BackupPanel({ isOpen, onClose, isDarkMode }: BackupPanelProps) {
                   ) : (
                     <>
                       <Download className="w-5 h-5" />
-                      Create Backup
+                      Save
                     </>
                   )}
                 </button>

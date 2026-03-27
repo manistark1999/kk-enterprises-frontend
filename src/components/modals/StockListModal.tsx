@@ -503,7 +503,7 @@ export function StockListModal({
                   className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 text-white font-medium hover:from-blue-700 hover:to-blue-600 shadow-lg shadow-blue-500/30 transition-all text-sm"
                 >
                   <Save className="w-4 h-4" />
-                  Save Item
+                  Save
                 </button>
               )}
             </div>

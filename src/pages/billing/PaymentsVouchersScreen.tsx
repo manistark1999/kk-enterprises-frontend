@@ -483,7 +483,7 @@ export function PaymentsVouchersScreen({ isDarkMode }: PaymentsVouchersScreenPro
                         </button>
                         {canCreate('Payment') && (
                           <button className="px-6 py-3 rounded-lg font-medium bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-700 hover:to-blue-600 transition-all shadow-lg hover:shadow-xl">
-                            Save Entry
+                            Save
                           </button>
                         )}
                       </div>

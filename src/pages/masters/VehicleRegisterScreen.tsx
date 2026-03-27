@@ -554,7 +554,7 @@ export function VehicleRegisterScreen({ isDarkMode }: { isDarkMode: boolean }) {
                       className="flex-[2] px-4 py-3 bg-primary text-white rounded-xl font-black shadow-primary/20 shadow-xl hover:bg-primary/90 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
                       <Check className="w-5 h-5" />
-                      {editingVehicle ? 'Update Vehicle' : 'Register Vehicle'}
+                      Save
                     </button>
                   )}
                 </div>

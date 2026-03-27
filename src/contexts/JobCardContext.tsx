@@ -84,7 +84,9 @@ const mapApiJobCard = (jc: any): JobCard => {
   return {
     id: jc.id?.toString() || jc.jobcard_no || `JC-${Date.now()}`,
     jobCardNo: jc.jobcard_no || '',
-    date: jc.created_at ? jc.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
+    date: jc.created_at 
+      ? (typeof jc.created_at === 'string' ? jc.created_at : new Date(jc.created_at).toISOString()).slice(0, 10) 
+      : new Date().toISOString().slice(0, 10),
     time: jc.created_at
       ? new Date(jc.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
       : new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
@@ -144,9 +146,9 @@ export function JobCardProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const response = await api.get(endpoints.billing.jobcard.list);
-      const payload: any = response.data;
-      if (payload?.success && Array.isArray(payload.data)) {
-        setJobCards(payload.data.map(mapApiJobCard));
+      console.log('[DEBUG] JobCardContext.fetchJobCards response:', response);
+      if (response.success && Array.isArray(response.data)) {
+        setJobCards(response.data.map(mapApiJobCard));
       } else {
         // Silently handle - server error is common if role is restricted but 403 was caught by interceptor
       }
@@ -206,6 +208,7 @@ export function JobCardProvider({ children }: { children: ReactNode }) {
         processed_by_id: jobCardData.processed_by_id || jobCardData.processedById || user?.id
       };
 
+      console.log('[DEBUG] JobCardContext.addJobCard payload:', payload);
       const response = await api.post(endpoints.billing.jobcard.create, payload);
       if (response.success && response.data) {
         const resData = response.data;
@@ -279,6 +282,7 @@ export function JobCardProvider({ children }: { children: ReactNode }) {
         processed_by_id: jobCardData.processed_by_id || jobCardData.processedById || user?.id
       };
 
+      console.log('[DEBUG] JobCardContext.updateJobCard payload:', payload);
       const response = await api.put(endpoints.billing.jobcard.update(id), payload);
       if (response.success && response.data) {
         const resData = response.data;
@@ -353,9 +357,8 @@ export function JobCardProvider({ children }: { children: ReactNode }) {
   const fetchNextJobCardNumber = async () => {
     try {
         const response = await api.get(endpoints.billing.jobcard.nextNumber);
-        const payload: any = response.data;
-        if (payload?.success && payload.data) {
-            return payload.data;
+        if (response.success && response.data) {
+            return response.data;
         }
         return null;
     } catch (err) {

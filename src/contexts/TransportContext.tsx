@@ -42,7 +42,8 @@ export function TransportProvider({ children }: { children: ReactNode }) {
     try {
       const response = await api.get('/transports');
       if (response.success && response.data) {
-        setTransports(response.data.data);
+        const rawData = Array.isArray(response.data?.data) ? response.data.data : (Array.isArray(response.data) ? response.data : []);
+        setTransports(rawData);
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to fetch transports');

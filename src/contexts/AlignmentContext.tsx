@@ -95,7 +95,8 @@ export const AlignmentProvider: React.FC<AlignmentProviderProps> = ({ children }
         }
       }
     } catch (error: any) {
-      toast.error('Failed to load alignment entries');
+      console.error('[INV-ALIGN] fetchAlignments error:', error);
+      toast.error(error.message || 'Failed to load alignment entries');
     } finally {
       setIsLoading(false);
     }
@@ -197,9 +198,12 @@ export const AlignmentProvider: React.FC<AlignmentProviderProps> = ({ children }
       const response = await api.post('/alignments/history', { historyData });
       if (response.success) {
         toast.success('Alignment history saved to database successfully!');
+      } else {
+        throw new Error(response.message || 'Failed to save alignment history to database');
       }
     } catch (error: any) {
-      toast.error('Failed to save alignment history to database');
+      console.error('[INV-ALIGN] saveAlignmentHistory error:', error);
+      toast.error(error.message || 'Failed to save alignment history to database');
       throw error;
     }
   }, []);

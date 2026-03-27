@@ -472,7 +472,7 @@ export function AlignmentEntryPanel({ isDarkMode, isOpen, onClose, editingEntry 
                     className={primaryButtonClass}
                   >
                     <Save className="w-4 h-4" />
-                    <span>{editingEntry ? 'Update' : 'Save'} Entry</span>
+                    <span>Save</span>
                   </button>
                 </div>
               </div>

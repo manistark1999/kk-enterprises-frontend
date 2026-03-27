@@ -8,7 +8,8 @@ import {
   X,
   Save,
   Users,
-  RefreshCw
+  RefreshCw,
+  Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
@@ -34,13 +35,23 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<Partial<Staff> | null>(null);
   const [isNewStaff, setIsNewStaff] = useState(false);
+  const [isViewOnly, setIsViewOnly] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [errors, setErrors] = useState({ name: false, designation: false, mobile: false, joiningDate: false });
 
-  const handleRowClick = (s: Staff) => {
+  const handleEdit = (s: Staff) => {
     setSelectedStaff({ ...s });
     setIsNewStaff(false);
+    setIsViewOnly(false);
+    setErrors({ name: false, designation: false, mobile: false, joiningDate: false });
+    setIsModalOpen(true);
+  };
+
+  const handleView = (s: Staff) => {
+    setSelectedStaff({ ...s });
+    setIsNewStaff(false);
+    setIsViewOnly(true);
     setErrors({ name: false, designation: false, mobile: false, joiningDate: false });
     setIsModalOpen(true);
   };
@@ -59,6 +70,7 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
       status: 'Active'
     });
     setIsNewStaff(true);
+    setIsViewOnly(false);
     setErrors({ name: false, designation: false, mobile: false, joiningDate: false });
     setIsModalOpen(true);
   };
@@ -67,6 +79,7 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
     setIsModalOpen(false);
     setSelectedStaff(null);
     setIsNewStaff(false);
+    setIsViewOnly(false);
     setErrors({ name: false, designation: false, mobile: false, joiningDate: false });
   };
 
@@ -101,16 +114,13 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
     }
   };
 
-  const handleDelete = async () => {
-    if (selectedStaff && selectedStaff.id) {
-      if (window.confirm('Are you sure you want to delete this staff member?')) {
-        try {
-          await deleteStaff(selectedStaff.id);
-          toast.success('Staff member deleted successfully!');
-          handleCloseModal();
-        } catch (error: any) {
-          toast.error(error.message || 'Failed to delete staff');
-        }
+  const handleDeleteConfirm = async (s: Staff) => {
+    if (window.confirm(`Are you sure you want to delete ${s.name}?`)) {
+      try {
+        await deleteStaff(s.id);
+        toast.success('Staff member deleted successfully!');
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to delete staff');
       }
     }
   };
@@ -201,29 +211,29 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                   <th className={`text-left py-4 px-6 text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Joining Date</th>
                   <th className={`text-right py-4 px-6 text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Salary</th>
                   <th className={`text-left py-4 px-6 text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Status</th>
+                  <th className={`text-center py-4 px-6 text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Actions</th>
                 </tr>
               </thead>
               <tbody className={isDarkMode ? 'divide-y divide-gray-700' : 'divide-y divide-gray-200'}>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={7} className="py-20 text-center">
+                    <td colSpan={8} className="py-20 text-center">
                       <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-500" />
                       <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>Fetching staff data...</p>
                     </td>
                   </tr>
                 ) : filteredStaff.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-20 text-center">
+                    <td colSpan={8} className="py-20 text-center">
                       <Users className="w-12 h-12 mx-auto mb-4 text-gray-400 opacity-20" />
                       <p className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>No staff records found</p>
                     </td>
                   </tr>
                 ) : (
                   filteredStaff.map((s) => (
-                    <tr 
+                     <tr 
                       key={s.id}
-                      onClick={() => handleRowClick(s)}
-                      className={`cursor-pointer transition-colors ${
+                      className={`transition-colors ${
                         isDarkMode ? 'hover:bg-gray-700/30' : 'hover:bg-blue-50'
                       }`}
                     >
@@ -237,6 +247,17 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                         <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                           s.status === 'Active' ? 'bg-blue-600/20 text-blue-600' : 'bg-blue-700/20 text-blue-700'
                         }`}>{s.status}</span>
+                      </td>
+                      <td className="py-4 px-6 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button onClick={() => handleView(s)} className="p-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all dark:bg-blue-500/5"><Eye size={14} /></button>
+                          {canEdit('Staff') && (
+                            <button onClick={() => handleEdit(s)} className="p-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition-all dark:bg-blue-500/5"><Edit2 size={14} /></button>
+                          )}
+                          {canDelete('Staff') && (
+                            <button onClick={() => handleDeleteConfirm(s)} className="p-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-700 hover:text-white transition-all dark:bg-blue-700/5"><Trash2 size={14} /></button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -270,10 +291,10 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
               <div className="px-6 py-5 border-b border-gray-700 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-blue-600/20 text-blue-500">
-                    <Edit2 className="w-5 h-5" />
+                    {isViewOnly ? <Eye className="w-5 h-5" /> : <Edit2 className="w-5 h-5" />}
                   </div>
                   <h2 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {isNewStaff ? 'Add New Staff' : 'Edit Staff Member'}
+                    {isNewStaff ? 'Add New Staff' : isViewOnly ? 'Staff Member Details' : 'Edit Staff Member'}
                   </h2>
                 </div>
                 <button onClick={handleCloseModal} className="p-2 hover:bg-gray-700/50 rounded-lg text-gray-400 transition-colors">
@@ -291,6 +312,7 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                       value={selectedStaff.name}
                       onChange={(e) => handleFormChange('name', e.target.value)}
                       placeholder="Enter staff member's full name"
+                      disabled={isViewOnly}
                     />
                     {errors.name && (
                       <p className="text-blue-700 text-sm mt-1">Staff Name is required</p>
@@ -303,6 +325,7 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                       className={getInputClassWithValidation(isDarkMode, errors.designation)}
                       value={selectedStaff.designation}
                       onChange={(e) => handleFormChange('designation', e.target.value)}
+                      disabled={isViewOnly}
                     >
                       <option value="">Select Designation</option>
                       <option value="Senior Mechanic">Senior Mechanic</option>
@@ -326,6 +349,7 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                       value={selectedStaff.mobile}
                       onChange={(e) => handleFormChange('mobile', e.target.value)}
                       placeholder="10-digit mobile number"
+                      disabled={isViewOnly}
                     />
                     {errors.mobile && (
                       <p className="text-blue-700 text-sm mt-1">Mobile Number is required</p>
@@ -340,6 +364,7 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                       value={selectedStaff.email}
                       onChange={(e) => handleFormChange('email', e.target.value)}
                       placeholder="email@example.com"
+                      disabled={isViewOnly}
                     />
                   </div>
 
@@ -351,6 +376,7 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                       value={selectedStaff.salary}
                       onChange={(e) => handleFormChange('salary', Number(e.target.value))}
                       placeholder="Enter salary amount"
+                      disabled={isViewOnly}
                     />
                   </div>
 
@@ -361,6 +387,7 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                       className={getInputClassWithValidation(isDarkMode, errors.joiningDate)}
                       value={selectedStaff.joiningDate}
                       onChange={(e) => handleFormChange('joiningDate', e.target.value)}
+                      disabled={isViewOnly}
                     />
                     {errors.joiningDate && (
                       <p className="text-blue-700 text-sm mt-1">Date of Joining is required</p>
@@ -373,6 +400,7 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                       className={getInputClassWithValidation(isDarkMode, false)}
                       value={selectedStaff.status}
                       onChange={(e) => handleFormChange('status', e.target.value as 'Active' | 'Inactive')}
+                      disabled={isViewOnly}
                     >
                       <option value="Active">Active</option>
                       <option value="Inactive">Inactive</option>
@@ -387,6 +415,7 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                       value={selectedStaff.bankAccount || ''}
                       onChange={(e) => handleFormChange('bankAccount', e.target.value)}
                       placeholder="Enter account number"
+                      disabled={isViewOnly}
                     />
                   </div>
                   
@@ -398,6 +427,7 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                       value={selectedStaff.ifscCode || ''}
                       onChange={(e) => handleFormChange('ifscCode', e.target.value)}
                       placeholder="BANK0123456"
+                      disabled={isViewOnly}
                     />
                   </div>
 
@@ -409,15 +439,16 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                       onChange={(e) => handleFormChange('address', e.target.value)}
                       placeholder="Complete residential address"
                       rows={2}
+                      disabled={isViewOnly}
                     />
                   </div>
                 </div>
               </div>
 
               <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/30 flex items-center justify-between">
-                {!isNewStaff && canDelete('Staff') ? (
+                {!isNewStaff && !isViewOnly && canDelete('Staff') ? (
                   <button 
-                    onClick={handleDelete}
+                    onClick={() => handleDeleteConfirm(selectedStaff as Staff)}
                     className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-700/10 text-blue-700 hover:bg-blue-700/20"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -426,8 +457,8 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                 ) : <div />}
                 
                 <div className="flex gap-3">
-                  <button onClick={handleCloseModal} className={getSecondaryButtonClass(isDarkMode)}>Cancel</button>
-                  {(isNewStaff ? canCreate('Staff') : canEdit('Staff')) && (
+                  <button onClick={handleCloseModal} className={getSecondaryButtonClass(isDarkMode)}>{isViewOnly ? 'Close' : 'Cancel'}</button>
+                  {!isViewOnly && (isNewStaff ? canCreate('Staff') : canEdit('Staff')) && (
                     <button 
                       onClick={handleSave} 
                       disabled={isSaving}
@@ -438,7 +469,7 @@ export function StaffMasterScreen({ isDarkMode }: StaffMasterScreenProps) {
                       ) : (
                         <div className="flex items-center gap-2">
                           <Save className="w-4 h-4" />
-                          <span>{isNewStaff ? 'Create Staff' : 'Save Changes'}</span>
+                          <span>Save</span>
                         </div>
                       )}
                     </button>
