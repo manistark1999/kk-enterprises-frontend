@@ -4,7 +4,7 @@
 const ENV_API_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
 
 // Ensure base URL has /api suffix if not already present, fallback to relative path
-const API_BASE_URL: string = ENV_API_URL 
+const API_BASE_URL: string = ENV_API_URL
   ? (ENV_API_URL.endsWith('/api') ? ENV_API_URL : `${ENV_API_URL}/api`)
   : '/api';
 
@@ -26,7 +26,7 @@ async function apiRequest<T = any>(
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   const method = options.method || 'GET';
-  
+
   // For mutating requests, use a dedup key to prevent double-click issues
   const dedupKey = `${method}:${endpoint}:${options.body || ''}`;
   if ((method === 'POST' || method === 'PUT') && inFlightRequests.has(dedupKey)) {
@@ -40,7 +40,7 @@ async function apiRequest<T = any>(
 
     try {
       const token = localStorage.getItem('kk_auth_token');
-      
+
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         ...(options.headers as Record<string, string> || {}),
@@ -58,16 +58,13 @@ async function apiRequest<T = any>(
       // GET ALL RAW CONTENT FIRST FOR LOGGING & TO PREVENT .json() CRASHES
       const rawResponseText = await response.text();
       console.log(`[API] ${response.status} ${endpoint}`, rawResponseText ? 'Response body received' : 'Empty response');
-      
+
       let data: any = {};
       if (rawResponseText) {
         try {
           data = JSON.parse(rawResponseText);
         } catch (e) {
           console.error(`[API] Failed to parse JSON:`, rawResponseText);
-          if (rawResponseText.trim().toLowerCase().startsWith('<!doctype html>')) {
-            throw new Error(`API call returned an HTML page instead of JSON. This usually indicates that the 'VITE_API_URL' environment variable is missing or incorrect in your production environment (e.g., Railway). The frontend is mistakenly trying to call its own domain: ${fullUrl}. Please configure VITE_API_URL to point to your backend url.`);
-          }
           throw new Error(`Invalid JSON response from server: ${rawResponseText.substring(0, 100)}...`);
         }
       }
@@ -75,7 +72,7 @@ async function apiRequest<T = any>(
       if (!response.ok) {
         // Detailed logging for debugging
         console.error(`[API] Server returned ${response.status} for ${endpoint}:`, data);
-        
+
         // Priority for error message: data.message -> data.error -> data.stack -> generic
         const errorMsg = data.message || data.error || (typeof data === 'string' ? data : null) || `Server error ${response.status}`;
         throw new Error(errorMsg);
@@ -89,12 +86,12 @@ async function apiRequest<T = any>(
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Network error occurred';
       console.error(`[API] Request Failed for ${endpoint}:`, errorMsg, error);
-      
+
       // Enhance 'Failed to fetch' error for the user
       if (errorMsg === 'Failed to fetch' || errorMsg.includes('Connection failed')) {
         throw new Error('Backend connection failed. Is the server running on port 5001?');
       }
-      
+
       throw error;
     } finally {
       inFlightRequests.delete(dedupKey);
