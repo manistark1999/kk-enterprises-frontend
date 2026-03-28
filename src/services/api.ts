@@ -65,6 +65,9 @@ async function apiRequest<T = any>(
           data = JSON.parse(rawResponseText);
         } catch (e) {
           console.error(`[API] Failed to parse JSON:`, rawResponseText);
+          if (rawResponseText.trim().toLowerCase().startsWith('<!doctype html>')) {
+            throw new Error(`API call returned an HTML page instead of JSON. This usually indicates that the 'VITE_API_URL' environment variable is missing or incorrect in your production environment (e.g., Railway). The frontend is mistakenly trying to call its own domain: ${fullUrl}. Please configure VITE_API_URL to point to your backend url.`);
+          }
           throw new Error(`Invalid JSON response from server: ${rawResponseText.substring(0, 100)}...`);
         }
       }
