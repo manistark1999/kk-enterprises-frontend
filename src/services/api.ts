@@ -1,7 +1,12 @@
 // API Configuration
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore – Vite injects import.meta.env at build time
-const API_BASE_URL: string = '/api';
+const ENV_API_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
+
+// Ensure base URL has /api suffix if not already present, fallback to relative path
+const API_BASE_URL: string = ENV_API_URL 
+  ? (ENV_API_URL.endsWith('/api') ? ENV_API_URL : `${ENV_API_URL}/api`)
+  : '/api';
 
 
 // API Response Type
