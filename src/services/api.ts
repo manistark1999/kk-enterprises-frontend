@@ -5,7 +5,7 @@ const ENV_API_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BAS
 
 // Ensure base URL has /api suffix if not already present, fallback to relative path
 const API_BASE_URL: string = ENV_API_URL
-  ? (ENV_API_URL.endsWith('/api') ? ENV_API_URL : `${ENV_API_URL}/api`)
+  ? (ENV_API_URL.endsWith('/api') ? ENV_API_URL : `${ENV_API_URL.replace(/\/$/, '')}/api`)
   : '/api';
 
 
