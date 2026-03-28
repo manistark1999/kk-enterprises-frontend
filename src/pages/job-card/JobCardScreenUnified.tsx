@@ -49,6 +49,7 @@ import { useItemsServices } from '@/contexts/ItemsServicesContext';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useJobCards } from '@/contexts/JobCardContext';
 import { useCompany } from '@/contexts/CompanyContext';
+import { useLoading } from '@/contexts/LoadingContext';
 import { UnifiedPrintPreview } from '@/components/print/UnifiedPrintPreview';
 
 interface JobCardScreenUnifiedProps {
@@ -143,6 +144,7 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
   const { labourBills } = useLabourBills();
   const { getActiveServices, itemsServices } = useItemsServices();
   const { canCreate, canEdit, canDelete, canPrint, user } = useAuth();
+  const { withMinimumLoading, withActionLoading } = useLoading();
   
   // Find current user's name from staff, with fallbacks to username or email
   const safeStaff = Array.isArray(staff) ? staff : [];
@@ -269,32 +271,34 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
   const [isSavingJobCard, setIsSavingJobCard] = useState(false);
 
   const handleView = async (card: JobCard) => {
-    try {
-      // Re-fetch the record by ID to ensure latest data
-      const latestData = await getJobCardById(card.id);
-      if (latestData) {
-        setCardToView(latestData);
-        setViewModalOpen(true);
-      } else {
-        // Fallback to list data if re-fetch fails
+    withActionLoading(async () => {
+      try {
+        const latestData = await getJobCardById(card.id);
+        if (latestData) {
+          setCardToView(latestData);
+          setViewModalOpen(true);
+        } else {
+          setCardToView(card);
+          setViewModalOpen(true);
+        }
+      } catch (err) {
         setCardToView(card);
         setViewModalOpen(true);
       }
-    } catch (err) {
-      setCardToView(card);
-      setViewModalOpen(true);
-    }
+    }, 'Loading Job Card Details...');
   };
 
   const handlePrint = async (card: JobCard) => {
-    try {
-      const latestData = await getJobCardById(card.id);
-      setPrintData(latestData || card);
-      setIsPrintModalOpen(true);
-    } catch (err) {
-      setPrintData(card);
-      setIsPrintModalOpen(true);
-    }
+    withActionLoading(async () => {
+      try {
+        const latestData = await getJobCardById(card.id);
+        setPrintData(latestData || card);
+        setIsPrintModalOpen(true);
+      } catch (err) {
+        setPrintData(card);
+        setIsPrintModalOpen(true);
+      }
+    }, 'Preparing Print Preview...');
 
     // Log the print action to history
     try {
@@ -668,29 +672,30 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
     setIsSavingJobCard(true);
 
     try {
-      // Cast payload to any to bypass interface mismatches during save operations
-      const savedCard = isEditing && editingCardId
-        ? await updateJobCard(editingCardId, payload as any)
-        : await addJobCard(payload as any);
+      await withMinimumLoading((async () => {
+        // Cast payload to any to bypass interface mismatches during save operations
+        const savedCard = isEditing && editingCardId
+          ? await updateJobCard(editingCardId, payload as any)
+          : await addJobCard(payload as any);
 
-      console.log('[DEBUG] handleSaveJobCard result:', savedCard);
-      if (savedCard) {
-        await refreshJobCards();
+        console.log('[DEBUG] handleSaveJobCard result:', savedCard);
+        if (savedCard) {
+          await refreshJobCards();
 
-        // Reset form for next entry
-        resetForm();
-        await fetchNextJobCardNo();
+          // Reset form for next entry
+          resetForm();
+          await fetchNextJobCardNo();
 
-        setIsFormExpanded(false);
-        // Scroll to the history section after a short delay to allow re-render
-        setTimeout(() => {
-          const historySection = document.getElementById('job-card-history');
-          if (historySection) {
-            historySection.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 300);
-      } else {
-      }
+          setIsFormExpanded(false);
+          // Scroll to the history section after a short delay to allow re-render
+          setTimeout(() => {
+            const historySection = document.getElementById('job-card-history');
+            if (historySection) {
+              historySection.scrollIntoView({ behavior: 'smooth' });
+            }
+          }, 300);
+        }
+      })(), isEditing ? 'Syncing Job Card Changes...' : 'Registering New Job Card...');
     } catch (error: any) {
       toast.error(`Error: ${error.message || 'Something went wrong while saving'}`);
     } finally {
@@ -700,71 +705,74 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
 
   // Handle edit
   const handleEdit = (card: JobCard) => {
-
-    setFormData({
-      customerId: card.customerId,
-      customerName: card.customerName,
-      customerPhone: card.customerPhone,
-      customerAddress: card.customerAddress,
-      vehicleNumber: card.vehicleNumber,
-      vehicleMake: card.vehicleMake,
-      vehicleModel: card.vehicleModel,
-      vehicleType: card.vehicleType,
-      transportName: card.transportName,
-      kmReading: card.kmReading,
-      date: card.date,
-      time: card.time,
-      serviceType: card.serviceType,
-      workType: card.workType,
-      beforeFrontCamber: card.beforeFrontCamber,
-      beforeFrontCaster: card.beforeFrontCaster,
-      beforeFrontToe: card.beforeFrontToe,
-      beforeRearCamber: card.beforeRearCamber,
-      beforeRearToe: card.beforeRearToe,
-      afterFrontCamber: card.afterFrontCamber,
-      afterFrontCaster: card.afterFrontCaster,
-      afterFrontToe: card.afterFrontToe,
-      afterRearCamber: card.afterRearCamber,
-      afterRearToe: card.afterRearToe,
-      technicianId: card.technicianId,
-      technicianName: card.technicianName,
-      problemReported: card.problemReported,
-      workDone: card.workDone,
-      remarks: card.remarks,
-      labourCharge: card.labourCharge,
-      partsCharge: card.partsCharge,
-      totalAmount: card.totalAmount,
-      vehicleId: card.vehicleId,
-      jobCardNo: card.jobCardNo,
-      fuelLevel: card.fuelLevel || 'Half',
-      status: card.status || 'Active'
-    });
-    setServiceItems(card.serviceItems || [
-      {
-        id: '1',
-        serviceId: '',
-        serviceName: '',
-        quantity: 1,
-        rate: 0,
-        gst: 0,
-        amount: 0
-      }
-    ]);
-    setIsEditing(true);
-    setEditingCardId(card.id);
-    setIsFormExpanded(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    withActionLoading(() => {
+      setFormData({
+        customerId: card.customerId,
+        customerName: card.customerName,
+        customerPhone: card.customerPhone,
+        customerAddress: card.customerAddress,
+        vehicleNumber: card.vehicleNumber,
+        vehicleMake: card.vehicleMake,
+        vehicleModel: card.vehicleModel,
+        vehicleType: card.vehicleType,
+        transportName: card.transportName,
+        kmReading: card.kmReading,
+        date: card.date,
+        time: card.time,
+        serviceType: card.serviceType,
+        workType: card.workType,
+        beforeFrontCamber: card.beforeFrontCamber,
+        beforeFrontCaster: card.beforeFrontCaster,
+        beforeFrontToe: card.beforeFrontToe,
+        beforeRearCamber: card.beforeRearCamber,
+        beforeRearToe: card.beforeRearToe,
+        afterFrontCamber: card.afterFrontCamber,
+        afterFrontCaster: card.afterFrontCaster,
+        afterFrontToe: card.afterFrontToe,
+        afterRearCamber: card.afterRearCamber,
+        afterRearToe: card.afterRearToe,
+        technicianId: card.technicianId,
+        technicianName: card.technicianName,
+        problemReported: card.problemReported,
+        workDone: card.workDone,
+        remarks: card.remarks,
+        labourCharge: card.labourCharge,
+        partsCharge: card.partsCharge,
+        totalAmount: card.totalAmount,
+        vehicleId: card.vehicleId,
+        jobCardNo: card.jobCardNo,
+        fuelLevel: card.fuelLevel || 'Half',
+        status: card.status || 'Active'
+      });
+      setServiceItems(card.serviceItems || [
+        {
+          id: '1',
+          serviceId: '',
+          serviceName: '',
+          quantity: 1,
+          rate: 0,
+          gst: 0,
+          amount: 0
+        }
+      ]);
+      setIsEditing(true);
+      setEditingCardId(card.id);
+      setIsFormExpanded(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 'Loading Edit Data Interface...');
   };
 
   // Handle delete
   const handleStatusUpdate = async (card: JobCard, newStatus: string) => {
     try {
       if (window.confirm(`Are you sure you want to mark this job card as ${newStatus}?`)) {
-        const result = await updateJobCard(card.id, { status: newStatus as any });
-        if (result) {
-          toast.success(`Job Card marked as ${newStatus}!`);
-          await refreshJobCards();
-        }
+        await withMinimumLoading((async () => {
+          const result = await updateJobCard(card.id, { status: newStatus as any });
+          if (result) {
+            toast.success(`Job Card marked as ${newStatus}!`);
+            await refreshJobCards();
+          }
+        })(), `Updating status to ${newStatus}...`);
       }
     } catch (error: any) {
       toast.error(error?.message || `Failed to update status to ${newStatus}`);
@@ -774,11 +782,13 @@ export function JobCardScreenUnified({ isDarkMode, onNavigate }: JobCardScreenUn
   const handleDeleteConfirm = async () => {
     if (cardToDelete) {
       try {
-        await deleteJobCard(cardToDelete.id);
-        setDeleteModalOpen(false);
-        setCardToDelete(null);
-        await refreshJobCards();
-        await fetchNextJobCardNo();
+        await withMinimumLoading((async () => {
+          await deleteJobCard(cardToDelete.id);
+          setDeleteModalOpen(false);
+          setCardToDelete(null);
+          await refreshJobCards();
+          await fetchNextJobCardNo();
+        })(), 'Purging Job Card Record...');
       } catch (error: any) {
         toast.error(error?.message || 'Failed to delete job card');
       } finally {

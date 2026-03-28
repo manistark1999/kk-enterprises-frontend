@@ -31,6 +31,7 @@ import {
 } from '@/utils/formStyles';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCustomers, Customer } from '@/contexts/CustomerContext';
+import { useLoading } from '@/contexts/LoadingContext';
 import { UnifiedPrintPreview } from '@/components/print/UnifiedPrintPreview';
 
 interface CustomerMasterScreenProps {
@@ -39,6 +40,7 @@ interface CustomerMasterScreenProps {
 
 export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) {
   const { canCreate, canEdit, canDelete, canPrint } = useAuth();
+  const { withMinimumLoading, withActionLoading } = useLoading();
   const [searchTerm, setSearchTerm] = useState('');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -99,51 +101,57 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
 
   // Open drawer for adding new customer
   const handleAddNew = async () => {
-    setEditingCustomer(null);
-    const nextCode = await fetchNextCode();
-    setFormData({
-      customerCode: nextCode,
-      name: '',
-      contactPerson: '',
-      phone: '',
-      alternatePhone: '',
-      email: '',
-      address: '',
-      city: '',
-      state: '',
-      pincode: '',
-      gstNumber: '',
-      isActive: true
-    });
-    setIsDrawerOpen(true);
+    withActionLoading(async () => {
+      setEditingCustomer(null);
+      const nextCode = await fetchNextCode();
+      setFormData({
+        customerCode: nextCode,
+        name: '',
+        contactPerson: '',
+        phone: '',
+        alternatePhone: '',
+        email: '',
+        address: '',
+        city: '',
+        state: '',
+        pincode: '',
+        gstNumber: '',
+        isActive: true
+      });
+      setIsDrawerOpen(true);
+    }, 'Initiating New Customer Registry...');
   };
 
   // Open drawer for editing customer
   const handleEdit = (customer: Customer) => {
-    setEditingCustomer(customer);
-    setFormData({
-      customerCode: customer.customerCode || '',
-      name: customer.name,
-      contactPerson: customer.contactPerson || '',
-      phone: customer.phone,
-      alternatePhone: customer.alternatePhone || '',
-      email: customer.email || '',
-      address: customer.address || '',
-      city: customer.city || '',
-      state: customer.state || '',
-      pincode: customer.pincode || '',
-      gstNumber: customer.gstNumber || '',
-      isActive: customer.isActive
-    });
-    setIsDrawerOpen(true);
+    withActionLoading(() => {
+      setEditingCustomer(customer);
+      setFormData({
+        customerCode: customer.customerCode || '',
+        name: customer.name,
+        contactPerson: customer.contactPerson || '',
+        phone: customer.phone,
+        alternatePhone: customer.alternatePhone || '',
+        email: customer.email || '',
+        address: customer.address || '',
+        city: customer.city || '',
+        state: customer.state || '',
+        pincode: customer.pincode || '',
+        gstNumber: customer.gstNumber || '',
+        isActive: customer.isActive
+      });
+      setIsDrawerOpen(true);
+    }, 'Loading Customer Metadata...');
   };
 
   // Delete customer
   const handleDelete = async (id: string, name: string) => {
     if (window.confirm(`Are you sure you want to delete customer "${name}"?`)) {
       try {
-        await deleteCustomer(id);
-        toast.success('Customer deleted successfully');
+        await withMinimumLoading((async () => {
+          await deleteCustomer(id);
+          toast.success('Customer deleted successfully');
+        })(), 'Purging Customer Identity...');
       } catch (error: any) {
         toast.error(error.message || 'Failed to delete customer');
       }
@@ -168,17 +176,19 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
 
     setIsSubmitting(true);
     try {
-      if (editingCustomer) {
-        // Update existing customer
-        await updateCustomer(editingCustomer.id, formData);
-      } else {
-        // Add new customer
-        await addCustomer({
-          ...formData,
-          vehicleDetails: []
-        });
-      }
-      setIsDrawerOpen(false);
+      await withMinimumLoading((async () => {
+        if (editingCustomer) {
+          // Update existing customer
+          await updateCustomer(editingCustomer.id, formData);
+        } else {
+          // Add new customer
+          await addCustomer({
+            ...formData,
+            vehicleDetails: []
+          });
+        }
+        setIsDrawerOpen(false);
+      })(), editingCustomer ? 'Updating Registry entry...' : 'Synchronizing New Identity...');
     } catch (error: any) {
       toast.error(error.message || 'Failed to save customer');
     } finally {
@@ -194,7 +204,9 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
     }
 
     try {
-      await updateCustomer(customer.id, { ...customer, isActive: newStatus });
+      await withMinimumLoading((async () => {
+        await updateCustomer(customer.id, { ...customer, isActive: newStatus });
+      })(), `Syncing Identity status...`);
       // Toast is handled by context
     } catch (error: any) {
       toast.error(error.message || 'Failed to update status');
@@ -203,9 +215,11 @@ export function CustomerMasterScreen({ isDarkMode }: CustomerMasterScreenProps) 
 
   // Print function
   const handlePrint = (customer: Customer) => {
-    setPrintData(customer);
-    setIsPrintModalOpen(true);
-    toast.success('Opening print preview...');
+    withActionLoading(() => {
+      setPrintData(customer);
+      setIsPrintModalOpen(true);
+      toast.success('Opening print preview...');
+    }, 'Preparing Customer Document...');
   };
 
   // Close drawer

@@ -14,6 +14,7 @@ import {
 } from '@/utils/formStyles';
 import { useMasters, VehicleMake } from '@/contexts/MastersContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLoading } from '@/contexts/LoadingContext';
 
 interface VehicleMakeScreenProps {
   isDarkMode: boolean;
@@ -22,6 +23,7 @@ interface VehicleMakeScreenProps {
 export function VehicleMakeScreenEnhanced({ isDarkMode }: VehicleMakeScreenProps) {
   // --- STATE ---
   const { canCreate, canEdit, canDelete } = useAuth();
+  const { withMinimumLoading, withActionLoading } = useLoading();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'All' | 'active' | 'inactive'>('All');
 
@@ -109,24 +111,28 @@ export function VehicleMakeScreenEnhanced({ isDarkMode }: VehicleMakeScreenProps
 
   // --- HANDLERS ---
   const handleOpenModal = (make?: VehicleMake) => {
-    setFormErrors({ make_name: false, country: false });
-    if (make) {
-      setEditingMake(make);
-      setFormData({
-        make_name: make.make_name || '',
-        country: make.country || '',
-        status: (make.status?.toLowerCase() === 'active' ? 'active' : 'inactive') as 'active' | 'inactive'
-      });
-    } else {
-      setEditingMake(null);
-      setFormData({ make_name: '', country: '', status: 'active' });
-    }
-    setIsModalOpen(true);
+    withActionLoading(() => {
+      setFormErrors({ make_name: false, country: false });
+      if (make) {
+        setEditingMake(make);
+        setFormData({
+          make_name: make.make_name || '',
+          country: make.country || '',
+          status: (make.status?.toLowerCase() === 'active' ? 'active' : 'inactive') as 'active' | 'inactive'
+        });
+      } else {
+        setEditingMake(null);
+        setFormData({ make_name: '', country: '', status: 'active' });
+      }
+      setIsModalOpen(true);
+    }, make ? 'Opening edit form...' : 'Preparing new form...');
   };
 
   const handleOpenViewModal = (make: VehicleMake) => {
-    setViewingMake(make);
-    setIsViewModalOpen(true);
+    withActionLoading(() => {
+      setViewingMake(make);
+      setIsViewModalOpen(true);
+    }, 'Loading specifications...');
   };
 
   const handleSave = async () => {
@@ -142,16 +148,18 @@ export function VehicleMakeScreenEnhanced({ isDarkMode }: VehicleMakeScreenProps
     }
 
     try {
-      if (editingMake) {
-        await updateVehicleMake(editingMake.id, { ...editingMake, name: formData.make_name.trim(), make_name: formData.make_name.trim(), country: formData.country.trim(), status: formData.status });
-        toast.success(`Registry entry synchronized successfully`);
-      } else {
-        await addVehicleMake({ id: '', name: formData.make_name.trim(), make_name: formData.make_name.trim(), country: formData.country.trim(), status: formData.status, createdAt: '' });
-        toast.success(`Identity registered in system database`);
-      }
-      setIsModalOpen(false);
-      await refreshAllMasters();
-      await refreshVehicleMakeHistory();
+      await withMinimumLoading((async () => {
+        if (editingMake) {
+          await updateVehicleMake(editingMake.id, { ...editingMake, name: formData.make_name.trim(), make_name: formData.make_name.trim(), country: formData.country.trim(), status: formData.status });
+          toast.success(`Registry entry synchronized successfully`);
+        } else {
+          await addVehicleMake({ id: '', name: formData.make_name.trim(), make_name: formData.make_name.trim(), country: formData.country.trim(), status: formData.status, createdAt: '' });
+          toast.success(`Identity registered in system database`);
+        }
+        setIsModalOpen(false);
+        await refreshAllMasters();
+        await refreshVehicleMakeHistory();
+      })(), 'Saving Manufacturer...');
     } catch (error: any) {
       const errMsg = error.response?.data?.message || error.message || 'Identity synchronization failed';
       toast.error(`Commit failed: ${errMsg}`);
@@ -161,10 +169,12 @@ export function VehicleMakeScreenEnhanced({ isDarkMode }: VehicleMakeScreenProps
   const handleDelete = async (id: string) => {
     if (confirm('Purge this record from system? This action cannot be undone.')) {
       try {
-        await deleteVehicleMake(id);
-        toast.success('Record purged from primary datastore');
-        await refreshAllMasters();
-        await refreshVehicleMakeHistory();
+        await withMinimumLoading((async () => {
+          await deleteVehicleMake(id);
+          toast.success('Record purged from primary datastore');
+          await refreshAllMasters();
+          await refreshVehicleMakeHistory();
+        })(), 'Purging Manufacturer...');
       } catch (error) {
         toast.error('Purge operation failed');
       }
@@ -172,7 +182,7 @@ export function VehicleMakeScreenEnhanced({ isDarkMode }: VehicleMakeScreenProps
   };
 
   const manualRefresh = async () => {
-    await Promise.all([refreshAllMasters(), refreshVehicleMakeHistory()]);
+    await withMinimumLoading(Promise.all([refreshAllMasters(), refreshVehicleMakeHistory()]), 'Syncing Datastreams...');
     toast.info('Datastreams synced');
   };
 

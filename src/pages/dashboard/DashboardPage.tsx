@@ -28,6 +28,11 @@ import { RevenueChart } from '@/components/dashboard/RevenueChart';
 import { LottieLoadingScreen } from '@/components/shared/LottieLoadingScreen';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDashboardRefresh } from '@/contexts/DashboardRefreshContext';
+import { useLoading } from '@/contexts/LoadingContext';
+import { exportData } from '@/utils/exportUtils';
+import { shareData } from '@/utils/shareUtils';
+import { handlePrintPage } from '@/utils/printUtils';
+import { toast } from 'sonner';
 
 interface DashboardContentProps {
   isDarkMode: boolean;
@@ -45,6 +50,7 @@ const formatCurrency = (val: any) => {
 export function DashboardPage({ isDarkMode, onNavigate }: DashboardContentProps) {
   const { hasPermission } = useAuth();
   const { registerRefreshCallback } = useDashboardRefresh();
+  const { withMinimumLoading, withActionLoading } = useLoading();
 
   // ── Filter state ────────────────────────────────────────────────────────────
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('today');
@@ -159,15 +165,24 @@ export function DashboardPage({ isDarkMode, onNavigate }: DashboardContentProps)
   const handleApplyDateRange = () => {
     if (!fromDate || !toDate) { alert('Please select From and To dates'); return; }
     if (new Date(fromDate) > new Date(toDate)) { alert('From Date cannot be after To Date'); return; }
-    setIsCustomRange(true);
-    setDateRange({ from: fromDate, to: toDate });
+    
+    withMinimumLoading((async () => {
+      setChartData([]);
+      setIsCustomRange(true);
+      setDateRange({ from: fromDate, to: toDate });
+      await fetchDashboard(true);
+    })(), 'Applying Date Range...');
   };
 
   const handlePeriodChange = (p: TimePeriod) => {
-    setSelectedPeriod(p);
-    setIsCustomRange(false);
-    setFromDate('');
-    setToDate('');
+    withMinimumLoading((async () => {
+      setChartData([]);
+      setSelectedPeriod(p);
+      setIsCustomRange(false);
+      setFromDate('');
+      setToDate('');
+      await fetchDashboard(true);
+    })(), `Fetching ${p} data...`);
   };
 
   // ── Derived values ───────────────────────────────────────────────────────────
@@ -288,11 +303,77 @@ export function DashboardPage({ isDarkMode, onNavigate }: DashboardContentProps)
     }
   };
 
+  // ── Handlers ───────────────────────────────────────────────────────────────
+  const handleDownload = () => {
+    withActionLoading(() => {
+      try {
+        if (!stats || Object.keys(stats).length === 0) {
+          toast.error('No dashboard data available to download');
+          return;
+        }
+
+        // Prepare data for export
+        const payload = stats.data && typeof stats.data === 'object' ? stats.data : stats;
+        const exportItems = [
+          { Metric: 'Total Revenue', Value: payload.totalLabourRevenue, Category: 'Financial' },
+          { Metric: 'Sales Revenue', Value: payload.totalSalesRevenue, Category: 'Financial' },
+          { Metric: 'Total Bills', Value: payload.totalLabourBills, Category: 'Financial' },
+          { Metric: 'Active Jobs', Value: payload.activeJobCards, Category: 'Workshop' },
+          { Metric: 'Total Expenses', Value: payload.totalExpenses, Category: 'Financial' },
+          { Metric: 'Active Staff', Value: payload.activeStaff, Category: 'Human Resources' },
+          { Metric: 'Total Vehicles', Value: payload.totalVehicles, Category: 'Workshop' },
+          { Metric: 'Inventory Value', Value: inventoryOverview?.summary?.total_value, Category: 'Inventory' },
+          { Metric: 'Stock Quantity', Value: inventoryOverview?.summary?.total_quantity, Category: 'Inventory' },
+        ];
+
+        exportData(exportItems, { 
+          fileName: `Dashboard-Summary-${selectedPeriod}-${new Date().toISOString().split('T')[0]}`,
+          format: 'csv'
+        });
+      } catch (error) {
+        toast.error('Failed to prepare download data');
+      }
+    }, 'Generating CSV Export...');
+  };
+
+  const handleShare = async () => {
+    withActionLoading(async () => {
+      try {
+        const payload = stats.data && typeof stats.data === 'object' ? stats.data : stats;
+        const summaryText = `*KK Enterprises Workshop Dashboard Summary (${selectedPeriod})*
+        
+  Revenue: ${formatCurrency(payload.totalLabourRevenue)}
+  Bills: ${payload.totalLabourBills}
+  Active Jobs: ${payload.activeJobCards}
+  Inventory Value: ${formatCurrency(inventoryOverview?.summary?.total_value)}
+  
+  Visit the dashboard for more details.`;
+
+        await shareData({
+          title: 'KK Enterprises Dashboard Report',
+          text: summaryText,
+          url: window.location.href
+        });
+      } catch (error) {
+        toast.error('Failed to initiate share');
+      }
+    }, 'Initiating Data Share...');
+  };
+
+  const handlePrint = () => {
+    withActionLoading(() => {
+      handlePrintPage('Dashboard Overview');
+      toast.success('Preparing document for printing...');
+    }, 'Formatting Document for Print...');
+  };
+
+  const dashboardRef = useRef<HTMLDivElement>(null);
+
   // ── Card style ───────────────────────────────────────────────────────────────
   const cardClass = `rounded-xl ${
     isDarkMode
       ? 'bg-gray-800/50 border-gray-700/50'
-      : 'bg-white/80'
+      : 'bg-white'
   } backdrop-blur-xl border border-white/20 shadow-lg hover:shadow-xl transition-all duration-300`;
 
   const statCards = [
@@ -547,12 +628,27 @@ export function DashboardPage({ isDarkMode, onNavigate }: DashboardContentProps)
                           ))}
                           <div className={`my-1 mx-3 h-px ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`} />
                           <p className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Export</p>
-                          {([['Download', Download], ['Print', Printer], ['Share', Share2]] as const).map(([label, Icon]) => (
-                            <button key={label} className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm ${isDarkMode ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                              <Icon className="w-4 h-4" />
-                              {label} Data
-                            </button>
-                          ))}
+                          <button 
+                            onClick={() => { handleDownload(); setShowAnalyticsMenu(false); }}
+                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm ${isDarkMode ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                          >
+                            <Download className="w-4 h-4" />
+                            Download Data
+                          </button>
+                          <button 
+                            onClick={() => { handlePrint(); setShowAnalyticsMenu(false); }}
+                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm ${isDarkMode ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                          >
+                            <Printer className="w-4 h-4" />
+                            Print Data
+                          </button>
+                          <button 
+                            onClick={() => { handleShare(); setShowAnalyticsMenu(false); }}
+                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm ${isDarkMode ? 'text-gray-200 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                          >
+                            <Share2 className="w-4 h-4" />
+                            Share Data
+                          </button>
                         </div>
                       </motion.div>
                     )}
@@ -570,8 +666,9 @@ export function DashboardPage({ isDarkMode, onNavigate }: DashboardContentProps)
                   </div>
                 ) : (
                   <RevenueChart
-                    key={`${selectedChartType}-${chartRenderKey}`}
+                    key={`${selectedPeriod}-${selectedChartType}-${chartRenderKey}`}
                     chartType={selectedChartType}
+                    period={selectedPeriod}
                     isDarkMode={isDarkMode}
                     data={chartData}
                     colors={COLORS}

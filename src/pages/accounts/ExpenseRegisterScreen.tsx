@@ -8,9 +8,12 @@ import {
   Search,
   DollarSign,
   Receipt,
-  TrendingUp
+  TrendingUp,
+  Share2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { exportData } from '@/utils/exportUtils';
+import { shareData } from '@/utils/shareUtils';
 import { 
   FORM_CONSTANTS,
   getCardClass,
@@ -71,34 +74,41 @@ export function ExpenseRegisterScreen({ isDarkMode }: ExpenseRegisterScreenProps
     toast.info('Filters reset successfully!');
   };
 
-  const handleExportExcel = () => {
-    // Convert expense data to CSV format
-    const headers = ['Expense No', 'Date', 'Category', 'Description', 'Amount', 'Payment Mode', 'Reference No'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredExpenses.map(expense => [
-        expense.expenseNo,
-        expense.expenseDate,
-        expense.category,
-        `"${expense.description}"`,
-        expense.amount,
-        expense.paymentMode,
-        expense.referenceNo || 'N/A'
-      ].join(','))
-    ].join('\n');
+  const handleDownloadData = () => {
+    if (filteredExpenses.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
 
-    // Create blob and download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `expense-register-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const dataToExport = filteredExpenses.map(e => ({
+      'Expense No': e.expenseNo,
+      'Date': new Date(e.expenseDate).toLocaleDateString('en-IN'),
+      'Category': e.category,
+      'Description': e.description,
+      'Amount': e.amount,
+      'Payment Mode': e.paymentMode,
+      'Reference No': e.referenceNo || 'N/A'
+    }));
+
+    exportData(dataToExport, {
+      fileName: `Expense-Register-${new Date().toISOString().split('T')[0]}`,
+      format: 'xlsx'
+    });
+  };
+
+  const handleShareDataLocal = async () => {
+    if (filteredExpenses.length === 0) {
+      toast.error('No data to share');
+      return;
+    }
+
+    const summaryText = `Expense Register Report\nTotal Expenses: ${totals.count}\nTotal Amount: ₹${totals.totalAmount.toLocaleString()}`;
     
-    toast.success('Expense data exported successfully!');
+    await shareData({
+      title: 'Expense Report',
+      text: summaryText,
+      url: window.location.href
+    });
   };
 
   const handlePrint = () => {
@@ -322,14 +332,24 @@ export function ExpenseRegisterScreen({ isDarkMode }: ExpenseRegisterScreenProps
                 </div>
                 <div className="flex items-center gap-3">
                   <button 
-                    onClick={handleExportExcel}
+                    onClick={handleDownloadData}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm font-medium ${
                     isDarkMode 
                       ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30' 
                       : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
                   }`}>
                     <Download className="w-4 h-4" />
-                    Export
+                    Download Data
+                  </button>
+                  <button 
+                    onClick={handleShareDataLocal}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm font-medium ${
+                    isDarkMode 
+                      ? 'bg-blue-700/20 text-blue-400 hover:bg-blue-700/30' 
+                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                  }`}>
+                    <Share2 className="w-4 h-4" />
+                    Share Data
                   </button>
                   <button 
                     onClick={handlePrint}

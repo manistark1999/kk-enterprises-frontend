@@ -19,10 +19,13 @@ import {
   CreditCard,
   Building2,
   TrendingUp,
-  Wallet
+  Wallet,
+  Share2
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { handlePrintWithTemplate, PrintData } from '@/utils/printUtils';
+import { handlePrintWithTemplate, PrintData, handlePrintPage } from '@/utils/printUtils';
+import { exportData } from '@/utils/exportUtils';
+import { shareData } from '@/utils/shareUtils';
 import { 
   FORM_CONSTANTS,
   getCardClass,
@@ -269,6 +272,51 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
     toast.success('Opening print preview...');
   };
 
+  // Handlers for Export and Share
+  const handleDownloadData = () => {
+    if (filteredReceipts.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
+
+    const dataToExport = filteredReceipts.map(r => ({
+      'Receipt No': r.receipt_no,
+      'Date': new Date(r.receipt_date).toLocaleDateString('en-IN'),
+      'Customer': r.customer_name,
+      'Phone': r.customer_phone || '-',
+      'Labour Bill': r.labour_bill_no || '-',
+      'Description': r.description || '-',
+      'Amount': r.amount,
+      'Payment Mode': r.payment_mode,
+      'Status': r.status
+    }));
+
+    exportData(dataToExport, {
+      fileName: `Receipts-${new Date().toISOString().split('T')[0]}`,
+      format: 'xlsx'
+    });
+  };
+
+  const handleShareDataLocal = async () => {
+    if (filteredReceipts.length === 0) {
+      toast.error('No data to share');
+      return;
+    }
+
+    const summaryText = `Receipt Management Report\nTotal Receipts: ${filteredReceipts.length}\nTotal Amount: ₹${stats.totalAmount.toLocaleString('en-IN')}`;
+    
+    await shareData({
+      title: 'Receipts Report',
+      text: summaryText,
+      url: window.location.href
+    });
+  };
+
+  const handlePrintPageLocal = () => {
+    handlePrintPage('Receipt Management Report');
+    toast.success('Preparing print view...');
+  };
+
   // Close drawer
   const handleCloseDrawer = () => {
     setIsDrawerOpen(false);
@@ -467,19 +515,22 @@ export function ReceiptScreenEnhanced({ isDarkMode }: ReceiptScreenProps) {
                 <option value="Cheque">Cheque</option>
               </select>
 
-              <button className={secondaryButtonClass}>
+              <button 
+                onClick={handleDownloadData}
+                className={secondaryButtonClass}
+              >
                 <Download className="w-4 h-4" />
-                <span className="hidden md:inline">Export</span>
+                <span className="hidden md:inline">Download Data</span>
               </button>
               <button 
-                onClick={() => {
-                  if (filteredReceipts.length > 0) {
-                    toast.info('Printing register...');
-                    window.print();
-                  } else {
-                    toast.error('No data to print');
-                  }
-                }}
+                onClick={handleShareDataLocal}
+                className={secondaryButtonClass}
+              >
+                <Share2 className="w-4 h-4" />
+                <span className="hidden md:inline">Share Data</span>
+              </button>
+              <button 
+                onClick={handlePrintPageLocal}
                 className={secondaryButtonClass}
               >
                 <Printer className="w-4 h-4" />

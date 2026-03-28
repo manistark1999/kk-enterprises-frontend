@@ -53,7 +53,7 @@ export const getCardClass = (isDarkMode: boolean): string => {
   return `rounded-xl ${
     isDarkMode 
       ? 'bg-gray-800/40 border-gray-700/50' 
-      : 'bg-white/60'
+      : 'bg-white'
   } backdrop-blur-xl border border-white/20 shadow-lg !overflow-visible`;
 };
 

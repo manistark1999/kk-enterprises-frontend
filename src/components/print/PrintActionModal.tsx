@@ -1,13 +1,14 @@
 import React, { useRef, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Printer, Download } from 'lucide-react';
+import { X, Printer, Download, Share2 } from 'lucide-react';
 import { 
   getCardClass, 
   getPrimaryButtonClass, 
   getSecondaryButtonClass 
 } from '@/utils/formStyles';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { shareData } from '@/utils/shareUtils';
 import { toast } from 'sonner';
 
 interface PrintActionModalProps {
@@ -56,6 +57,35 @@ export const PrintActionModal: React.FC<PrintActionModalProps> = ({
     });
   };
 
+  const generatePDFBlob = async (): Promise<Blob | null> => {
+    const element = printRef.current;
+    if (!element) {
+      toast.error('Print content not found.');
+      return null;
+    }
+
+    try {
+      const html2pdfModule = await import('html2pdf.js');
+      // @ts-ignore
+      const html2pdf = html2pdfModule.default || html2pdfModule;
+
+      const opt = {
+        margin: [0.5, 0.5] as [number, number],
+        filename: `${title.toLowerCase().replace(/\s+/g, '-')}-${new Date().getTime()}.pdf`,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'in' as const, format: 'a4' as const, orientation: 'portrait' as const }
+      };
+
+      // Generate PDF as blob
+      const pdfWorker = (html2pdf as any)().set(opt).from(element).toPdf().output('blob');
+      return await pdfWorker;
+    } catch (error) {
+      console.error('PDF Generation Error:', error);
+      return null;
+    }
+  };
+
   const handleDownloadPDF = async () => {
     try {
       const element = printRef.current;
@@ -64,14 +94,10 @@ export const PrintActionModal: React.FC<PrintActionModalProps> = ({
         return;
       }
 
-      // Dynamic import with robustness check for commonjs/esm interop
+      // Dynamic import 
       const html2pdfModule = await import('html2pdf.js');
       // @ts-ignore
       const html2pdf = html2pdfModule.default || html2pdfModule;
-
-      if (typeof html2pdf !== 'function') {
-        throw new Error('PDF library failed to load correctly.');
-      }
 
       const opt = {
         margin: [0.5, 0.5] as [number, number],
@@ -81,61 +107,36 @@ export const PrintActionModal: React.FC<PrintActionModalProps> = ({
           scale: 2, 
           useCORS: true, 
           letterRendering: true,
-          logging: false,
-          onclone: (clonedDoc) => {
-            // AGGRESSIVE COLOR POLYFILL for Tailwind CSS v4 / html2canvas compatibility
-            const overrideStyle = clonedDoc.createElement('style');
-            overrideStyle.innerHTML = `
-              :root {
-                --background: 255, 255, 255 !important;
-                --foreground: 0, 0, 0 !important;
-                --primary: 37, 99, 235 !important;
-                --secondary: 100, 116, 139 !important;
-                --gray-50: 249, 250, 251 !important;
-                --gray-100: 243, 244, 246 !important;
-                --gray-200: 229, 231, 235 !important;
-                --gray-600: 75, 85, 99 !important;
-                --gray-900: 17, 24, 39 !important;
-                --blue-50: 239, 246, 255 !important;
-                --blue-100: 219, 234, 254 !important;
-                --blue-600: 37, 99, 235 !important;
-                color-scheme: light !important;
-              }
-              
-              /* Force fallback colors for common classes that might use oklch in computed styles */
-              #print-area, #print-area * {
-                color: rgb(0, 0, 0); /* Default to black if oklch fails */
-                border-color: rgb(229, 231, 235) !important;
-                background-color: transparent;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-              }
-
-              #print-area .bg-white { background-color: rgb(255, 255, 255) !important; }
-              #print-area .bg-blue-600 { background-color: rgb(37, 99, 235) !important; }
-              #print-area .text-blue-600 { color: rgb(37, 99, 235) !important; }
-              #print-area .bg-gray-100 { background-color: rgb(243, 244, 246) !important; }
-              #print-area .text-gray-900 { color: rgb(17, 24, 39) !important; }
-            `;
-            clonedDoc.head.appendChild(overrideStyle);
-          }
+          logging: false
         },
         jsPDF: { unit: 'in' as const, format: 'a4' as const, orientation: 'portrait' as const }
       };
 
-      toast.info('Generating professional PDF document...');
-      
-      // Target only the #print-area element
+      toast.info('Generating PDF document...');
       await (html2pdf as any)().set(opt).from(element).save();
-      
       toast.success('PDF downloaded successfully');
-
-      // Add to existing notification system
       addNotification('Downloaded', title, 'PDF Document', `Document ${title} was exported as PDF`);
     } catch (err) {
-      console.error('CRITICAL PDF ERROR:', err);
-      toast.error('Failed to generate PDF. Use the "Print Now" button to "Save as PDF" instead.');
+      toast.error('Failed to generate PDF');
     }
+  };
+
+  const handleShare = async () => {
+    toast.info('Preparing document for sharing...');
+    const blob = await generatePDFBlob();
+    if (!blob) {
+      toast.error('Failed to prepare document for sharing');
+      return;
+    }
+
+    const fileName = `${title.toLowerCase().replace(/\s+/g, '-')}.pdf`;
+    const file = new File([blob], fileName, { type: 'application/pdf' });
+
+    await shareData({
+      title: `Transferring ${title}`,
+      text: `Please find the attached ${title} from KK Enterprises Workshop System.`,
+      files: [file]
+    });
   };
 
   if (!isOpen) return null;
@@ -144,10 +145,10 @@ export const PrintActionModal: React.FC<PrintActionModalProps> = ({
     <AnimatePresence>
       <div className="fixed inset-0 z-[10000] flex items-center justify-center p-0 md:p-4 bg-gray-200/90 backdrop-blur-md shadow-none border-none print:p-0 print:bg-transparent print:backdrop-blur-none print-modal-wrapper modal-overlay">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          className={`${getCardClass(isDarkMode)} w-full max-w-5xl h-[95vh] overflow-hidden flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} rounded-none md:rounded-2xl print:bg-transparent print:shadow-none print:border-none print:h-auto print:overflow-visible`}
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className={`${getCardClass(isDarkMode)} w-full max-w-5xl h-[95vh] overflow-hidden flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} rounded-none md:rounded-2xl print:bg-transparent print:shadow-none print:border-none print:h-auto print:overflow-visible`}
         >
           {/* Modal Header (No-Print) */}
           <div className={`no-print print-preview-header px-6 py-4 border-b flex items-center justify-between sticky top-0 z-10 ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
@@ -159,13 +160,17 @@ export const PrintActionModal: React.FC<PrintActionModalProps> = ({
                 <h3 className={`font-black text-xl tracking-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   {title} Print Preview
                 </h3>
-                <p className={`text-xs font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Scale: A4 Standard • High Quality Print Engine
-                </p>
               </div>
             </div>
             
             <div className="flex items-center gap-3 print-preview-actions">
+              <button
+                onClick={handleShare}
+                className={`${getSecondaryButtonClass(isDarkMode)} flex items-center gap-2 px-4 py-2 hover:bg-blue-600 hover:text-white transition-all`}
+              >
+                <Share2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Share</span>
+              </button>
               <button
                 onClick={handleDownloadPDF}
                 className={`${getSecondaryButtonClass(isDarkMode)} flex items-center gap-2 px-4 py-2 hover:bg-blue-500 hover:text-white transition-all`}

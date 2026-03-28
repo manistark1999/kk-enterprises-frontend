@@ -16,7 +16,8 @@ import {
   X,
   User,
   CreditCard,
-  ArrowUpDown
+  ArrowUpDown,
+  Share2
 } from 'lucide-react';
 import { 
   FORM_CONSTANTS,
@@ -30,6 +31,9 @@ import { useReceiptsPayments } from '@/contexts/ReceiptsPaymentsContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { UnifiedPrintPreview } from '@/components/print/UnifiedPrintPreview';
+import { exportData } from '@/utils/exportUtils';
+import { shareData } from '@/utils/shareUtils';
+import { handlePrintPage } from '@/utils/printUtils';
 
 interface ReceiptRegisterScreenProps {
   isDarkMode: boolean;
@@ -144,34 +148,50 @@ export function ReceiptRegisterScreen({ isDarkMode }: ReceiptRegisterScreenProps
     }
   };
 
-  // Export to CSV
-  const handleExport = () => {
-    const headers = ['Receipt No', 'Date', 'Customer', 'Phone', 'Labour Bill', 'Description', 'Amount', 'Payment Mode', 'Reference', 'Status'];
-    const csvData = filteredReceipts.map(r => [
-      r.receipt_no,
-      new Date(r.receipt_date).toLocaleDateString('en-IN'),
-      r.customer_name,
-      r.customer_phone || '-',
-      r.labour_bill_no || '-',
-      r.description || '-',
-      r.amount,
-      r.payment_mode,
-      r.reference_no || '-',
-      r.status
-    ]);
+  // Handlers for Export and Share
+  const handleDownloadData = () => {
+    if (filteredReceipts.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
 
-    const csv = [
-      headers.join(','),
-      ...csvData.map(row => row.join(','))
-    ].join('\n');
+    const dataToExport = filteredReceipts.map(r => ({
+      'Receipt No': r.receipt_no,
+      'Date': new Date(r.receipt_date).toLocaleDateString('en-IN'),
+      'Customer': r.customer_name,
+      'Phone': r.customer_phone || '-',
+      'Labour Bill': r.labour_bill_no || '-',
+      'Description': r.description || '-',
+      'Amount': r.amount,
+      'Payment Mode': r.payment_mode,
+      'Reference': r.reference_no || '-',
+      'Status': r.status
+    }));
 
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `receipt-register-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    toast.success('Receipt register exported successfully');
+    exportData(dataToExport, {
+      fileName: `Receipt-Register-${new Date().toISOString().split('T')[0]}`,
+      format: 'xlsx'
+    });
+  };
+
+  const handleShareDataLocal = async () => {
+    if (filteredReceipts.length === 0) {
+      toast.error('No data to share');
+      return;
+    }
+
+    const summaryText = `Receipt Register Report\nTotal Receipts: ${totals.count}\nTotal Amount: ₹${totals.total.toLocaleString('en-IN')}`;
+    
+    await shareData({
+      title: 'Receipts Report',
+      text: summaryText,
+      url: window.location.href
+    });
+  };
+
+  const handlePrintRegister = () => {
+    handlePrintPage('Receipt Register Report');
+    toast.success('Preparing print view...');
   };
 
   // Print function
@@ -228,16 +248,23 @@ export function ReceiptRegisterScreen({ isDarkMode }: ReceiptRegisterScreenProps
           </div>
           {canExport('Receipt') && (
             <button 
-              onClick={handleExport}
+              onClick={handleDownloadData}
               className={`${secondaryButtonClass} flex items-center gap-2`}
             >
               <Download className="w-4 h-4" />
-              Export
+              Download Data
             </button>
           )}
+          <button 
+            onClick={handleShareDataLocal}
+            className={`${secondaryButtonClass} flex items-center gap-2`}
+          >
+            <Share2 className="w-4 h-4" />
+            Share Data
+          </button>
           {canPrint('Receipt') && (
             <button 
-              onClick={handlePrint}
+              onClick={handlePrintRegister}
               className={`${secondaryButtonClass} flex items-center gap-2`}
             >
               <Printer className="w-4 h-4" />

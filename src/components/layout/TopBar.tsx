@@ -43,7 +43,7 @@ export function TopBar({
 
   return (
     <div className={`h-14 md:h-16 border-b backdrop-blur-xl sticky top-0 z-50 ${
-      isDarkMode ? 'bg-gray-900/80 border-gray-800' : 'bg-white/80 border-gray-200'
+      isDarkMode ? 'bg-gray-900/80 border-gray-800' : 'bg-white border-gray-200'
     }`}>
       <div className="h-full px-3 md:px-6 flex items-center justify-between gap-2">
         {/* Left Side: Toggle + Logo */}

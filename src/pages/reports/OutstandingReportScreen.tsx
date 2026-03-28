@@ -25,8 +25,13 @@ import {
   User,
   Building2,
   Search,
-  Send
+  Send,
+  Share2
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { exportData } from '@/utils/exportUtils';
+import { shareData } from '@/utils/shareUtils';
+import { handlePrintPage } from '@/utils/printUtils';
 import { 
   BarChart, 
   Bar, 
@@ -182,6 +187,49 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
   const criticalCount = outstandingCustomers.filter(c => c.status === 'Critical').length;
   const overdueCount = outstandingCustomers.filter(c => c.status === 'Overdue').length;
 
+  const handleDownloadData = () => {
+    if (outstandingCustomers.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
+
+    const dataToExport = outstandingCustomers.map(c => ({
+      'Customer Name': c.customerName,
+      'Phone': c.phone,
+      'Invoice No': c.invoiceNo,
+      'Invoice Date': c.invoiceDate,
+      'Due Date': c.dueDate,
+      'Amount': c.amount,
+      'Days': c.days,
+      'Status': c.status
+    }));
+
+    exportData(dataToExport, {
+      fileName: `Outstanding-Report-${new Date().toISOString().split('T')[0]}`,
+      format: 'xlsx'
+    });
+  };
+
+  const handleShareDataLocal = async () => {
+    if (outstandingCustomers.length === 0) {
+      toast.error('No data to share');
+      return;
+    }
+
+    const summaryText = `Outstanding Report Summary\nTotal Outstanding: ₹${totalOutstanding.toLocaleString()}\nCritical: ${criticalCount}\nOverdue: ${overdueCount}`;
+    
+    await shareData({
+      title: 'Outstanding Report',
+      text: summaryText,
+      url: window.location.href
+    });
+  };
+
+  const handlePrintLocal = () => {
+    handlePrintPage('Outstanding Reports Dashboard');
+    toast.success('Preparing print view...');
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Page Header */}
@@ -220,7 +268,9 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
             <Send className="w-4 h-4" />
             Send Reminders
           </button>
-          <button className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
+          <button 
+            onClick={handlePrintLocal}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
             isDarkMode 
               ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -228,13 +278,25 @@ export function OutstandingReportScreen({ isDarkMode }: OutstandingReportScreenP
             <Printer className="w-4 h-4" />
             Print
           </button>
-          <button className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
+          <button 
+            onClick={handleDownloadData}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
             isDarkMode 
               ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}>
             <Download className="w-4 h-4" />
-            Export
+            Download Data
+          </button>
+          <button 
+            onClick={handleShareDataLocal}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
+            isDarkMode 
+              ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}>
+            <Share2 className="w-4 h-4" />
+            Share Data
           </button>
         </div>
       </div>

@@ -40,6 +40,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import kkSidebarLogo from '../../assets/images/kk-groups-logo-sidebar.png';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLoading } from '@/contexts/LoadingContext';
+import { useNavigate } from 'react-router-dom';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -97,7 +99,8 @@ const screenKeyMap: Record<string, string> = {
   'Company': 'company',
   'User Management': 'user-management',
   'Role Management': 'role-management',
-  'Financial Year': 'financial-year'
+  'Financial Year': 'financial-year',
+  'History': 'history'
 };
 
 export function Sidebar({
@@ -114,6 +117,15 @@ export function Sidebar({
   const [expandedNestedItems, setExpandedNestedItems] = useState<string[]>([]);
   const [clickedItem, setClickedItem] = useState<string | null>(null);
   const { user, logout, canView } = useAuth();
+  const { withActionLoading } = useLoading();
+  const navigate = useNavigate();
+
+  const handleNavigation = (path: string, label: string) => {
+    withActionLoading(() => {
+      navigate(path);
+      if (onMobileClose) onMobileClose();
+    }, `Opening ${label}...`);
+  };
 
   const screenToMenuMap: Record<string, string> = {
     'dashboard': 'Dashboard',
@@ -157,7 +169,8 @@ export function Sidebar({
     'company': 'Company',
     'user-management': 'User Management',
     'role-management': 'Role Management',
-    'financial-year': 'Financial Year'
+    'financial-year': 'Financial Year',
+    'history': 'History'
   };
 
   const currentMenuItem = currentScreen ? screenToMenuMap[currentScreen] : 'Dashboard';
@@ -295,7 +308,7 @@ export function Sidebar({
   };
 
   const handleMobileNav = () => {
-    if (onMobileClose) onMobileClose();
+    // Handled by handleNavigation
   };
 
   const sidebarContent = (
@@ -365,7 +378,9 @@ export function Sidebar({
                 )}
               </div>
             ) : (
-              <Link to={`/${screenKeyMap[item.label] || ''}`} onClick={handleMobileNav}>
+              <div 
+                onClick={() => handleNavigation(`/${screenKeyMap[item.label] || ''}`, item.label)}
+              >
                 <div className={`sidebar-item flex items-center gap-3 px-3 py-2.5 md:py-3 rounded-xl cursor-pointer group relative transition-all duration-200 ${
                   isMenuItemActive(item.label) || hasActiveChild(item)
                     ? 'bg-blue-500/20 text-white border-l-4 border-blue-400'
@@ -389,7 +404,7 @@ export function Sidebar({
                     </div>
                   )}
                 </div>
-              </Link>
+              </div>
             )}
 
             {/* Collapsed Popover */}
@@ -410,15 +425,20 @@ export function Sidebar({
                   </div>
                   <div className="py-2">
                     {item.submenu.map((subItem: any) => (
-                      <Link to={`/${screenKeyMap[subItem.label]}`} key={subItem.label} onClick={handleMobileNav}>
+                      <div 
+                        key={subItem.label} 
+                        onClick={() => {
+                          setClickedItem(null);
+                          handleNavigation(`/${screenKeyMap[subItem.label]}`, subItem.label);
+                        }}
+                      >
                         <div
                           className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-all ${isDarkMode ? 'text-gray-300 hover:bg-blue-600/20 hover:text-white' : 'text-blue-100 hover:bg-blue-700/30 hover:text-white'}`}
-                          onClick={() => setClickedItem(null)}
                         >
                           <subItem.icon className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`} />
                           <span className="font-medium text-sm">{subItem.label}</span>
                         </div>
-                      </Link>
+                      </div>
                     ))}
                   </div>
                 </motion.div>
@@ -436,7 +456,10 @@ export function Sidebar({
                   transition={{ duration: 0.2 }}
                 >
                   {item.submenu.map((subItem: { label: string; icon: any }) => (
-                    <Link to={`/${screenKeyMap[subItem.label]}`} key={subItem.label} onClick={handleMobileNav}>
+                    <div 
+                      key={subItem.label} 
+                      onClick={() => handleNavigation(`/${screenKeyMap[subItem.label]}`, subItem.label)}
+                    >
                       <div className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all ${
                         isMenuItemActive(subItem.label)
                           ? 'bg-blue-500/30 text-white font-semibold'
@@ -445,7 +468,7 @@ export function Sidebar({
                         <subItem.icon className={`w-4 h-4 ${isMenuItemActive(subItem.label) ? 'text-blue-300' : 'text-blue-200/60'}`} />
                         <span className="font-normal text-sm">{subItem.label}</span>
                       </div>
-                    </Link>
+                    </div>
                   ))}
                 </motion.div>
               )}

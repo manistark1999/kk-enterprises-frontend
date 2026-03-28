@@ -10,8 +10,13 @@ import {
   DollarSign,
   Receipt,
   TrendingUp,
-  FileCheck
+  FileCheck,
+  Share2
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { exportData } from '@/utils/exportUtils';
+import { shareData } from '@/utils/shareUtils';
+import { handlePrintPage } from '@/utils/printUtils';
 
 interface GSTReportScreenProps {
   isDarkMode: boolean;
@@ -55,6 +60,52 @@ export function GSTReportScreen({ isDarkMode }: GSTReportScreenProps) {
   };
 
   const totals = calculateTotals();
+
+  const handleDownloadData = () => {
+    if (gstData.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
+
+    const dataToExport = gstData.map(record => ({
+      'ID': record.id,
+      'Date': record.date,
+      'Type': record.type,
+      'Party Name': record.partyName,
+      'Invoice No': record.invoiceNo,
+      'Taxable Amount': record.taxableAmount,
+      'CGST': record.cgst,
+      'SGST': record.sgst,
+      'IGST': record.igst,
+      'Total GST': record.totalGST,
+      'Total Amount': record.totalAmount
+    }));
+
+    exportData(dataToExport, {
+      fileName: `GST-Report-${new Date().toISOString().split('T')[0]}`,
+      format: 'xlsx'
+    });
+  };
+
+  const handleShareDataLocal = async () => {
+    if (gstData.length === 0) {
+      toast.error('No data to share');
+      return;
+    }
+
+    const summaryText = `GST Report Summary\nTotal Taxable: ₹${totals.totalTaxable.toLocaleString()}\nTotal GST: ₹${totals.totalGST.toLocaleString()}\nTotal Amount: ₹${totals.totalAmount.toLocaleString()}`;
+    
+    await shareData({
+      title: 'GST Report',
+      text: summaryText,
+      url: window.location.href
+    });
+  };
+
+  const handlePrintLocal = () => {
+    handlePrintPage('GST Report');
+    toast.success('Preparing print view...');
+  };
 
   const cardClass = `rounded-xl ${
     isDarkMode 
@@ -264,23 +315,29 @@ export function GSTReportScreen({ isDarkMode }: GSTReportScreenProps) {
                   }`}>GST Returns Report</h2>
                 </div>
                 <div className="flex items-center gap-3">
-                  <button className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                    isDarkMode 
-                      ? 'bg-blue-700/20 text-blue-400 hover:bg-blue-700/30' 
-                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                  }`}>
-                    <FileText className="w-4 h-4" />
-                    <span className="text-sm font-medium">Export PDF</span>
-                  </button>
-                  <button className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                  <button 
+                    onClick={handleDownloadData}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                     isDarkMode 
                       ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30' 
                       : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
                   }`}>
                     <Download className="w-4 h-4" />
-                    <span className="text-sm font-medium">Export Excel</span>
+                    <span className="text-sm font-medium">Download Data</span>
                   </button>
-                  <button className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                  <button 
+                    onClick={handleShareDataLocal}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                    isDarkMode 
+                      ? 'bg-blue-700/20 text-blue-400 hover:bg-blue-700/30' 
+                      : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                  }`}>
+                    <Share2 className="w-4 h-4" />
+                    <span className="text-sm font-medium">Share Data</span>
+                  </button>
+                  <button 
+                    onClick={handlePrintLocal}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                     isDarkMode 
                       ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30' 
                       : 'bg-blue-50 text-blue-600 hover:bg-blue-100'

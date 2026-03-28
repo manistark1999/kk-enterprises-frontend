@@ -58,6 +58,7 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 import { UserManagementScreen } from '@/pages/settings/UserManagementScreen';
 import { RolesScreen } from '@/pages/settings/RolesScreen';
 import { FinancialYearScreen } from '@/pages/settings/FinancialYearScreen';
+import { HistoryScreen } from '@/pages/settings/HistoryScreen';
 import { AlignmentRegisterScreen } from '@/pages/alignment/AlignmentRegisterScreen';
 import { AlignmentScreen } from '@/pages/alignment/AlignmentScreen';
 import { BankLedgerScreen } from '@/pages/accounts/BankLedgerScreen';
@@ -100,11 +101,14 @@ function MainLayout({ isDarkMode, setIsDarkMode }: MainLayoutProps) {
     const [showRestorePanel, setShowRestorePanel] = useState(false);
     const [isReceiptPanelOpen, setIsReceiptPanelOpen] = useState(false);
     const [isAlignmentPanelOpen, setIsAlignmentPanelOpen] = useState(false);
+    const { withActionLoading } = useLoading();
     const navigate = useNavigate();
     const location = useLocation();
 
     const handleNavigate = (screen: string, data?: any) => {
-        navigate(`/${screen}`, { state: data });
+        withActionLoading(() => {
+            navigate(`/${screen}`, { state: data });
+        }, `Navigating to ${screen.charAt(0).toUpperCase() + screen.slice(1)}...`);
     };
 
     // Close mobile sidebar when route changes
@@ -119,7 +123,7 @@ function MainLayout({ isDarkMode, setIsDarkMode }: MainLayoutProps) {
             backgroundImage: isDarkMode 
               ? 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)'
               : 'none',
-            backgroundColor: isDarkMode ? undefined : '#ffffff',
+            backgroundColor: isDarkMode ? undefined : '#f5f7fb',
             backgroundSize: '300% 300%',
             animation: isDarkMode ? 'gradientMove 12s ease infinite' : 'none'
           }}
@@ -341,6 +345,7 @@ function AppContent() {
           <Route path="financial-year" element={<PermissionGuard module="Financial Year"><FinancialYearScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
           <Route path="user-management" element={<PermissionGuard module="User Management"><UserManagementScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
           <Route path="role-management" element={<PermissionGuard module="Role Management"><RolesScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
+          <Route path="history" element={<PermissionGuard module="History"><HistoryScreen isDarkMode={isDarkMode} /></PermissionGuard>} />
           
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>

@@ -22,8 +22,13 @@ import {
   Search,
   FileText,
   Archive,
-  Target
+  Target,
+  Share2
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { exportData } from '@/utils/exportUtils';
+import { shareData } from '@/utils/shareUtils';
+import { handlePrintPage } from '@/utils/printUtils';
 import { 
   BarChart, 
   Bar, 
@@ -123,6 +128,47 @@ export function StockReportScreen({ isDarkMode }: StockReportScreenProps) {
     { item: 'Radiator Flush', units: 15, trend: '-2%', daysInStock: 98 },
   ];
 
+  const handleDownloadData = () => {
+    if (stockMovements.length === 0) {
+      toast.error('No data to export');
+      return;
+    }
+
+    const dataToExport = stockMovements.map(m => ({
+      'Item Name': m.itemName,
+      'Opening': m.opening,
+      'Inward': m.inward,
+      'Outward': m.outward,
+      'Closing': m.closing,
+      'Value': m.value
+    }));
+
+    exportData(dataToExport, {
+      fileName: `Stock-Report-${new Date().toISOString().split('T')[0]}`,
+      format: 'xlsx'
+    });
+  };
+
+  const handleShareDataLocal = async () => {
+    if (stockMovements.length === 0) {
+      toast.error('No data to share');
+      return;
+    }
+
+    const summaryText = `Stock Report Summary\nTotal Stock Value: ₹3,35,000\nLow Stock Items: 8\nOut of Stock: 3`;
+    
+    await shareData({
+      title: 'Stock Report',
+      text: summaryText,
+      url: window.location.href
+    });
+  };
+
+  const handlePrintLocal = () => {
+    handlePrintPage('Stock Report Dashboard');
+    toast.success('Preparing print view...');
+  };
+
   return (
     <div className="p-6 space-y-6">
       {/* Page Header */}
@@ -153,7 +199,9 @@ export function StockReportScreen({ isDarkMode }: StockReportScreenProps) {
             <RefreshCw className="w-4 h-4" />
             Refresh
           </button>
-          <button className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
+          <button 
+            onClick={handlePrintLocal}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
             isDarkMode 
               ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -161,13 +209,25 @@ export function StockReportScreen({ isDarkMode }: StockReportScreenProps) {
             <Printer className="w-4 h-4" />
             Print
           </button>
-          <button className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
+          <button 
+            onClick={handleDownloadData}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
             isDarkMode 
               ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}>
             <Download className="w-4 h-4" />
-            Export
+            Download Data
+          </button>
+          <button 
+            onClick={handleShareDataLocal}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-sm font-medium ${
+            isDarkMode 
+              ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}>
+            <Share2 className="w-4 h-4" />
+            Share Data
           </button>
         </div>
       </div>

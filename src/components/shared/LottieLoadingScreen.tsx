@@ -1,18 +1,12 @@
 import React, { useState, useEffect } from 'react';
 
-// Declare types for Web Component
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'dotlottie-wc': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & { src: string, autoplay?: boolean | string, loop?: boolean | string }, HTMLElement>;
-    }
-  }
-}
+// dotlottie-wc is a web component; types are handled in src/vite-env.d.ts
 
 interface LottieLoadingScreenProps {
   isDarkMode: boolean;
   message?: string;
 }
+
 
 const styles = {
   container: {
@@ -29,23 +23,25 @@ const styles = {
     zIndex: 9999,
   },
   animationContainer: {
-    width: '300px',
-    height: '300px',
+    width: '500px',
+    height: '500px',
+    maxWidth: '90vw',
+    maxHeight: '50vh',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative' as const,
   },
   text: {
-    marginTop: '40px',
-    fontSize: '24px',
+    marginTop: '48px',
+    fontSize: '28px',
     color: '#0F172A',
     fontWeight: '700',
-    letterSpacing: '0.5px',
+    letterSpacing: '0.6px',
   },
   subtitle: {
-    marginTop: '12px',
-    fontSize: '16px',
+    marginTop: '14px',
+    fontSize: '18px',
     color: '#64748b',
     fontWeight: '500',
   },
@@ -61,7 +57,7 @@ export function LottieLoadingScreen({
       ...styles.container,
       background: isDarkMode 
         ? 'linear-gradient(135deg, #0f172a, #1e293b, #0f172a)' 
-        : '#ffffff',
+        : '#f5f7fb',
     },
     text: {
       ...styles.text,
@@ -93,21 +89,21 @@ export function LottieLoadingScreen({
       <div style={styles.animationContainer}>
         {showFallback ? (
           <div className="lottie-fallback" style={{
-            width: '120px',
-            height: '120px',
+            width: '180px',
+            height: '180px',
             borderRadius: '50%',
-            border: `4px solid ${isDarkMode ? '#2563EB' : '#2563EB'}`,
+            border: `6px solid ${isDarkMode ? '#2563EB' : '#2563EB'}`,
             borderTopColor: 'transparent',
             animation: 'spin 1.4s linear infinite',
             position: 'absolute'
           }} />
         ) : (
-          <dotlottie-wc 
-            src="https://lottie.host/81140687-10bf-41f4-89b7-885956971bf9/2eKCsYt0cc.lottie" 
-            style={{ width: '300px', height: '300px' }} 
-            autoplay 
-            loop
-          ></dotlottie-wc>
+          React.createElement('dotlottie-wc' as any, {
+            src: "https://lottie.host/81140687-10bf-41f4-89b7-885956971bf9/2eKCsYt0cc.lottie",
+            style: { width: '100%', height: '100%' },
+            autoplay: true,
+            loop: true
+          })
         )}
       </div>
 

@@ -54,45 +54,9 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({
     );
   }
 
-  let displayData = data;
-  let isDummyData = false;
-
-  if (!data || data.length === 0) {
-    // Inject seed/sample data strictly mapped matching specific period structures for UI feedback testing empty states
-    isDummyData = true;
-    
-    if (period === 'today') {
-      displayData = [
-        { label: '08:00', value: 1200 }, { label: '10:00', value: 3400 },
-        { label: '12:00', value: 5500 }, { label: '14:00', value: 4200 },
-        { label: '16:00', value: 8900 }, { label: '18:00', value: 6500 }
-      ];
-    } else if (period === 'monthly') {
-      displayData = [
-        { label: 'Week 1', value: 42000 }, { label: 'Week 2', value: 55000 },
-        { label: 'Week 3', value: 38000 }, { label: 'Week 4', value: 61000 }
-      ];
-    } else if (period === 'yearly') {
-      displayData = [
-        { label: 'Jan', value: 120000 }, { label: 'Feb', value: 135000 },
-        { label: 'Mar', value: 155000 }, { label: 'Apr', value: 142000 },
-        { label: 'May', value: 180000 }, { label: 'Jun', value: 195000 },
-        { label: 'Jul', value: 210000 }, { label: 'Aug', value: 220000 },
-        { label: 'Sep', value: 205000 }, { label: 'Oct', value: 245000 },
-        { label: 'Nov', value: 260000 }, { label: 'Dec', value: 280000 }
-      ];
-    } else {
-       // Custom or Weekly
-       displayData = [
-         { label: 'Mon', value: 12000 }, { label: 'Tue', value: 25000 },
-         { label: 'Wed', value: 18000 }, { label: 'Thu', value: 34000 },
-         { label: 'Fri', value: 28000 }, { label: 'Sat', value: 42000 },
-         { label: 'Sun', value: 38000 }
-       ];
-    }
-  }
-
   const renderChart = () => {
+    const displayData = data || [];
+    
     switch (chartType) {
       case 'bar':
         return (
@@ -185,12 +149,6 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({
         <div className="mb-2 flex items-center justify-center gap-2 text-[10px] text-orange-500 bg-orange-500/5 py-1 px-3 rounded-full w-fit mx-auto">
           <AlertCircle className="w-3 h-3" />
           {error}
-        </div>
-      )}
-      {isDummyData && (
-        <div className="mb-2 flex items-center justify-center gap-2 text-[10px] text-blue-500 bg-blue-500/10 py-1.5 px-4 rounded-full w-fit mx-auto border border-blue-500/20 shadow-sm backdrop-blur-sm">
-          <TrendingUp className="w-3.5 h-3.5" />
-          <span className="font-semibold tracking-wide">NO LIVE REVENUE DATA • DISPLAYING SAMPLE PREVIEW</span>
         </div>
       )}
       {renderChart()}
